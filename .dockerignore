@@ -1,0 +1,52 @@
+# Keep the Docker build context small and free of local/runtime artifacts.
+# The image installs its own dependencies (bun install) and builds fresh.
+
+node_modules
+.next
+.git
+.env
+.env.local
+server.log
+dev.log
+dev.out.log
+dev.pid
+*.log
+*.tsbuildinfo
+
+# runtime database — NEVER ship the dev database (private data);
+# db/catalog-seed.db (public demo catalog, zero users) IS shipped.
+db/custom.db
+db/custom.db-journal
+db/custom.db-wal
+db/custom.db-shm
+db/*.db-journal
+db/*.db-wal
+db/*.db-shm
+prisma-cli-dist
+
+# uploads: user-generated runtime content only — the demo catalog assets
+# (public/uploads/sliders + public/uploads/showcase) MUST stay in the
+# context: they are baked into the image so a freshly created taj_uploads
+# volume inherits them on first mount (Docker volume copy-up).
+public/uploads/receipts
+public/uploads/avatars
+public/uploads/misc
+backups
+
+# sandbox / dev-only folders
+download
+examples
+skills
+tests
+tool-results
+.zscripts
+mini-services
+Caddyfile
+worklog.md
+agent-ctx
+
+# v30 · GitHub distribution artifacts (never part of the image build)
+updates
+backups
+update.sh.new
+README.md

@@ -1,0 +1,45 @@
+# ───────── TAJ Electronics — Production Compose (v12) ─────────
+# Pinned project name → predictable volume names (taj-electronics_taj_db,
+# taj-electronics_taj_uploads) used by backup.sh regardless of the folder name.
+name: taj-electronics
+
+services:
+  app:
+    build: .
+    container_name: taj-electronics
+    restart: unless-stopped
+    ports:
+      # internal app port 3000 — put Nginx/Caddy with TLS in front for domains
+      - "3000:3000"
+    environment:
+      # SQLite lives on the persistent taj_db volume (absolute in-container path).
+      # The entrypoint seeds the catalog on first boot and runs prisma db push
+      # (non-destructive) before `node server.js` starts.
+      DATABASE_URL: file:/app/db/custom.db
+      NODE_ENV: production
+      # AUTH_SECRET is REQUIRED — install.sh generates it into .env.
+      # Compose interpolates .env automatically from the project directory.
+      AUTH_SECRET: ${AUTH_SECRET:?AUTH_SECRET is missing — run ./install.sh (it creates .env)}
+      NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-http://localhost:3000}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      ZARINPAL_MERCHANT_ID: ${ZARINPAL_MERCHANT_ID:-}
+    volumes:
+      # persistent data — survives `docker compose down`, recreation and rebuilds.
+      # On FIRST mount Docker copies the image's demo catalog assets
+      # (public/uploads/sliders + showcase) into the volume; afterwards the
+      # volume is the single source of truth for uploaded files.
+      - taj_db:/app/db
+      - taj_uploads:/app/public/uploads
+    healthcheck:
+      # node is guaranteed to exist in the runtime image (curl is not installed);
+      # checks the real application endpoint, not just the process.
+      # 60s start_period: first boot installs the catalog seed + db push.
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+volumes:
+  taj_db:
+  taj_uploads:

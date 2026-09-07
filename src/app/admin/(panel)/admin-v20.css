@@ -1,0 +1,507 @@
+/* ═══════════════════════════════════════════════════════════════════
+   TAJ Electronics — Admin design system
+   v20 «FINNOVA» → v23 «ZYWRA» — exact match of the “Invoice
+   Management SaaS Dashboard | Zywra Studio” reference, in BOTH light
+   and dark mode. Indigo/violet is INTENTIONAL here — the store owner
+   demanded this exact look (admin-only; the storefront keeps its own
+   palette, this file never leaks outside /admin).
+
+   Layering rules (nothing here can touch the storefront):
+   • html[data-admin-theme="finnova"]   → ZYWRA LIGHT  (the default)
+   • html[data-admin-theme="saas-dark"] → ZYWRA DARK   (doubled
+     attribute selector → (0,2,1) always outranks the older v17 block
+     in globals.css, regardless of bundle order)
+   • .zy-* classes                      → Zywra widgets (sidebar, top
+     bar, segmented controls, stat cards…). They read --zy-* vars and
+     fall back to the theme-neutral shadcn vars, so the 3 legacy v17
+     themes (excel-dark/light, saas-light) keep rendering coherently.
+   • .admin-v20 …                        → structural restyles scoped to
+     the admin shell wrapper (cards, tables, radii, zebra rows).
+   Radii contract in the two Zywra blocks (--radius: 12px):
+     rounded-md = 10px (buttons/inputs) · rounded-lg = 12px (cards)
+     rounded-xl = 16px (stat cards / main containers).
+   Persian note: the reference's uppercase/letter-spacing on labels is
+   intentionally dropped — Arabic script must keep its letter joining.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── 1 · ZYWRA LIGHT (default theme id “finnova”) ────────────────── */
+html[data-admin-theme="finnova"] {
+  --radius: 0.75rem; /* md=10px buttons · lg=12px cards · xl=16px stats */
+  --background: #f8fafc; /* slate-50 */
+  --foreground: #0f172a; /* slate-900 */
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --popover: #ffffff;
+  --popover-foreground: #0f172a;
+  --primary: #4f46e5; /* indigo-600 */
+  --primary-foreground: #ffffff;
+  --secondary: #f1f5f9; /* slate-100 */
+  --secondary-foreground: #0f172a;
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b; /* slate-500 */
+  --accent: #eef2ff; /* indigo-50 */
+  --accent-foreground: #4f46e5;
+  --destructive: #dc2626; /* red-600 */
+  --border: #e2e8f0; /* slate-200 */
+  --input: #e2e8f0;
+  --ring: #4f46e5;
+  --chart-1: #6366f1; /* indigo-500 */
+  --chart-2: #8b5cf6; /* violet-500 */
+  --chart-3: #06b6d4; /* cyan-500 */
+  --chart-4: #a78bfa; /* violet-400 */
+  --chart-5: #10b981; /* emerald-500 */
+  --sidebar: #ffffff;
+  --sidebar-foreground: #0f172a;
+  --sidebar-primary: #4f46e5;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #eef2ff;
+  --sidebar-accent-foreground: #4f46e5;
+  --sidebar-border: #e2e8f0;
+  --sidebar-ring: #4f46e5;
+  /* legacy KPI widgets stay coherent (flat indigo tints) */
+  --kpi-1-bg: #eef2ff;
+  --kpi-1-fg: #312e81;
+  --kpi-1-icon: #4f46e5;
+  --kpi-1-chip: #4f46e5;
+  --kpi-1-chip-fg: #ffffff;
+  --kpi-2-bg: #eef2ff;
+  --kpi-2-fg: #312e81;
+  --kpi-2-icon: #6366f1;
+  --kpi-2-chip: #6366f1;
+  --kpi-2-chip-fg: #ffffff;
+  --kpi-3-bg: #f5f3ff;
+  --kpi-3-fg: #4c1d95;
+  --kpi-3-icon: #8b5cf6;
+  --kpi-3-chip: #8b5cf6;
+  --kpi-3-chip-fg: #ffffff;
+  --kpi-border: #e2e8f0;
+  /* shell extras */
+  --av-topbar-border: #e2e8f0;
+  --av-row-hover: #f8fafc; /* zebra on hover — slate-50 */
+  --zy-card-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+  /* sidebar */
+  --zy-label: #94a3b8; /* slate-400 */
+  --zy-nav-fg: #64748b; /* slate-500 */
+  --zy-nav-hover-bg: #f1f5f9; /* slate-100 */
+  --zy-nav-hover-fg: #0f172a;
+  --zy-nav-active-bg: #eef2ff; /* indigo-50 */
+  --zy-nav-active-fg: #4f46e5; /* indigo-600 */
+  --zy-nav-active-border: #4f46e5;
+  --zy-nav-icon-chip: rgba(79, 70, 229, 0.1);
+  --zy-nav-glow: 0 1px 2px rgba(79, 70, 229, 0.08);
+  --zy-profile-bg: #f8fafc; /* slate-50 */
+  /* segmented controls + pill tabs */
+  --zy-seg-bg: #f1f5f9; /* slate-100 */
+  --zy-seg-active-bg: #ffffff;
+  --zy-seg-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
+  --zy-pill-active-bg: #0f172a; /* slate-900 */
+  --zy-pill-active-fg: #ffffff;
+  --zy-primary-hover: #4338ca; /* indigo-700 */
+  /* tinted icon squares + trend pills */
+  --zy-tint-indigo-bg: #eef2ff;
+  --zy-tint-indigo-fg: #4f46e5;
+  --zy-tint-red-bg: #fef2f2;
+  --zy-tint-red-fg: #dc2626;
+  --zy-tint-cyan-bg: #ecfeff;
+  --zy-tint-cyan-fg: #0891b2;
+  --zy-tint-emerald-bg: #ecfdf5;
+  --zy-tint-emerald-fg: #059669;
+  --zy-trend-up-bg: #ecfdf5;
+  --zy-trend-up-fg: #059669;
+  --zy-trend-down-bg: #fef2f2;
+  --zy-trend-down-fg: #dc2626;
+}
+
+/* ── 2 · ZYWRA DARK (theme id “saas-dark”, re-skinned) ───────────── */
+html[data-admin-theme="saas-dark"][data-admin-theme] {
+  --radius: 0.75rem;
+  --background: #0f172a; /* slate-900 */
+  --foreground: #f8fafc;
+  --card: #1e293b; /* slate-800 */
+  --card-foreground: #f8fafc;
+  --popover: #1e293b;
+  --popover-foreground: #f8fafc;
+  --primary: #6366f1; /* indigo-500 */
+  --primary-foreground: #ffffff;
+  --secondary: #334155; /* slate-700 — elevated */
+  --secondary-foreground: #f8fafc;
+  --muted: #334155;
+  --muted-foreground: #94a3b8; /* slate-400 */
+  --accent: #312e81; /* indigo-900 — active bg */
+  --accent-foreground: #e0e7ff;
+  --destructive: #f87171; /* red-400 */
+  --border: #334155; /* slate-700 */
+  --input: #334155;
+  --ring: #818cf8; /* indigo-400 */
+  --chart-1: #818cf8; /* indigo-400 */
+  --chart-2: #a78bfa;
+  --chart-3: #22d3ee; /* cyan-400 */
+  --chart-4: #c4b5fd;
+  --chart-5: #34d399; /* emerald-400 */
+  --sidebar: #1e293b;
+  --sidebar-foreground: #f8fafc;
+  --sidebar-primary: #6366f1;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #312e81;
+  --sidebar-accent-foreground: #c7d2fe;
+  --sidebar-border: #334155;
+  --sidebar-ring: #818cf8;
+  --kpi-1-bg: #312e81;
+  --kpi-1-fg: #e0e7ff;
+  --kpi-1-icon: #6366f1;
+  --kpi-1-chip: #6366f1;
+  --kpi-1-chip-fg: #ffffff;
+  --kpi-2-bg: #312e81;
+  --kpi-2-fg: #e0e7ff;
+  --kpi-2-icon: #818cf8;
+  --kpi-2-chip: #818cf8;
+  --kpi-2-chip-fg: #0f172a;
+  --kpi-3-bg: #2e1065;
+  --kpi-3-fg: #ede9fe;
+  --kpi-3-icon: #a78bfa;
+  --kpi-3-chip: #a78bfa;
+  --kpi-3-chip-fg: #0f172a;
+  --kpi-border: #334155;
+  --av-topbar-border: #334155;
+  --av-row-hover: rgba(51, 65, 85, 0.4);
+  --zy-card-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --zy-label: #64748b; /* slate-500 — visible on slate-800 */
+  --zy-nav-fg: #94a3b8;
+  --zy-nav-hover-bg: rgba(51, 65, 85, 0.55);
+  --zy-nav-hover-fg: #f8fafc;
+  --zy-nav-active-bg: #312e81; /* indigo-900 */
+  --zy-nav-active-fg: #c7d2fe; /* indigo-200 */
+  --zy-nav-active-border: #6366f1;
+  --zy-nav-icon-chip: rgba(99, 102, 241, 0.3);
+  --zy-nav-glow: 0 0 0 1px rgba(99, 102, 241, 0.25),
+    0 8px 24px -10px rgba(99, 102, 241, 0.45);
+  --zy-profile-bg: #0f172a; /* recessed vs the slate-800 sidebar */
+  --zy-seg-bg: #0f172a;
+  --zy-seg-active-bg: #334155;
+  --zy-seg-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
+  --zy-pill-active-bg: #ffffff;
+  --zy-pill-active-fg: #0f172a;
+  --zy-primary-hover: #4f46e5;
+  --zy-tint-indigo-bg: rgba(99, 102, 241, 0.16);
+  --zy-tint-indigo-fg: #a5b4fc;
+  --zy-tint-red-bg: rgba(239, 68, 68, 0.16);
+  --zy-tint-red-fg: #fca5a5;
+  --zy-tint-cyan-bg: rgba(6, 182, 212, 0.14);
+  --zy-tint-cyan-fg: #67e8f9;
+  --zy-tint-emerald-bg: rgba(16, 185, 129, 0.16);
+  --zy-tint-emerald-fg: #6ee7b7;
+  --zy-trend-up-bg: rgba(16, 185, 129, 0.16);
+  --zy-trend-up-fg: #34d399;
+  --zy-trend-down-bg: rgba(239, 68, 68, 0.16);
+  --zy-trend-down-fg: #f87171;
+}
+
+/* ── 3 · Structural restyles (scoped to the .admin-v20 shell) ────── */
+
+/* top bar hairline */
+.admin-v20 .admin-topbar {
+  border-bottom-color: var(--av-topbar-border, var(--border));
+}
+
+/* cards → 12px radius + hairline border + whisper shadow */
+.admin-v20 [data-slot="card"] {
+  border-radius: var(--radius-lg, var(--radius));
+  border-color: var(--border);
+  box-shadow: var(--zy-card-shadow, 0 1px 2px rgba(15, 23, 42, 0.05));
+}
+
+/* tables: 12px/500 headers, 48px rows, zebra on hover —
+   covers shadcn <Table> (data-slot) and raw <table> widgets */
+.admin-v20 [data-slot="table"] thead th,
+.admin-v20 table thead th {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted-foreground);
+  text-transform: uppercase; /* no-op on Persian, matches reference */
+  padding-block: 0.75rem;
+}
+.admin-v20 [data-slot="table"] tbody [data-slot="table-row"],
+.admin-v20 table tbody tr {
+  height: 48px; /* acts as a minimum */
+}
+.admin-v20 [data-slot="table"] tbody [data-slot="table-row"]:hover,
+.admin-v20 table tbody tr:hover {
+  background-color: var(--av-row-hover, var(--muted));
+}
+.admin-v20 table tbody tr:last-child,
+.admin-v20 table thead tr,
+.admin-v20 [data-slot="table"] thead tr {
+  border-color: var(--border);
+}
+
+/* focus ring parity for custom nav buttons (visible on keyboard) */
+.zy-nav-link:focus-visible,
+.zy-segment-btn:focus-visible,
+.zy-tab:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* ── 4 · Zywra sidebar widgets ───────────────────────────────────── */
+
+.zy-sidebar {
+  background: var(--sidebar, var(--card));
+  border-inline-end: 1px solid var(--sidebar-border, var(--border));
+}
+
+/* section label: 11px slate-400, 16/20/8 rhythm (display is left to the
+   utilities — the rail hides labels below lg via hidden/lg:block) */
+.zy-nav-label {
+  padding: 1rem 1.25rem 0.5rem;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--zy-label, var(--muted-foreground));
+}
+
+/* 44px nav items, 10px radius, 3px START-side border when active
+   (logical property → right edge in RTL, left edge in LTR) */
+.zy-nav-link {
+  border-inline-start: 3px solid transparent; /* reserves the 3px */
+  color: var(--zy-nav-fg, var(--muted-foreground));
+}
+.zy-nav-link:hover {
+  background: var(--zy-nav-hover-bg, var(--muted));
+  color: var(--zy-nav-hover-fg, var(--foreground));
+}
+.zy-nav-link[data-active] {
+  background: var(--zy-nav-active-bg, var(--accent));
+  color: var(--zy-nav-active-fg, var(--accent-foreground));
+  border-inline-start-color: var(--zy-nav-active-border, var(--primary));
+  box-shadow: var(--zy-nav-glow, none);
+}
+
+/* icon chip: 32px rounded square, tinted only when active */
+.zy-nav-icon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  flex-shrink: 0;
+}
+.zy-nav-link[data-active] .zy-nav-icon {
+  background: var(--zy-nav-icon-chip, transparent);
+}
+
+/* bottom profile card: 12px radius, 36px avatar + 8px status dot */
+.zy-profile {
+  background: var(--zy-profile-bg, var(--muted));
+  border-radius: 12px;
+  transition: background-color 0.15s ease;
+}
+.zy-profile:hover {
+  background: var(--zy-nav-hover-bg, var(--muted));
+}
+.zy-avatar-dot {
+  box-shadow: 0 0 0 2px var(--zy-profile-bg, var(--muted));
+}
+
+/* ── 5 · Zywra controls (topbar + pages) ─────────────────────────── */
+
+/* segmented control (view-toggle / mode toggle): slate-100 well,
+   active segment card-colored + soft shadow */
+.zy-segment {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--zy-seg-bg, var(--muted));
+}
+.zy-segment-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 30px;
+  padding-inline: 13px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--muted-foreground);
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.zy-segment-btn:hover {
+  color: var(--foreground);
+}
+.zy-segment-btn[data-active] {
+  background: var(--zy-seg-active-bg, var(--card));
+  color: var(--foreground);
+  box-shadow: var(--zy-seg-shadow, 0 1px 3px rgba(15, 23, 42, 0.12));
+}
+
+/* pill tab row: active = slate-900/white (light) · white/slate-900 (dark) */
+.zy-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 32px;
+  padding-inline: 14px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--muted-foreground);
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease;
+}
+.zy-tab:hover {
+  background: var(--muted);
+  color: var(--foreground);
+}
+.zy-tab[data-active] {
+  background: var(--zy-pill-active-bg, var(--primary));
+  color: var(--zy-pill-active-fg, var(--primary-foreground));
+}
+
+/* indigo CTA: 10px radius, hover #4338CA (light) */
+.zy-cta {
+  border-radius: 10px;
+}
+.zy-cta:hover,
+.zy-cta:focus-visible:hover {
+  background: var(--zy-primary-hover, var(--primary));
+}
+
+/* ── 6 · Zywra stat cards ────────────────────────────────────────── */
+
+.zy-stat-card {
+  border-radius: 16px; /* main container radius */
+  border-color: var(--border);
+  box-shadow: var(--zy-card-shadow, 0 1px 2px rgba(15, 23, 42, 0.05));
+}
+
+/* 40×40 rounded-xl tinted icon squares (indigo/red/cyan/emerald) */
+.zy-tint-indigo {
+  background: var(--zy-tint-indigo-bg, #eef2ff);
+  color: var(--zy-tint-indigo-fg, var(--primary));
+}
+.zy-tint-red {
+  background: var(--zy-tint-red-bg, #fef2f2);
+  color: var(--zy-tint-red-fg, var(--destructive));
+}
+.zy-tint-cyan {
+  background: var(--zy-tint-cyan-bg, #ecfeff);
+  color: var(--zy-tint-cyan-fg, #0891b2);
+}
+.zy-tint-emerald {
+  background: var(--zy-tint-emerald-bg, #ecfdf5);
+  color: var(--zy-tint-emerald-fg, #059669);
+}
+
+/* 13px trend pill (emerald-50 / red-50 families) */
+.zy-trend {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+}
+.zy-trend-up {
+  background: var(--zy-trend-up-bg, #ecfdf5);
+  color: var(--zy-trend-up-fg, #059669);
+}
+.zy-trend-down {
+  background: var(--zy-trend-down-bg, #fef2f2);
+  color: var(--zy-trend-down-fg, #dc2626);
+}
+
+/* ── 7 · (kept from v20) hero + glass chips ──────────────────────── */
+.admin-hero-gradient {
+  position: relative;
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+}
+.admin-hero-gradient::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    560px circle at 12% 0%,
+    rgba(255, 255, 255, 0.14),
+    transparent 55%
+  );
+  pointer-events: none;
+}
+.admin-glass-chip {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* ── 8 · Login page motion (slow floating blobs + grid) ─────────── */
+.admin-login-grid {
+  background-image: linear-gradient(
+      rgba(255, 255, 255, 0.07) 1px,
+      transparent 1px
+    ),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.07) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: radial-gradient(
+    ellipse 90% 80% at 50% 40%,
+    #000 35%,
+    transparent 100%
+  );
+  -webkit-mask-image: radial-gradient(
+    ellipse 90% 80% at 50% 40%,
+    #000 35%,
+    transparent 100%
+  );
+}
+
+@keyframes admin-blob-a {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(-36px, 30px) scale(1.1);
+  }
+}
+@keyframes admin-blob-b {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(30px, -36px) scale(0.92);
+  }
+}
+@keyframes admin-blob-c {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  50% {
+    transform: translate(20px, 24px) rotate(8deg);
+  }
+}
+.admin-blob-a {
+  animation: admin-blob-a 16s ease-in-out infinite;
+}
+.admin-blob-b {
+  animation: admin-blob-b 20s ease-in-out infinite;
+}
+.admin-blob-c {
+  animation: admin-blob-c 24s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-blob-a,
+  .admin-blob-b,
+  .admin-blob-c {
+    animation: none;
+  }
+}

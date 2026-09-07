@@ -1,0 +1,2445 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: "Vazirmatn", "Segoe UI", Tahoma, ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, monospace;
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-gold: var(--primary);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+/* v23 · VICE CITY palette (gaming-cyber template identity — GTA-VI vibe).
+   Static colors (not theme-var) so opacity modifiers work everywhere. */
+@theme {
+  --color-vice-lime: #bef264;
+  --color-vice-magenta: #e879f9;
+  --color-vice-sunset: #fb923c;
+  --color-vice-void: #14071f;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TAJ Electronics — Theme Engine
+   6 admin-selectable themes, each with professionally designed
+   light + dark modes. Themes are applied via [data-theme] on <html>
+   (server-injected from ThemeSettings) combined with .dark (next-themes).
+   Gold is the default/fallback. Never hardcode raw colors in
+   components — always use the tokens below.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Shared aliases — resolve dynamically for every theme */
+:root,
+[data-theme] {
+  --sidebar: var(--card);
+  --sidebar-foreground: var(--card-foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: var(--accent);
+  --sidebar-accent-foreground: var(--accent-foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
+}
+
+/* ───────────── Theme 1 · GOLD (default) — warm ivory & gold ───────────── */
+:root {
+  --radius: 0.75rem;
+  --background: oklch(0.975 0.008 85);
+  --foreground: oklch(0.21 0.012 55);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.21 0.012 55);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.21 0.012 55);
+  --primary: oklch(0.63 0.15 68);
+  --primary-foreground: oklch(0.99 0.005 85);
+  --secondary: oklch(0.94 0.01 80);
+  --secondary-foreground: oklch(0.3 0.02 60);
+  --muted: oklch(0.945 0.008 80);
+  --muted-foreground: oklch(0.5 0.015 60);
+  --accent: oklch(0.93 0.035 80);
+  --accent-foreground: oklch(0.3 0.04 60);
+  --destructive: oklch(0.58 0.22 25);
+  --border: oklch(0.9 0.012 80);
+  --input: oklch(0.9 0.012 80);
+  --ring: oklch(0.63 0.15 68);
+  --chart-1: oklch(0.63 0.15 68);
+  --chart-2: oklch(0.55 0.12 160);
+  --chart-3: oklch(0.68 0.15 40);
+  --chart-4: oklch(0.45 0.03 60);
+  --chart-5: oklch(0.6 0.18 145);
+  --hero-a: oklch(0.18 0.015 55);
+  --hero-b: oklch(0.23 0.02 60);
+}
+.dark {
+  --background: oklch(0.165 0.008 55);
+  --foreground: oklch(0.95 0.01 85);
+  --card: oklch(0.21 0.01 55);
+  --card-foreground: oklch(0.95 0.01 85);
+  --popover: oklch(0.21 0.01 55);
+  --popover-foreground: oklch(0.95 0.01 85);
+  --primary: oklch(0.76 0.16 75);
+  --primary-foreground: oklch(0.17 0.03 55);
+  --secondary: oklch(0.27 0.012 55);
+  --secondary-foreground: oklch(0.92 0.01 85);
+  --muted: oklch(0.26 0.01 55);
+  --muted-foreground: oklch(0.65 0.012 70);
+  --accent: oklch(0.3 0.03 65);
+  --accent-foreground: oklch(0.95 0.01 85);
+  --destructive: oklch(0.68 0.19 25);
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.76 0.16 75);
+  --chart-1: oklch(0.76 0.16 75);
+  --chart-2: oklch(0.65 0.13 160);
+  --chart-3: oklch(0.72 0.15 40);
+  --chart-4: oklch(0.6 0.03 60);
+  --chart-5: oklch(0.68 0.18 145);
+  --hero-a: oklch(0.16 0.015 55);
+  --hero-b: oklch(0.22 0.02 62);
+}
+
+/* ───────────── Theme 2 · EMERALD — fresh green & graphite ───────────── */
+[data-theme="emerald"] {
+  --background: oklch(0.974 0.007 162);
+  --foreground: oklch(0.22 0.02 162);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.22 0.02 162);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.22 0.02 162);
+  --primary: oklch(0.52 0.12 163);
+  --primary-foreground: oklch(0.99 0.004 160);
+  --secondary: oklch(0.94 0.012 162);
+  --secondary-foreground: oklch(0.28 0.03 162);
+  --muted: oklch(0.945 0.008 162);
+  --muted-foreground: oklch(0.5 0.02 160);
+  --accent: oklch(0.93 0.03 163);
+  --accent-foreground: oklch(0.28 0.05 163);
+  --destructive: oklch(0.58 0.22 25);
+  --border: oklch(0.9 0.015 162);
+  --input: oklch(0.9 0.015 162);
+  --ring: oklch(0.52 0.12 163);
+  --chart-1: oklch(0.52 0.12 163);
+  --chart-2: oklch(0.6 0.11 185);
+  --chart-3: oklch(0.72 0.14 75);
+  --chart-4: oklch(0.42 0.03 160);
+  --chart-5: oklch(0.58 0.13 145);
+  --hero-a: oklch(0.17 0.015 163);
+  --hero-b: oklch(0.23 0.025 165);
+}
+[data-theme="emerald"].dark {
+  --background: oklch(0.16 0.012 165);
+  --foreground: oklch(0.95 0.008 160);
+  --card: oklch(0.205 0.012 165);
+  --card-foreground: oklch(0.95 0.008 160);
+  --popover: oklch(0.205 0.012 165);
+  --popover-foreground: oklch(0.95 0.008 160);
+  --primary: oklch(0.72 0.15 163);
+  --primary-foreground: oklch(0.16 0.04 163);
+  --secondary: oklch(0.26 0.014 165);
+  --secondary-foreground: oklch(0.92 0.008 160);
+  --muted: oklch(0.25 0.012 165);
+  --muted-foreground: oklch(0.64 0.015 160);
+  --accent: oklch(0.29 0.04 165);
+  --accent-foreground: oklch(0.95 0.008 160);
+  --destructive: oklch(0.68 0.19 25);
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.72 0.15 163);
+  --chart-1: oklch(0.72 0.15 163);
+  --chart-2: oklch(0.65 0.12 185);
+  --chart-3: oklch(0.75 0.14 75);
+  --chart-4: oklch(0.6 0.02 160);
+  --chart-5: oklch(0.68 0.15 145);
+  --hero-a: oklch(0.15 0.015 165);
+  --hero-b: oklch(0.22 0.03 168);
+}
+
+/* ───────────── Theme 3 · CRIMSON — signature red & charcoal ───────────── */
+[data-theme="crimson"] {
+  --background: oklch(0.974 0.006 20);
+  --foreground: oklch(0.22 0.015 25);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.22 0.015 25);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.22 0.015 25);
+  --primary: oklch(0.52 0.19 25);
+  --primary-foreground: oklch(0.99 0.004 25);
+  --secondary: oklch(0.94 0.01 25);
+  --secondary-foreground: oklch(0.28 0.04 25);
+  --muted: oklch(0.945 0.007 25);
+  --muted-foreground: oklch(0.5 0.02 25);
+  --accent: oklch(0.93 0.025 25);
+  --accent-foreground: oklch(0.28 0.06 25);
+  --destructive: oklch(0.58 0.22 25);
+  --border: oklch(0.9 0.012 25);
+  --input: oklch(0.9 0.012 25);
+  --ring: oklch(0.52 0.19 25);
+  --chart-1: oklch(0.52 0.19 25);
+  --chart-2: oklch(0.62 0.15 45);
+  --chart-3: oklch(0.55 0.12 300);
+  --chart-4: oklch(0.42 0.03 30);
+  --chart-5: oklch(0.6 0.14 145);
+  --hero-a: oklch(0.18 0.015 25);
+  --hero-b: oklch(0.24 0.028 28);
+}
+[data-theme="crimson"].dark {
+  --background: oklch(0.16 0.01 25);
+  --foreground: oklch(0.95 0.008 25);
+  --card: oklch(0.205 0.012 25);
+  --card-foreground: oklch(0.95 0.008 25);
+  --popover: oklch(0.205 0.012 25);
+  --popover-foreground: oklch(0.95 0.008 25);
+  --primary: oklch(0.66 0.19 25);
+  --primary-foreground: oklch(0.15 0.04 25);
+  --secondary: oklch(0.26 0.014 25);
+  --secondary-foreground: oklch(0.92 0.008 25);
+  --muted: oklch(0.25 0.012 25);
+  --muted-foreground: oklch(0.64 0.015 25);
+  --accent: oklch(0.29 0.045 25);
+  --accent-foreground: oklch(0.95 0.008 25);
+  --destructive: oklch(0.68 0.19 25);
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.66 0.19 25);
+  --chart-1: oklch(0.66 0.19 25);
+  --chart-2: oklch(0.72 0.14 45);
+  --chart-3: oklch(0.68 0.12 300);
+  --chart-4: oklch(0.6 0.02 30);
+  --chart-5: oklch(0.68 0.14 145);
+  --hero-a: oklch(0.15 0.015 25);
+  --hero-b: oklch(0.23 0.03 30);
+}
+
+/* ───────────── Theme 4 · ELECTRIC — vivid blue & graphite ───────────── */
+[data-theme="electric"] {
+  --background: oklch(0.972 0.008 250);
+  --foreground: oklch(0.2 0.02 255);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.2 0.02 255);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.2 0.02 255);
+  --primary: oklch(0.5 0.19 255);
+  --primary-foreground: oklch(0.99 0.004 255);
+  --secondary: oklch(0.94 0.012 250);
+  --secondary-foreground: oklch(0.28 0.04 255);
+  --muted: oklch(0.943 0.009 250);
+  --muted-foreground: oklch(0.5 0.02 255);
+  --accent: oklch(0.93 0.03 250);
+  --accent-foreground: oklch(0.28 0.06 255);
+  --destructive: oklch(0.58 0.22 25);
+  --border: oklch(0.9 0.014 250);
+  --input: oklch(0.9 0.014 250);
+  --ring: oklch(0.5 0.19 255);
+  --chart-1: oklch(0.5 0.19 255);
+  --chart-2: oklch(0.6 0.13 185);
+  --chart-3: oklch(0.68 0.15 75);
+  --chart-4: oklch(0.42 0.04 265);
+  --chart-5: oklch(0.58 0.16 330);
+  --hero-a: oklch(0.16 0.018 255);
+  --hero-b: oklch(0.22 0.03 258);
+}
+[data-theme="electric"].dark {
+  --background: oklch(0.155 0.015 255);
+  --foreground: oklch(0.95 0.008 255);
+  --card: oklch(0.2 0.016 255);
+  --card-foreground: oklch(0.95 0.008 255);
+  --popover: oklch(0.2 0.016 255);
+  --popover-foreground: oklch(0.95 0.008 255);
+  --primary: oklch(0.68 0.17 255);
+  --primary-foreground: oklch(0.15 0.03 255);
+  --secondary: oklch(0.255 0.016 255);
+  --secondary-foreground: oklch(0.92 0.008 255);
+  --muted: oklch(0.245 0.015 255);
+  --muted-foreground: oklch(0.64 0.018 255);
+  --accent: oklch(0.28 0.05 255);
+  --accent-foreground: oklch(0.95 0.008 255);
+  --destructive: oklch(0.68 0.19 25);
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.68 0.17 255);
+  --chart-1: oklch(0.68 0.17 255);
+  --chart-2: oklch(0.65 0.12 185);
+  --chart-3: oklch(0.72 0.14 75);
+  --chart-4: oklch(0.62 0.05 265);
+  --chart-5: oklch(0.68 0.15 330);
+  --hero-a: oklch(0.145 0.018 255);
+  --hero-b: oklch(0.21 0.035 260);
+}
+
+/* ───────────── Theme 5 · ROYAL — royal purple & onyx ───────────── */
+[data-theme="royal"] {
+  --background: oklch(0.974 0.008 300);
+  --foreground: oklch(0.22 0.02 300);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.22 0.02 300);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.22 0.02 300);
+  --primary: oklch(0.48 0.19 300);
+  --primary-foreground: oklch(0.99 0.004 300);
+  --secondary: oklch(0.94 0.012 300);
+  --secondary-foreground: oklch(0.28 0.04 300);
+  --muted: oklch(0.945 0.009 300);
+  --muted-foreground: oklch(0.5 0.02 300);
+  --accent: oklch(0.93 0.03 300);
+  --accent-foreground: oklch(0.28 0.06 300);
+  --destructive: oklch(0.58 0.22 25);
+  --border: oklch(0.9 0.014 300);
+  --input: oklch(0.9 0.014 300);
+  --ring: oklch(0.48 0.19 300);
+  --chart-1: oklch(0.48 0.19 300);
+  --chart-2: oklch(0.6 0.14 330);
+  --chart-3: oklch(0.68 0.14 75);
+  --chart-4: oklch(0.45 0.04 280);
+  --chart-5: oklch(0.58 0.13 185);
+  --hero-a: oklch(0.17 0.02 300);
+  --hero-b: oklch(0.23 0.03 305);
+}
+[data-theme="royal"].dark {
+  --background: oklch(0.155 0.014 300);
+  --foreground: oklch(0.95 0.008 300);
+  --card: oklch(0.2 0.016 300);
+  --card-foreground: oklch(0.95 0.008 300);
+  --popover: oklch(0.2 0.016 300);
+  --popover-foreground: oklch(0.95 0.008 300);
+  --primary: oklch(0.68 0.17 300);
+  --primary-foreground: oklch(0.16 0.04 300);
+  --secondary: oklch(0.255 0.016 300);
+  --secondary-foreground: oklch(0.92 0.008 300);
+  --muted: oklch(0.245 0.015 300);
+  --muted-foreground: oklch(0.64 0.018 300);
+  --accent: oklch(0.28 0.05 300);
+  --accent-foreground: oklch(0.95 0.008 300);
+  --destructive: oklch(0.68 0.19 25);
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.68 0.17 300);
+  --chart-1: oklch(0.68 0.17 300);
+  --chart-2: oklch(0.7 0.14 330);
+  --chart-3: oklch(0.72 0.14 75);
+  --chart-4: oklch(0.62 0.05 280);
+  --chart-5: oklch(0.65 0.12 185);
+  --hero-a: oklch(0.145 0.018 300);
+  --hero-b: oklch(0.22 0.035 305);
+}
+
+/* ───────────── Theme 6 · NEUTRAL — minimal monochrome ───────────── */
+[data-theme="neutral"] {
+  --background: oklch(0.975 0.002 260);
+  --foreground: oklch(0.2 0.004 260);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.2 0.004 260);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.2 0.004 260);
+  --primary: oklch(0.24 0.008 260);
+  --primary-foreground: oklch(0.98 0.002 260);
+  --secondary: oklch(0.94 0.003 260);
+  --secondary-foreground: oklch(0.28 0.006 260);
+  --muted: oklch(0.945 0.003 260);
+  --muted-foreground: oklch(0.5 0.008 260);
+  --accent: oklch(0.93 0.004 260);
+  --accent-foreground: oklch(0.24 0.008 260);
+  --destructive: oklch(0.58 0.22 25);
+  --border: oklch(0.9 0.004 260);
+  --input: oklch(0.9 0.004 260);
+  --ring: oklch(0.24 0.008 260);
+  --chart-1: oklch(0.24 0.008 260);
+  --chart-2: oklch(0.55 0.01 260);
+  --chart-3: oklch(0.75 0.012 260);
+  --chart-4: oklch(0.4 0.012 260);
+  --chart-5: oklch(0.85 0.012 260);
+  --hero-a: oklch(0.16 0.004 260);
+  --hero-b: oklch(0.23 0.006 260);
+}
+[data-theme="neutral"].dark {
+  --background: oklch(0.14 0.004 260);
+  --foreground: oklch(0.95 0.003 260);
+  --card: oklch(0.185 0.005 260);
+  --card-foreground: oklch(0.95 0.003 260);
+  --popover: oklch(0.185 0.005 260);
+  --popover-foreground: oklch(0.95 0.003 260);
+  --primary: oklch(0.93 0.004 260);
+  --primary-foreground: oklch(0.16 0.004 260);
+  --secondary: oklch(0.24 0.005 260);
+  --secondary-foreground: oklch(0.92 0.003 260);
+  --muted: oklch(0.23 0.005 260);
+  --muted-foreground: oklch(0.64 0.008 260);
+  --accent: oklch(0.26 0.006 260);
+  --accent-foreground: oklch(0.95 0.003 260);
+  --destructive: oklch(0.68 0.19 25);
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.93 0.004 260);
+  --chart-1: oklch(0.93 0.004 260);
+  --chart-2: oklch(0.7 0.01 260);
+  --chart-3: oklch(0.5 0.012 260);
+  --chart-4: oklch(0.8 0.012 260);
+  --chart-5: oklch(0.4 0.012 260);
+  --hero-a: oklch(0.13 0.004 260);
+  --hero-b: oklch(0.2 0.006 260);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  /* NOTE: global smooth scrolling REMOVED on purpose. With
+     `scroll-behavior: smooth`, Next.js route changes animate from the OLD
+     scroll position, so a freshly opened page appears mid-scroll and can
+     stay there when the animation is interrupted (reported: "new page opens
+     in the middle"). Page navigation now scrolls instantly to the top via
+     <ScrollToTop> (src/components/store/scroll-to-top.tsx). Smooth scrolling
+     is still available where it belongs: use
+     `window.scrollTo({ behavior: "smooth" })` for in-page actions. */
+  html {
+    scroll-behavior: auto;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "ss01";
+  }
+}
+
+/* ───────────────────── TAJ brand utilities (theme-token driven) ───────────────────── */
+
+.brand-gradient-text {
+  background: linear-gradient(
+    135deg,
+    color-mix(in oklab, var(--primary) 72%, white) 0%,
+    var(--primary) 45%,
+    color-mix(in oklab, var(--primary) 68%, white) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+/* legacy alias — now token-driven */
+.gold-text {
+  background: linear-gradient(
+    135deg,
+    color-mix(in oklab, var(--primary) 72%, white) 0%,
+    var(--primary) 45%,
+    color-mix(in oklab, var(--primary) 68%, white) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.gold-surface {
+  background: linear-gradient(
+    135deg,
+    color-mix(in oklab, var(--primary) 90%, black) 0%,
+    var(--primary) 55%,
+    color-mix(in oklab, var(--primary) 82%, white) 100%
+  );
+}
+
+.glass {
+  background: color-mix(in oklab, var(--card) 72%, transparent);
+  backdrop-filter: blur(14px) saturate(1.3);
+  -webkit-backdrop-filter: blur(14px) saturate(1.3);
+  border: 1px solid color-mix(in oklab, var(--border) 80%, transparent);
+}
+
+.hero-mesh {
+  background:
+    radial-gradient(60% 90% at 80% 10%, color-mix(in oklab, var(--primary) 32%, transparent) 0%, transparent 60%),
+    radial-gradient(50% 80% at 15% 90%, color-mix(in oklab, var(--primary) 55%, black) 0%, transparent 55%),
+    linear-gradient(160deg, var(--hero-a) 0%, var(--hero-b) 100%);
+}
+
+.card-hover {
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.35s ease, border-color 0.3s ease;
+}
+.card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 18px 40px -18px color-mix(in oklab, var(--primary) 35%, transparent);
+}
+
+/* Instagram-style story ring */
+.story-ring {
+  background: conic-gradient(
+    from 210deg,
+    var(--primary),
+    color-mix(in oklab, var(--primary) 45%, white),
+    color-mix(in oklab, var(--primary) 40%, black),
+    var(--primary)
+  );
+}
+.story-ring:hover {
+  filter: saturate(1.25) brightness(1.05);
+}
+
+/* custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: color-mix(in oklab, var(--muted-foreground) 35%, transparent);
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in oklab, var(--muted-foreground) 55%, transparent);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* typing dots */
+@keyframes taj-typing {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30% { transform: translateY(-4px); opacity: 1; }
+}
+.typing-dot {
+  animation: taj-typing 1.2s infinite;
+}
+.typing-dot:nth-child(2) { animation-delay: 0.15s; }
+.typing-dot:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes taj-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+.shimmer {
+  background: linear-gradient(90deg, var(--muted) 25%, var(--accent) 50%, var(--muted) 75%);
+  background-size: 200% 100%;
+  animation: taj-shimmer 1.8s infinite;
+}
+
+/* price strikethrough */
+.price-old {
+  text-decoration: line-through;
+  text-decoration-color: var(--destructive);
+  text-decoration-thickness: 1.5px;
+}
+
+/* ═══════════════════ Motion library (GPU-friendly, subtle) ═══════════════════ */
+
+@keyframes taj-rise {
+  from { opacity: 0; transform: translate3d(0, 18px, 0); }
+  to { opacity: 1; transform: none; }
+}
+.animate-rise {
+  animation: taj-rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes taj-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.animate-fade {
+  animation: taj-fade 0.4s ease both;
+}
+
+@keyframes taj-pop {
+  0% { opacity: 0; transform: scale(0.92); }
+  60% { transform: scale(1.02); }
+  100% { opacity: 1; transform: scale(1); }
+}
+.animate-pop {
+  animation: taj-pop 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes taj-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+.animate-float {
+  animation: taj-float 5s ease-in-out infinite;
+}
+
+/* v15 exclusive showcase — continuous 3D product swing while the card is
+   hovered (the "نمای سه‌بعدی" affordance). The keyframes carry the media
+   layer's translateZ depth, so the product keeps floating above the card
+   while it turns. Activated via .group:hover (Tailwind group) and fully
+   disabled under prefers-reduced-motion. */
+@keyframes taj-exclusive-swing {
+  0%, 100% { transform: translateZ(34px) rotateY(-7deg) translateY(0); }
+  50% { transform: translateZ(46px) rotateY(7deg) translateY(-7px); }
+}
+.group:hover .exclusive-media-swing {
+  animation: taj-exclusive-swing 4.5s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .group:hover .exclusive-media-swing {
+    animation: none;
+  }
+}
+
+@keyframes taj-kenburns {
+  0% { transform: scale(1) translate3d(0, 0, 0); }
+  100% { transform: scale(1.08) translate3d(1.5%, -1%, 0); }
+}
+.animate-kenburns {
+  animation: taj-kenburns 12s ease-out both;
+}
+
+@keyframes taj-pulse-ring {
+  0% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--primary) 45%, transparent); }
+  70% { box-shadow: 0 0 0 10px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+.animate-pulse-ring {
+  animation: taj-pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes taj-marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(50%); }
+}
+
+@keyframes taj-badge-pop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.35); }
+  100% { transform: scale(1); }
+}
+.animate-badge-pop {
+  animation: taj-badge-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes taj-heart-pop {
+  0% { transform: scale(1); }
+  45% { transform: scale(1.45); }
+  100% { transform: scale(1); }
+}
+.animate-heart-pop {
+  animation: taj-heart-pop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes taj-progress {
+  from { width: 0%; }
+  to { width: 100%; }
+}
+
+@keyframes taj-glow {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+.animate-glow {
+  animation: taj-glow 3s ease-in-out infinite;
+}
+
+/* Scroll-reveal (progressive enhancement — JS adds .is-visible) */
+.reveal-item {
+  opacity: 0;
+  transform: translate3d(0, 22px, 0);
+  transition: opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1), transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+}
+.reveal-item.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* Image zoom on hover (product media) */
+.zoom-media img,
+.zoom-media .zoom-target {
+  transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.zoom-media:hover img,
+.zoom-media:hover .zoom-target {
+  transform: scale(1.06);
+}
+
+/* Story progress bars */
+.story-progress {
+  align-items: center;
+}
+.story-progress span {
+  display: block;
+  /* v19 FIX: explicit bar height — `height:100%` resolved against an
+     auto-height flex parent collapsed to 0px and made the bars invisible */
+  height: 3.5px;
+  border-radius: 99px;
+  background: oklch(1 0 0 / 35%);
+  overflow: hidden;
+  position: relative;
+  flex: 1;
+}
+.story-progress span::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: white;
+  transform-origin: left;
+  transform: scaleX(0);
+}
+.story-progress span.is-done::after {
+  transform: scaleX(1);
+  transition: none;
+}
+.story-progress span.is-active::after {
+  animation: taj-progress-fill var(--story-duration, 5s) linear forwards;
+}
+@keyframes taj-progress-fill {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+/* Focus visibility for keyboard users */
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* ───────── Reduced motion — accessibility (MANDATORY) ───────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .reveal-item {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  .animate-kenburns,
+  .animate-float,
+  .animate-glow,
+  .shimmer {
+    animation: none !important;
+  }
+}
+
+/* ═══ TEMPLATE ART DIRECTION (agent 5-b) ═══ */
+/* Shared motion vocabulary for the 9 storefront templates (spec §19).
+   Token-driven only (var(--primary)/var(--destructive)/theme vars) so every
+   effect composes with all 6 color themes × light/dark. The global
+   prefers-reduced-motion block above already neutralizes these animations
+   (duration → 0.01ms) — keyframes are authored so their RESTING state is a
+   valid, static composition. All animations are transform/opacity only. */
+
+/* ── Snow (christmas) — ≤24 dots, base state hides above the stage ── */
+@keyframes taj-snow-fall {
+  0%   { transform: translate3d(0, -6vh, 0); opacity: 0; }
+  8%   { opacity: var(--t-o, 0.9); }
+  90%  { opacity: var(--t-o, 0.9); }
+  100% { transform: translate3d(var(--t-drift, 24px), 106vh, 0); opacity: 0; }
+}
+.taj-snow {
+  position: absolute;
+  top: 0;
+  border-radius: 999px;
+  background: oklch(0.99 0 0);
+  box-shadow: 0 0 6px oklch(0.99 0 0 / 55%);
+  pointer-events: none;
+  animation: taj-snow-fall var(--t-dur, 12s) linear infinite;
+  animation-delay: var(--t-delay, 0s);
+  will-change: transform, opacity;
+}
+
+/* ── Starfield twinkle (yalda-night) — ≤30 dots on a dark stage ── */
+@keyframes taj-twinkle {
+  0%, 100% { opacity: 0.3; transform: scale(0.8); }
+  50%      { opacity: 1;   transform: scale(1.12); }
+}
+.taj-star {
+  position: absolute;
+  border-radius: 999px;
+  background: oklch(0.99 0 0);
+  box-shadow: 0 0 8px 1px color-mix(in oklab, var(--primary) 50%, transparent);
+  pointer-events: none;
+  animation: taj-twinkle var(--t-dur, 3.6s) ease-in-out infinite;
+  animation-delay: var(--t-delay, 0s);
+  will-change: transform, opacity;
+}
+
+/* ── HUD scanlines + travelling beam (gaming-cyber) ── */
+.taj-scanlines {
+  background: repeating-linear-gradient(
+    to bottom,
+    color-mix(in oklab, var(--primary) 7%, transparent) 0px,
+    color-mix(in oklab, var(--primary) 7%, transparent) 1px,
+    transparent 1px,
+    transparent 5px
+  );
+}
+@keyframes taj-scan-y {
+  0%   { transform: translate3d(0, -140%, 0); }
+  100% { transform: translate3d(0, 460%, 0); }
+}
+.taj-scan-beam {
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 22%;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    color-mix(in oklab, var(--primary) 18%, transparent) 46%,
+    color-mix(in oklab, var(--primary) 26%, transparent) 50%,
+    transparent
+  );
+  pointer-events: none;
+  animation: taj-scan-y 5.5s linear infinite;
+  will-change: transform;
+}
+
+/* ── Marquee (future-3d brand wall) — seamless loop, hover pauses ── */
+/* DIRECTION MATTERS (v20 fix): the strip is `width: max-content` with its
+   content duplicated 2×, so a seamless loop must end exactly one copy-width
+   away from where a copy started.
+   - LTR: the strip's start edge is the LEFT of the viewport → animate to
+     translateX(-50%) (the 2nd copy slides into the 1st copy's place).
+   - RTL: the strip's start edge is the RIGHT of the viewport → animating
+     -50% pushes the whole strip off-screen (empty gap → hard restart,
+     exactly the "goes one direction then starts over" bug). The seamless
+     direction in RTL is +50%: the 2nd copy lands precisely where the 1st
+     copy sat, so the loop never shows a gap. */
+@keyframes taj-marquee-x {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(-50%, 0, 0); }
+}
+@keyframes taj-marquee-x-rtl {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(50%, 0, 0); }
+}
+.taj-marquee {
+  display: flex;
+  width: max-content;
+  animation: taj-marquee-x var(--t-dur, 30s) linear infinite;
+  will-change: transform;
+}
+[dir="rtl"] .taj-marquee {
+  animation-name: taj-marquee-x-rtl;
+}
+.taj-marquee:hover,
+.taj-marquee:focus-within {
+  animation-play-state: paused;
+}
+
+/* ── Glitch-on-hover (gaming showcase titles) ── */
+@keyframes taj-glitch {
+  0%, 100% { transform: none; text-shadow: none; }
+  12% { transform: translate3d(-3px, 1px, 0); text-shadow: 3px 0 color-mix(in oklab, var(--primary) 75%, transparent), -3px 0 color-mix(in oklab, var(--destructive) 75%, transparent); }
+  24% { transform: translate3d(2px, -1px, 0);  text-shadow: -2px 0 color-mix(in oklab, var(--primary) 75%, transparent), 2px 0 color-mix(in oklab, var(--destructive) 75%, transparent); }
+  36% { transform: translate3d(-1px, 2px, 0);  text-shadow: 2px 0 color-mix(in oklab, var(--primary) 75%, transparent), -2px 0 color-mix(in oklab, var(--destructive) 75%, transparent); }
+  48% { transform: none; text-shadow: none; }
+}
+.taj-glitch-hover:hover .taj-glitch-target,
+.taj-glitch-hover:focus-within .taj-glitch-target {
+  animation: taj-glitch 0.5s steps(2, jump-none) infinite;
+}
+
+/* ── Lantern breathing glow (yalda stories panel) ── */
+@keyframes taj-lantern {
+  0%, 100% { box-shadow: 0 0 20px 2px color-mix(in oklab, var(--primary) 30%, transparent), 0 0 44px 8px color-mix(in oklab, var(--primary) 14%, transparent); }
+  50%      { box-shadow: 0 0 32px 6px color-mix(in oklab, var(--primary) 55%, transparent), 0 0 64px 14px color-mix(in oklab, var(--primary) 26%, transparent); }
+}
+.taj-lantern {
+  animation: taj-lantern 4.6s ease-in-out infinite;
+  will-change: box-shadow;
+}
+
+/* ── Slow float orbs (future-3d hero) ── */
+@keyframes taj-float-slow {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50%      { transform: translate3d(0, -18px, 0) scale(1.05); }
+}
+.taj-float-slow {
+  animation: taj-float-slow var(--t-dur, 9s) ease-in-out infinite;
+  animation-delay: var(--t-delay, 0s);
+  will-change: transform;
+}
+
+/* ── Perspective grid floor (future-3d hero) — pans along its own plane ── */
+.taj-grid-plane {
+  background-image:
+    linear-gradient(to right,  color-mix(in oklab, var(--primary) 34%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in oklab, var(--primary) 34%, transparent) 1px, transparent 1px);
+  background-size: 46px 46px;
+}
+@keyframes taj-grid-pan {
+  from { transform: rotateX(62deg) translate3d(0, 0, 0); }
+  to   { transform: rotateX(62deg) translate3d(0, 46px, 0); }
+}
+.taj-grid-pan {
+  transform-origin: 50% 100%;
+  animation: taj-grid-pan 3.4s linear infinite;
+  will-change: transform;
+}
+
+/* ── Gentle hover lift for gift/tile cards (shared) ── */
+.taj-lift {
+  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.45s ease, border-color 0.3s ease;
+}
+.taj-lift:hover {
+  transform: translateY(-4px);
+}
+/* ═══ END TEMPLATE ART DIRECTION ═══ */
+
+/* ═══════════════════════════════════════════════════════════════════
+   TAJ Electronics — Admin Panel Theme Engine (v17)
+   4 photo-faithful themes for the ADMIN PANEL only.
+   Applied as [data-admin-theme] on <html> (set by the inline no-flash
+   script in app/admin/layout.tsx + kept in sync by AdminThemeSync /
+   AdminThemePicker). The attribute exists ONLY while browsing /admin
+   routes, so the storefront is never affected.
+   Selector specificity: html[data-admin-theme="…"] (0,1,1) deliberately
+   outranks :root / .dark / [data-theme] storefront rules (0,1,0).
+   ═══════════════════════════════════════════════════════════════════
+
+   Theme lineage (user reference photos, v17):
+   • excel-dark / excel-light ← «ms excel dashboard» photo:
+     deep charcoal surfaces, very rounded cards, vibrant gradient KPI
+     hero cards (cyan→green, yellow→peach, pink→red) + purple line art.
+   • saas-dark / saas-light ← «Crextio SaaS dark dashboard» photo:
+     navy/slate surfaces, royal-blue accents, flat bordered cards,
+     tinted icon chips, compact 12px radii. */
+
+/* ───────── Theme 1 · EXCEL DARK «داشبورد اکسل — تیره» ───────── */
+html[data-admin-theme="excel-dark"] {
+  --radius: 1.125rem;
+  --background: #131418;
+  --foreground: #f4f5f7;
+  --card: #1f2025;
+  --card-foreground: #f4f5f7;
+  --popover: #232429;
+  --popover-foreground: #f4f5f7;
+  --primary: #7b61ff;
+  --primary-foreground: #ffffff;
+  --secondary: #2a2b30;
+  --secondary-foreground: #f4f5f7;
+  --muted: #26272c;
+  --muted-foreground: #8a8d93;
+  --accent: #26272c;
+  --accent-foreground: #f4f5f7;
+  --destructive: #ff6b6b;
+  --border: rgba(255, 255, 255, 0.1);
+  --input: rgba(255, 255, 255, 0.14);
+  --ring: #7b61ff;
+  --chart-1: #7b61ff;
+  --chart-2: #00d084;
+  --chart-3: #f6d365;
+  --chart-4: #ff6b6b;
+  --chart-5: #22d3ee;
+  --sidebar: #0f1012;
+  --sidebar-foreground: #f4f5f7;
+  --sidebar-primary: #7b61ff;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #26272c;
+  --sidebar-accent-foreground: #f4f5f7;
+  --sidebar-border: rgba(255, 255, 255, 0.08);
+  --sidebar-ring: #7b61ff;
+  /* gradient hero KPI cards (photo 1) */
+  --kpi-1-bg: linear-gradient(135deg, #00c9ff 0%, #92fe9d 100%);
+  --kpi-1-fg: #ffffff;
+  --kpi-1-icon: #00c9ff;
+  --kpi-1-chip: rgba(255, 255, 255, 0.24);
+  --kpi-1-chip-fg: #ffffff;
+  --kpi-2-bg: linear-gradient(135deg, #f6d365 0%, #fda085 100%);
+  --kpi-2-fg: #ffffff;
+  --kpi-2-icon: #f6d365;
+  --kpi-2-chip: rgba(255, 255, 255, 0.26);
+  --kpi-2-chip-fg: #ffffff;
+  --kpi-3-bg: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  --kpi-3-fg: #ffffff;
+  --kpi-3-icon: #f093fb;
+  --kpi-3-chip: rgba(255, 255, 255, 0.24);
+  --kpi-3-chip-fg: #ffffff;
+  --kpi-border: rgba(255, 255, 255, 0);
+}
+
+/* ───────── Theme 2 · EXCEL LIGHT «داشبورد اکسل — روشن» ───────── */
+html[data-admin-theme="excel-light"] {
+  --radius: 1.125rem;
+  --background: #f2f3f7;
+  --foreground: #1a1b1e;
+  --card: #ffffff;
+  --card-foreground: #1a1b1e;
+  --popover: #ffffff;
+  --popover-foreground: #1a1b1e;
+  --primary: #7b61ff;
+  --primary-foreground: #ffffff;
+  --secondary: #eceef4;
+  --secondary-foreground: #2b2c31;
+  --muted: #eceef4;
+  --muted-foreground: #63666e;
+  --accent: #edecfb;
+  --accent-foreground: #3d3670;
+  --destructive: #e11d48;
+  --border: #e4e6ee;
+  --input: #e4e6ee;
+  --ring: #7b61ff;
+  --chart-1: #7b61ff;
+  --chart-2: #00b372;
+  --chart-3: #e8a23d;
+  --chart-4: #f5576c;
+  --chart-5: #0ea5e9;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #1a1b1e;
+  --sidebar-primary: #7b61ff;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #eceef4;
+  --sidebar-accent-foreground: #1a1b1e;
+  --sidebar-border: #e4e6ee;
+  --sidebar-ring: #7b61ff;
+  --kpi-1-bg: linear-gradient(135deg, #00c9ff 0%, #92fe9d 100%);
+  --kpi-1-fg: #ffffff;
+  --kpi-1-icon: #00c9ff;
+  --kpi-1-chip: rgba(255, 255, 255, 0.28);
+  --kpi-1-chip-fg: #ffffff;
+  --kpi-2-bg: linear-gradient(135deg, #f6d365 0%, #fda085 100%);
+  --kpi-2-fg: #ffffff;
+  --kpi-2-icon: #f6d365;
+  --kpi-2-chip: rgba(255, 255, 255, 0.3);
+  --kpi-2-chip-fg: #ffffff;
+  --kpi-3-bg: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  --kpi-3-fg: #ffffff;
+  --kpi-3-icon: #f093fb;
+  --kpi-3-chip: rgba(255, 255, 255, 0.28);
+  --kpi-3-chip-fg: #ffffff;
+  --kpi-border: rgba(255, 255, 255, 0);
+}
+
+/* ───────── Theme 3 · SAAS DARK «SaaS مدرن — تیره» (Crextio photo) ───────── */
+html[data-admin-theme="saas-dark"] {
+  --radius: 0.625rem;
+  --background: #0f172a;
+  --foreground: #f8fafc;
+  --card: #1e293b;
+  --card-foreground: #f8fafc;
+  --popover: #1e293b;
+  --popover-foreground: #f8fafc;
+  --primary: #2563eb;
+  --primary-foreground: #ffffff;
+  --secondary: #334155;
+  --secondary-foreground: #e2e8f0;
+  --muted: #26334a;
+  --muted-foreground: #94a3b8;
+  --accent: #26334a;
+  --accent-foreground: #f8fafc;
+  --destructive: #ef4444;
+  --border: rgba(51, 65, 85, 0.7);
+  --input: rgba(51, 65, 85, 0.55);
+  --ring: #2563eb;
+  --chart-1: #2563eb;
+  --chart-2: #10b981;
+  --chart-3: #8b5cf6;
+  --chart-4: #f59e0b;
+  --chart-5: #06b6d4;
+  --sidebar: #0b1120;
+  --sidebar-foreground: #f8fafc;
+  --sidebar-primary: #2563eb;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #1e293b;
+  --sidebar-accent-foreground: #f8fafc;
+  --sidebar-border: rgba(51, 65, 85, 0.6);
+  --sidebar-ring: #2563eb;
+  /* flat tinted hero KPI cards (photo 2 style) */
+  --kpi-1-bg: rgba(37, 99, 235, 0.14);
+  --kpi-1-fg: #f8fafc;
+  --kpi-1-icon: #3b82f6;
+  --kpi-1-chip: #2563eb;
+  --kpi-1-chip-fg: #ffffff;
+  --kpi-2-bg: rgba(16, 185, 129, 0.14);
+  --kpi-2-fg: #f8fafc;
+  --kpi-2-icon: #10b981;
+  --kpi-2-chip: #10b981;
+  --kpi-2-chip-fg: #ffffff;
+  --kpi-3-bg: rgba(139, 92, 246, 0.16);
+  --kpi-3-fg: #f8fafc;
+  --kpi-3-icon: #8b5cf6;
+  --kpi-3-chip: #8b5cf6;
+  --kpi-3-chip-fg: #ffffff;
+  --kpi-border: rgba(51, 65, 85, 0.7);
+}
+
+/* ───────── Theme 4 · SAAS LIGHT «SaaS مدرن — روشن» ───────── */
+html[data-admin-theme="saas-light"] {
+  --radius: 0.625rem;
+  --background: #f1f5f9;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --popover: #ffffff;
+  --popover-foreground: #0f172a;
+  --primary: #2563eb;
+  --primary-foreground: #ffffff;
+  --secondary: #f1f5f9;
+  --secondary-foreground: #1e293b;
+  --muted: #eef2f7;
+  --muted-foreground: #64748b;
+  --accent: #e8eefb;
+  --accent-foreground: #1e3a8a;
+  --destructive: #dc2626;
+  --border: #e2e8f0;
+  --input: #e2e8f0;
+  --ring: #2563eb;
+  --chart-1: #2563eb;
+  --chart-2: #059669;
+  --chart-3: #7c3aed;
+  --chart-4: #d97706;
+  --chart-5: #0891b2;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #0f172a;
+  --sidebar-primary: #2563eb;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f1f5f9;
+  --sidebar-accent-foreground: #0f172a;
+  --sidebar-border: #e2e8f0;
+  --sidebar-ring: #2563eb;
+  --kpi-1-bg: rgba(37, 99, 235, 0.09);
+  --kpi-1-fg: #0f172a;
+  --kpi-1-icon: #2563eb;
+  --kpi-1-chip: #2563eb;
+  --kpi-1-chip-fg: #ffffff;
+  --kpi-2-bg: rgba(5, 150, 105, 0.1);
+  --kpi-2-fg: #0f172a;
+  --kpi-2-icon: #059669;
+  --kpi-2-chip: #059669;
+  --kpi-2-chip-fg: #ffffff;
+  --kpi-3-bg: rgba(124, 58, 237, 0.09);
+  --kpi-3-fg: #0f172a;
+  --kpi-3-icon: #7c3aed;
+  --kpi-3-chip: #7c3aed;
+  --kpi-3-chip-fg: #ffffff;
+  --kpi-border: #e2e8f0;
+}
+
+/* ───────── Sidebar nav pills — photo-exact active/hover states ─────────
+   The JSX keeps its utility classes (bg-primary/12 …); these rules simply
+   outrank them (0,2,1 + attribute) inside themed admin routes. */
+html[data-admin-theme="excel-dark"] .admin-nav-link {
+  color: #8a8d93;
+}
+html[data-admin-theme="excel-dark"] .admin-nav-link:hover {
+  background: #191a1f;
+  color: #f4f5f7;
+}
+html[data-admin-theme="excel-dark"] .admin-nav-link[data-active] {
+  background: #252529;
+  color: #ffffff;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+html[data-admin-theme="saas-dark"] .admin-nav-link {
+  color: #94a3b8;
+}
+html[data-admin-theme="saas-dark"] .admin-nav-link:hover {
+  background: #1e293b;
+  color: #f8fafc;
+}
+html[data-admin-theme="saas-dark"] .admin-nav-link[data-active] {
+  background: #2563eb;
+  color: #ffffff;
+  box-shadow: 0 6px 16px -6px rgba(37, 99, 235, 0.55);
+}
+html[data-admin-theme="excel-light"] .admin-nav-link[data-active] {
+  background: rgba(123, 97, 255, 0.13);
+  color: #5b46d6;
+}
+html[data-admin-theme="saas-light"] .admin-nav-link[data-active] {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   TAJ Electronics — v18 TEMPLATE "ALIVE" KIT + TEMPLATE CHROME ENGINE
+   ------------------------------------------------------------------
+   1) Motion utilities for the 25 storefront templates (every template
+      gets moving elements so previews feel alive). Transform/opacity
+      only, token-driven, neutralized by the global
+      prefers-reduced-motion block above.
+   2) Chrome suppression: templates that render their OWN header/footer
+      (data-template-chrome marker on the template root) replace the
+      shared storefront chrome on the HOMEPAGE only. The :has() guard
+      keeps every other page (products/cart/checkout/…) on the standard
+      Header/Footer, and the default template (modern-tech, no marker)
+      is byte-identical to before.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── 1 · v18 motion library ─────────────────────────────────────────── */
+
+/* gentle infinite bob (product photos, floating chips) */
+@keyframes taj-bob {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50%      { transform: translate3d(0, -12px, 0); }
+}
+.taj-bob {
+  animation: taj-bob var(--t-dur, 6s) ease-in-out infinite;
+  animation-delay: var(--t-delay, 0s);
+  will-change: transform;
+}
+
+/* slow horizontal drift (decorative blobs, glows) */
+@keyframes taj-drift {
+  0%   { transform: translate3d(0, 0, 0) scale(1); }
+  50%  { transform: translate3d(6%, -4%, 0) scale(1.12); }
+  100% { transform: translate3d(0, 0, 0) scale(1); }
+}
+.taj-drift {
+  animation: taj-drift var(--t-dur, 16s) ease-in-out infinite;
+  animation-delay: var(--t-delay, 0s);
+  will-change: transform;
+}
+
+/* very slow rotation (rings, conic ornaments, seals) */
+@keyframes taj-spin-slow {
+  to { transform: rotate(360deg); }
+}
+.taj-spin-slow {
+  animation: taj-spin-slow var(--t-dur, 24s) linear infinite;
+  will-change: transform;
+}
+
+/* diagonal light sweep (CTA buttons, cards, price plates) */
+@keyframes taj-sweep {
+  0%   { transform: translate3d(-120%, 0, 0) rotate(12deg); }
+  100% { transform: translate3d(240%, 0, 0) rotate(12deg); }
+}
+.taj-shine {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.taj-shine::after {
+  content: "";
+  position: absolute;
+  top: -40%;
+  bottom: -40%;
+  inline-size: 34%;
+  inset-inline-start: 0;
+  background: linear-gradient(90deg, transparent, oklch(1 0 0 / 22%), transparent);
+  transform: translate3d(-120%, 0, 0) rotate(12deg);
+  pointer-events: none;
+  z-index: 1;
+}
+.taj-shine::after {
+  animation: taj-sweep var(--t-dur, 3.4s) ease-in-out infinite;
+  animation-delay: var(--t-delay, 0s);
+}
+.taj-shine:hover::after,
+.taj-shine:focus-within::after {
+  animation-play-state: running;
+}
+
+/* soft breathing scale (badges, feature plates) */
+@keyframes taj-breathe {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.035); }
+}
+.taj-breathe {
+  animation: taj-breathe var(--t-dur, 4.5s) ease-in-out infinite;
+  animation-delay: var(--t-delay, 0s);
+  will-change: transform;
+}
+
+/* neon flicker (night templates accents) */
+@keyframes taj-flicker {
+  0%, 100% { opacity: 1; }
+  8%  { opacity: 0.72; }
+  10% { opacity: 1; }
+  46% { opacity: 0.85; }
+  48% { opacity: 1; }
+  74% { opacity: 0.6; }
+  76% { opacity: 1; }
+}
+.taj-flicker {
+  animation: taj-flicker var(--t-dur, 7s) linear infinite;
+  animation-delay: var(--t-delay, 0s);
+}
+
+/* infinite alternate ken-burns (slider & banner photos) */
+@keyframes taj-kenburns-loop {
+  0%   { transform: scale(1) translate3d(0, 0, 0); }
+  100% { transform: scale(1.09) translate3d(1.6%, -1.2%, 0); }
+}
+.taj-kenburns-loop {
+  animation: taj-kenburns-loop var(--t-dur, 14s) ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+/* one-time slide-in entrances (hero columns, rails) */
+@keyframes taj-slide-start {
+  from { opacity: 0; transform: translate3d(-32px, 0, 0); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes taj-slide-end {
+  from { opacity: 0; transform: translate3d(32px, 0, 0); }
+  to   { opacity: 1; transform: none; }
+}
+.taj-slide-start { animation: taj-slide-start 0.7s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.taj-slide-end   { animation: taj-slide-end 0.7s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* staggered rise for card rows/grids — children fade up one after
+   another (delay caps at 10; later children share the 0.55s step) */
+.taj-stagger > * {
+  animation: taj-rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.taj-stagger > *:nth-child(1)  { animation-delay: 0.05s; }
+.taj-stagger > *:nth-child(2)  { animation-delay: 0.12s; }
+.taj-stagger > *:nth-child(3)  { animation-delay: 0.19s; }
+.taj-stagger > *:nth-child(4)  { animation-delay: 0.26s; }
+.taj-stagger > *:nth-child(5)  { animation-delay: 0.33s; }
+.taj-stagger > *:nth-child(6)  { animation-delay: 0.40s; }
+.taj-stagger > *:nth-child(7)  { animation-delay: 0.47s; }
+.taj-stagger > *:nth-child(8)  { animation-delay: 0.54s; }
+.taj-stagger > *:nth-child(9)  { animation-delay: 0.60s; }
+.taj-stagger > *:nth-child(10) { animation-delay: 0.66s; }
+
+/* reverse marquee (second direction for paired strips) */
+@keyframes taj-marquee-x-rev {
+  from { transform: translate3d(-50%, 0, 0); }
+  to   { transform: translate3d(0, 0, 0); }
+}
+/* v20 RTL mirror of the reverse marquee — same seamless-copy math as
+   taj-marquee-x-rtl, run in the opposite direction */
+@keyframes taj-marquee-x-rev-rtl {
+  from { transform: translate3d(50%, 0, 0); }
+  to   { transform: translate3d(0, 0, 0); }
+}
+.taj-marquee-rev {
+  display: flex;
+  width: max-content;
+  animation: taj-marquee-x-rev var(--t-dur, 30s) linear infinite;
+  will-change: transform;
+}
+[dir="rtl"] .taj-marquee-rev {
+  animation-name: taj-marquee-x-rev-rtl;
+}
+.taj-marquee-rev:hover,
+.taj-marquee-rev:focus-within {
+  animation-play-state: paused;
+}
+
+/* vertical wave for rows of tiles (each child sets --t-delay) */
+@keyframes taj-wave {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50%      { transform: translate3d(0, -10px, 0); }
+}
+.taj-wave {
+  animation: taj-wave var(--t-dur, 5s) ease-in-out infinite;
+  animation-delay: var(--t-delay, 0s);
+  will-change: transform;
+}
+
+/* v18 safety net — keep the new infinite utilities inside the
+   reduced-motion contract (belt & braces on top of the global block) */
+@media (prefers-reduced-motion: reduce) {
+  .taj-bob, .taj-drift, .taj-spin-slow, .taj-breathe, .taj-flicker,
+  .taj-kenburns-loop, .taj-wave, .taj-marquee-rev,
+  .taj-shine::after {
+    animation: none !important;
+  }
+  .taj-stagger > *,
+  .taj-slide-start, .taj-slide-end {
+    animation-duration: 0.01ms !important;
+  }
+}
+
+/* ── 2 · Template chrome engine (v18) ───────────────────────────────── */
+/* The storefront shell wrapper (src/app/(store)/layout.tsx) carries
+   .store-shell; the shared Header/Footer roots carry
+   .store-shell-header/.store-shell-footer. When the rendered homepage
+   template brings its own chrome (root carries [data-template-chrome]),
+   the shared chrome is hidden for that page and the template fills the
+   full column — its <footer> sticks to the bottom via margin-top:auto. */
+.store-shell:has([data-template-chrome]) > .store-shell-header,
+.store-shell:has([data-template-chrome]) > .store-shell-footer {
+  display: none;
+}
+.store-shell:has([data-template-chrome]) > main {
+  display: flex;
+  flex-direction: column;
+}
+.store-shell [data-template-chrome] {
+  display: flex;
+  flex-direction: column;
+  flex: 1 0 auto;
+  min-width: 0;
+  /* RTL scroll-container leak guard (v18): Chromium can propagate the
+     scrollable-overflow region of RTL horizontal rails (overflow-x:auto)
+     up to the page, creating phantom horizontal scroll. `clip` (unlike
+     hidden) does NOT create a scroll container, so sticky headers keep
+     working — it only stops the leak at the template root. */
+  overflow-x: clip;
+}
+.store-shell [data-template-chrome] > footer {
+  margin-top: auto;
+}
+
+/* ═══ v19 · ARGB / RGB GAMING RIG (gaming-cyber template, dark mode) ═══
+   When the gaming template is switched to dark mode the template root
+   gains .argb-mode and the whole storefront turns into an animated
+   ARGB/RGB rig: HUD frames, product cards, edges and the chrome all
+   cycle a true rainbow gradient. Everything is GPU-friendly
+   (background-position / filter only) and fully neutralized by the
+   global prefers-reduced-motion contract. */
+
+/* base edge — same primary gradient the template used inline (light mode) */
+.rgb-edge {
+  background: linear-gradient(135deg, var(--primary), color-mix(in oklab, var(--primary) 40%, var(--destructive)) 55%, var(--primary));
+}
+
+@keyframes taj-argb-flow {
+  from { background-position: 0% 50%; }
+  to   { background-position: 300% 50%; }
+}
+
+/* ARGB takeover (dark mode on the gaming template) */
+.argb-mode .rgb-edge {
+  background-image: linear-gradient(90deg, #ff004c, #ff8a00, #ffe600, #00ffd0, #00a3ff, #b400ff, #ff004c);
+  background-size: 300% 100%;
+  background-repeat: repeat;
+  animation: taj-argb-flow 5s linear infinite;
+}
+
+/* headline — animated rainbow text */
+.argb-mode .argb-text {
+  background-image: linear-gradient(90deg, #ff004c, #ff8a00, #ffe600, #00ffd0, #00a3ff, #b400ff, #ff004c);
+  background-size: 300% 100%;
+  background-repeat: repeat;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: none;
+  animation: taj-argb-flow 6s linear infinite;
+}
+
+/* every product card breathes an RGB aura (drop-shadow follows the HUD
+   clip-path silhouette — box-shadow would be clipped away) */
+@keyframes taj-argb-aura {
+  0%, 100% { filter: drop-shadow(0 0 8px rgb(255 0 76 / 0.4)); }
+  20%      { filter: drop-shadow(0 0 8px rgb(255 138 0 / 0.4)); }
+  40%      { filter: drop-shadow(0 0 8px rgb(255 230 0 / 0.4)); }
+  60%      { filter: drop-shadow(0 0 8px rgb(0 255 208 / 0.4)); }
+  80%      { filter: drop-shadow(0 0 8px rgb(0 163 255 / 0.4)); }
+}
+.argb-mode article {
+  animation: taj-argb-aura 7s linear infinite;
+}
+/* keep image rendering crisp inside the aura (drop-shadow already paints
+   the glow around the composite silhouette) */
+
+/* chrome header + footer get animated RGB edge strips */
+.argb-mode [data-chrome-header],
+.argb-mode [data-chrome-footer] {
+  position: relative;
+}
+.argb-mode [data-chrome-header]::before,
+.argb-mode [data-chrome-footer]::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  height: 3px;
+  z-index: 30;
+  pointer-events: none;
+  background-image: linear-gradient(90deg, #ff004c, #ff8a00, #ffe600, #00ffd0, #00a3ff, #b400ff, #ff004c);
+  background-size: 300% 100%;
+  background-repeat: repeat;
+  animation: taj-argb-flow 5s linear infinite;
+}
+.argb-mode [data-chrome-header]::before { top: 0; }
+.argb-mode [data-chrome-footer]::before { bottom: 0; }
+
+/* primary action buttons glow */
+.argb-mode .bg-primary {
+  box-shadow: 0 0 20px -6px color-mix(in oklab, var(--primary) 85%, transparent);
+}
+
+/* ambient RGB veil over the whole rig (very subtle, non-interactive) */
+@keyframes taj-argb-veil {
+  0%   { opacity: 0.5; background-position: 0% 0%; }
+  50%  { opacity: 1;   background-position: 100% 0%; }
+  100% { opacity: 0.5; background-position: 0% 0%; }
+}
+.argb-mode::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.6;
+  background-image: linear-gradient(115deg,
+    transparent 12%,
+    rgb(255 0 76 / 0.025) 28%,
+    rgb(255 230 0 / 0.02) 45%,
+    rgb(0 255 208 / 0.025) 62%,
+    rgb(0 163 255 / 0.02) 78%,
+    transparent 92%);
+  background-size: 220% 100%;
+  background-repeat: repeat;
+  animation: taj-argb-veil 11s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .argb-mode .rgb-edge,
+  .argb-mode .argb-text,
+  .argb-mode article,
+  .argb-mode [data-chrome-header]::before,
+  .argb-mode [data-chrome-footer]::before,
+  .argb-mode::after {
+    animation: none !important;
+  }
+}
+
+/* ═══ v23 · VICE CITY RIG (gaming-cyber template ONLY) ═══
+   GTA-VI / Vice-City redesign: rounded neon glass cards, vaporwave hero
+   (synthwave artwork + CSS sun/grid/scanlines), acid-lime pill CTAs,
+   magenta→violet gradients, live flash-deal countdowns. Everything is
+   scoped under [data-tpl="gaming-cyber"] (template root) so no other
+   template ever matches. Admin feature flags live on the same root as
+   data-glow / data-scan attributes (Admin → ظاهر → ویژگی‌های قالب).
+   ARGB amplifications (dark mode) reuse the v19/v20 rigs above/below. */
+
+/* base surfaces — the vice "void" (deep purple-black) tint the template
+   paints behind its rounded cards in BOTH modes */
+[data-tpl="gaming-cyber"] .vice-root {
+  background:
+    radial-gradient(1200px 500px at 85% -100px, rgba(168, 85, 247, 0.16), transparent 60%),
+    radial-gradient(900px 420px at 0% 8%, rgba(217, 70, 239, 0.12), transparent 55%),
+    color-mix(in oklab, var(--background) 92%, #14071f);
+}
+
+/* rounded glass panel (replaces every sharp HUD frame) */
+[data-tpl="gaming-cyber"] .vice-panel {
+  border-radius: 1.5rem;
+  border: 1px solid rgba(232, 121, 249, 0.22);
+  background: color-mix(in oklab, var(--card) 88%, #14071f 12%);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 18px 40px -22px rgba(20, 7, 31, 0.7);
+}
+
+/* neon edge glow — feature-gated (root[data-glow="off"] disables) */
+[data-tpl="gaming-cyber"][data-glow="on"] .vice-glow {
+  border-color: rgba(190, 242, 100, 0.35);
+  box-shadow:
+    0 0 0 1px rgba(190, 242, 100, 0.12),
+    0 0 26px -6px rgba(190, 242, 100, 0.35),
+    0 18px 40px -22px rgba(20, 7, 31, 0.7);
+}
+[data-tpl="gaming-cyber"][data-glow="on"] .vice-glow:hover {
+  box-shadow:
+    0 0 0 1px rgba(190, 242, 100, 0.35),
+    0 0 42px -4px rgba(190, 242, 100, 0.55),
+    0 22px 44px -20px rgba(20, 7, 31, 0.75);
+}
+
+/* product card — rounded-3xl, never sharp */
+[data-tpl="gaming-cyber"] .vice-card {
+  border-radius: 1.5rem;
+  border: 1px solid rgba(232, 121, 249, 0.2);
+  background: linear-gradient(180deg, rgba(30, 12, 44, 0.55), color-mix(in oklab, var(--card) 92%, #14071f 8%));
+  backdrop-filter: blur(12px);
+  overflow: hidden;
+  transition: border-color 0.35s ease, box-shadow 0.35s ease, transform 0.35s ease;
+}
+[data-tpl="gaming-cyber"] .vice-card:hover {
+  border-color: rgba(190, 242, 100, 0.45);
+}
+
+/* acid-lime pill CTA — GTA "pre-order" style button */
+[data-tpl="gaming-cyber"] .vice-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #d9f99d, #bef264);
+  color: #14071f;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, filter 0.25s ease;
+  box-shadow: 0 0 18px rgba(190, 242, 100, 0.4);
+}
+[data-tpl="gaming-cyber"] .vice-cta:hover {
+  filter: brightness(1.06);
+  transform: translateY(-2px);
+  box-shadow: 0 0 30px rgba(190, 242, 100, 0.55);
+}
+[data-tpl="gaming-cyber"] .vice-cta:active { transform: translateY(0) scale(0.98); }
+
+/* section icon chip — rounded (was clip-path hexagon) */
+[data-tpl="gaming-cyber"] .vice-icon-chip {
+  display: grid;
+  place-items: center;
+  height: 2.75rem;
+  width: 2.75rem;
+  flex-shrink: 0;
+  border-radius: 1rem;
+  color: #14071f;
+  background: linear-gradient(135deg, #d9f99d, #bef264);
+  box-shadow: 0 0 22px -4px rgba(190, 242, 100, 0.55);
+}
+
+/* mono latin micro-label */
+[data-tpl="gaming-cyber"] .vice-mono-label {
+  font-family: ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: rgba(232, 121, 249, 0.85);
+}
+
+/* divider — gradient hairline with a travelling light pulse */
+[data-tpl="gaming-cyber"] .vice-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(232, 121, 249, 0.45), rgba(190, 242, 100, 0.45), transparent);
+  position: relative;
+  overflow: hidden;
+}
+[data-tpl="gaming-cyber"] .vice-divider::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.7), transparent);
+  width: 30%;
+  animation: vice-divider-run 3.4s linear infinite;
+}
+@keyframes vice-divider-run {
+  from { transform: translateX(-120%); }
+  to { transform: translateX(430%); }
+}
+
+/* ── HERO ────────────────────────────────────────────────────────────── */
+[data-tpl="gaming-cyber"] .vice-hero {
+  border-radius: 2rem;
+  border: 1px solid rgba(232, 121, 249, 0.25);
+  box-shadow: 0 30px 70px -30px rgba(20, 7, 31, 0.85);
+}
+[data-tpl="gaming-cyber"][data-glow="on"] .vice-hero {
+  box-shadow:
+    0 0 0 1px rgba(190, 242, 100, 0.15),
+    0 0 60px -18px rgba(217, 70, 239, 0.45),
+    0 30px 70px -30px rgba(20, 7, 31, 0.9);
+}
+
+/* magenta→violet color wash over the artwork for text readability */
+[data-tpl="gaming-cyber"] .vice-hero-wash {
+  background:
+    linear-gradient(200deg, rgba(124, 58, 237, 0.28), transparent 45%),
+    linear-gradient(0deg, rgba(20, 7, 31, 0.35), transparent 55%),
+    rgba(20, 7, 31, 0.18);
+}
+
+/* the vice sun — big neon disc near the horizon */
+[data-tpl="gaming-cyber"] .vice-sun {
+  left: 50%;
+  top: 30%;
+  height: 190px;
+  width: 190px;
+  translate: -50% 0;
+  border-radius: 999px;
+  background: radial-gradient(circle, #fde68a 0%, #fb923c 38%, #e879f9 72%, transparent 78%);
+  filter: blur(2px) saturate(1.25);
+  opacity: 0.85;
+  pointer-events: none;
+}
+/* retro scanline bands on the sun (lower half) */
+[data-tpl="gaming-cyber"] .vice-sun-stripes::after {
+  content: "";
+  position: absolute;
+  inset: 50% -10% -10% -10%;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0 8px,
+    rgba(20, 7, 31, 0.55) 8px 13px
+  );
+  border-radius: 0 0 999px 999px;
+}
+
+/* perspective grid floor */
+[data-tpl="gaming-cyber"] .vice-grid {
+  background:
+    repeating-linear-gradient(to right, rgba(232, 121, 249, 0.28) 0 1px, transparent 1px 64px),
+    repeating-linear-gradient(to bottom, rgba(232, 121, 249, 0.22) 0 1px, transparent 1px 48px);
+  transform: perspective(420px) rotateX(58deg);
+  transform-origin: top;
+  mask-image: linear-gradient(to bottom, transparent, black 30%, black 78%, transparent);
+  opacity: 0.75;
+  pointer-events: none;
+}
+
+/* CRT scanlines overlay (feature-gated via data-scan) */
+[data-tpl="gaming-cyber"][data-scan="on"] .vice-scanlines {
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.035) 0 1px,
+    transparent 1px 3px
+  );
+  mix-blend-mode: overlay;
+  pointer-events: none;
+}
+
+/* rotated GTA-style welcome tab on the hero edge */
+[data-tpl="gaming-cyber"] .vice-tab {
+  position: absolute;
+  top: 50%;
+  right: -14px;
+  translate: 0 -50%;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  padding: 18px 8px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #d9f99d, #bef264);
+  color: #14071f;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.34em;
+  box-shadow: 0 0 24px rgba(190, 242, 100, 0.45);
+  pointer-events: none;
+}
+
+/* massive gradient hero title (GTA "VI" energy) */
+[data-tpl="gaming-cyber"] .vice-title {
+  font-weight: 900;
+  color: #fff;
+  background-image: linear-gradient(120deg, #fdf4ff 8%, #e879f9 38%, #bef264 78%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 60px rgba(232, 121, 249, 0.45);
+}
+
+/* floating neon product pod */
+[data-tpl="gaming-cyber"] .vice-pod {
+  border-radius: 1.25rem;
+  border: 1px solid rgba(190, 242, 100, 0.4);
+  background: rgba(20, 7, 31, 0.72);
+  backdrop-filter: blur(16px);
+  padding: 0.9rem;
+  box-shadow:
+    0 0 30px -8px rgba(190, 242, 100, 0.4),
+    0 16px 36px -20px rgba(0, 0, 0, 0.8);
+}
+
+/* kill-feed marquee pill */
+[data-tpl="gaming-cyber"] .vice-feed {
+  mask-image: linear-gradient(to left, transparent, black 3%, black 97%, transparent);
+}
+
+/* category tile */
+[data-tpl="gaming-cyber"] .vice-cat {
+  display: block;
+  border-radius: 1.25rem;
+  border: 1px solid rgba(232, 121, 249, 0.2);
+  background: color-mix(in oklab, var(--card) 88%, #14071f 12%);
+  padding: 0.5rem;
+  transition: border-color 0.3s ease, transform 0.3s ease;
+}
+[data-tpl="gaming-cyber"] .vice-cat:hover {
+  border-color: rgba(190, 242, 100, 0.5);
+  transform: translateY(-3px);
+}
+
+/* deals bay — arcade backdrop panel */
+[data-tpl="gaming-cyber"] .vice-deals-bay {
+  border: 1px solid rgba(232, 121, 249, 0.28);
+  background:
+    linear-gradient(180deg, rgba(20, 7, 31, 0.86), rgba(30, 12, 44, 0.9)),
+    url("/uploads/showcase/vice-arcade.png") center 30% / cover no-repeat;
+}
+
+/* gamer club promo card */
+[data-tpl="gaming-cyber"] .vice-club {
+  position: relative;
+  flex-direction: column;
+  border-radius: 1.5rem;
+  border: 1px solid rgba(232, 121, 249, 0.3);
+  overflow: hidden;
+  background: rgba(20, 7, 31, 0.6);
+}
+
+/* dark-mode ARGB amplification (v19 rig) — vice cards pulse rainbow edges */
+[data-tpl="gaming-cyber"].argb-mode .vice-glow,
+html.dark .store-shell[data-chrome-template="gaming-cyber"] .vice-glow {
+  animation: vice-aura 7s linear infinite;
+}
+@keyframes vice-aura {
+  0%, 100% { box-shadow: 0 0 26px -6px rgba(190, 242, 100, 0.4), 0 18px 40px -22px rgba(20, 7, 31, 0.7); }
+  33% { box-shadow: 0 0 26px -6px rgba(232, 121, 249, 0.55), 0 18px 40px -22px rgba(20, 7, 31, 0.7); }
+  66% { box-shadow: 0 0 26px -6px rgba(96, 165, 250, 0.5), 0 18px 40px -22px rgba(20, 7, 31, 0.7); }
+}
+
+/* reduced-motion contract for every vice motion */
+@media (prefers-reduced-motion: reduce) {
+  [data-tpl="gaming-cyber"] .vice-divider::after,
+  [data-tpl="gaming-cyber"].argb-mode .vice-glow,
+  html.dark .store-shell[data-chrome-template="gaming-cyber"] .vice-glow {
+    animation: none !important;
+  }
+  [data-tpl="gaming-cyber"] .vice-cta,
+  [data-tpl="gaming-cyber"] .vice-card,
+  [data-tpl="gaming-cyber"] .vice-cat {
+    transition: none !important;
+  }
+}
+
+/* ═══ v20 · ARGB rig on EVERY page of the gaming template ═══
+   The v19 ARGB rig was scoped to .argb-mode — a class on the gaming
+   template ROOT, which only exists on the homepage. v20 carries the
+   template identity on .store-shell[data-chrome-template="gaming-cyber"]
+   (set by the server layout for ALL store pages), so when the site is in
+   dark mode (next-themes adds .dark to <html>) the same rig lights up on
+   product/listing/cart pages too — "all the theme turns into an ARGB
+   shape". On the gaming homepage both selector families match the same
+   elements with identical properties (harmless double-coverage). */
+html.dark .store-shell[data-chrome-template="gaming-cyber"] .rgb-edge {
+  background-image: linear-gradient(90deg, #ff004c, #ff8a00, #ffe600, #00ffd0, #00a3ff, #b400ff, #ff004c);
+  background-size: 300% 100%;
+  background-repeat: repeat;
+  animation: taj-argb-flow 5s linear infinite;
+}
+html.dark .store-shell[data-chrome-template="gaming-cyber"] .argb-text {
+  background-image: linear-gradient(90deg, #ff004c, #ff8a00, #ffe600, #00ffd0, #00a3ff, #b400ff, #ff004c);
+  background-size: 300% 100%;
+  background-repeat: repeat;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: none;
+  animation: taj-argb-flow 6s linear infinite;
+}
+html.dark .store-shell[data-chrome-template="gaming-cyber"] article {
+  animation: taj-argb-aura 7s linear infinite;
+}
+html.dark .store-shell[data-chrome-template="gaming-cyber"] [data-chrome-header],
+html.dark .store-shell[data-chrome-template="gaming-cyber"] [data-chrome-footer] {
+  position: relative;
+}
+html.dark .store-shell[data-chrome-template="gaming-cyber"] [data-chrome-header]::before,
+html.dark .store-shell[data-chrome-template="gaming-cyber"] [data-chrome-footer]::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  height: 3px;
+  z-index: 30;
+  pointer-events: none;
+  background-image: linear-gradient(90deg, #ff004c, #ff8a00, #ffe600, #00ffd0, #00a3ff, #b400ff, #ff004c);
+  background-size: 300% 100%;
+  background-repeat: repeat;
+  animation: taj-argb-flow 5s linear infinite;
+}
+html.dark .store-shell[data-chrome-template="gaming-cyber"] [data-chrome-header]::before { top: 0; }
+html.dark .store-shell[data-chrome-template="gaming-cyber"] [data-chrome-footer]::before { bottom: 0; }
+html.dark .store-shell[data-chrome-template="gaming-cyber"] .bg-primary {
+  box-shadow: 0 0 20px -6px color-mix(in oklab, var(--primary) 85%, transparent);
+}
+html.dark .store-shell[data-chrome-template="gaming-cyber"]::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.6;
+  background-image: linear-gradient(115deg,
+    transparent 12%,
+    rgb(255 0 76 / 0.025) 28%,
+    rgb(255 230 0 / 0.02) 45%,
+    rgb(0 255 208 / 0.025) 62%,
+    rgb(0 163 255 / 0.02) 78%,
+    transparent 92%);
+  background-size: 220% 100%;
+  background-repeat: repeat;
+  animation: taj-argb-veil 11s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.dark .store-shell[data-chrome-template="gaming-cyber"] .rgb-edge,
+  html.dark .store-shell[data-chrome-template="gaming-cyber"] .argb-text,
+  html.dark .store-shell[data-chrome-template="gaming-cyber"] article,
+  html.dark .store-shell[data-chrome-template="gaming-cyber"] [data-chrome-header]::before,
+  html.dark .store-shell[data-chrome-template="gaming-cyber"] [data-chrome-footer]::before,
+  html.dark .store-shell[data-chrome-template="gaming-cyber"]::after {
+    animation: none !important;
+  }
+}
+
+/* ═══ v23 · ART PASS (per-template signature layers) ═══
+   ------------------------------------------------------------------
+   Additive, layout-safe signature visuals for the 24 non-gaming
+   templates. Scope = [data-tpl] — an attribute carried ONLY by
+   template roots (gaming-cyber keeps its own kit; it never renders
+   .ap-* elements). Layers are absolutely positioned, pointer-events:
+   none and sit BEHIND content (negative z-index inside a
+   `relative isolate` parent → painted above the parent's own
+   background, below all content). Motion is transform/opacity/filter
+   only (plus one registered @property angle for the future-3d conic
+   ring — paint-only, static fallback where unsupported). Everything
+   is neutralized by the reduced-motion block at the end of this
+   section. Hues flow from --ap-c1/--ap-c2 (per-template picks below)
+   so one utility serves every identity; intensities can be tuned
+   inline via --ap-a1/--ap-a2/--ap-a3 (percentages). */
+
+/* ── 0 · per-template hue picks (identity colors) ────────────────── */
+[data-tpl="modern-tech"]      { --ap-c1: var(--primary); --ap-c2: color-mix(in oklab, var(--primary) 55%, var(--destructive)); }
+[data-tpl="future-3d"]        { --ap-c1: var(--primary); --ap-c2: var(--destructive); }
+[data-tpl="minimal-premium"]  { --ap-c1: var(--primary); --ap-c2: color-mix(in oklab, var(--primary) 40%, var(--foreground)); }
+[data-tpl="social-commerce"]  { --ap-c1: var(--primary); --ap-c2: var(--destructive); }
+[data-tpl="autumn"]           { --ap-c1: color-mix(in oklab, var(--primary) 78%, oklch(0.7 0.13 55)); --ap-c2: color-mix(in oklab, var(--primary) 45%, var(--destructive)); }
+[data-tpl="christmas"]        { --ap-c1: oklch(0.52 0.1 155); --ap-c2: var(--destructive); }
+[data-tpl="yalda-night"]      { --ap-c1: var(--destructive); --ap-c2: var(--primary); }
+[data-tpl="luxury-electronics"] { --ap-c1: var(--primary); --ap-c2: color-mix(in oklab, var(--primary) 65%, white); }
+[data-tpl="marketplace"]      { --ap-c1: var(--primary); --ap-c2: color-mix(in oklab, var(--primary) 55%, var(--destructive)); }
+[data-tpl="art-deco"]         { --ap-c1: var(--primary); --ap-c2: color-mix(in oklab, var(--primary) 60%, white); }
+[data-tpl="retro-vintage"]    { --ap-c1: color-mix(in oklab, var(--primary) 70%, oklch(0.6 0.12 55)); --ap-c2: color-mix(in oklab, var(--primary) 50%, var(--destructive)); }
+[data-tpl="glass-morphism"]   { --ap-c1: var(--primary); --ap-c2: color-mix(in oklab, var(--primary) 60%, var(--destructive)); }
+[data-tpl="editorial-magazine"] { --ap-c1: var(--primary); --ap-c2: var(--destructive); }
+[data-tpl="superstore-grid"]  { --ap-c1: oklch(0.75 0.15 70); --ap-c2: var(--destructive); }
+[data-tpl="neon-noir"]        { --ap-c1: oklch(0.62 0.19 300); --ap-c2: var(--destructive); }
+[data-tpl="flash-deals"]      { --ap-c1: var(--destructive); --ap-c2: oklch(0.8 0.15 75); }
+[data-tpl="print-catalog"]    { --ap-c1: var(--foreground); --ap-c2: var(--primary); }
+[data-tpl="startup-light"]    { --ap-c1: var(--primary); --ap-c2: color-mix(in oklab, var(--primary) 55%, var(--destructive)); }
+[data-tpl="mobile-first-pwa"] { --ap-c1: var(--primary); --ap-c2: var(--destructive); }
+[data-tpl="nexora-tech"]      { --ap-c1: oklch(0.6 0.19 295); --ap-c2: oklch(0.86 0.17 110); }
+[data-tpl="techhub-dark"]     { --ap-c1: var(--primary); --ap-c2: color-mix(in oklab, var(--primary) 60%, var(--destructive)); }
+[data-tpl="purple-mall"]      { --ap-c1: oklch(0.55 0.22 295); --ap-c2: oklch(0.72 0.15 300); }
+[data-tpl="nova-glass"]       { --ap-c1: var(--primary); --ap-c2: color-mix(in oklab, var(--primary) 45%, var(--foreground)); }
+[data-tpl="novatrend-clean"]  { --ap-c1: oklch(0.62 0.19 25); --ap-c2: oklch(0.92 0.03 230); }
+
+/* ── 1 · shared background layers (behind content) ───────────────── */
+[data-tpl] .ap-aurora,
+[data-tpl] .ap-blob,
+[data-tpl] .ap-mesh,
+[data-tpl] .ap-dots,
+[data-tpl] .ap-grain,
+[data-tpl] .ap-bokeh,
+[data-tpl] .ap-orbs,
+[data-tpl] .ap-sky,
+[data-tpl] .ap-stains {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+/* aurora — layered radial hue washes, slow breathing drift */
+[data-tpl] .ap-aurora {
+  background:
+    radial-gradient(52% 66% at 84% 6%, color-mix(in oklab, var(--ap-c1) calc(var(--ap-a1, 16) * 1%), transparent) 0%, transparent 68%),
+    radial-gradient(46% 60% at 8% 92%, color-mix(in oklab, var(--ap-c2) calc(var(--ap-a2, 11) * 1%), transparent) 0%, transparent 72%),
+    radial-gradient(42% 52% at 55% 112%, color-mix(in oklab, var(--ap-c1) calc(var(--ap-a3, 7) * 1%), transparent) 0%, transparent 78%);
+  animation: ap-aurora-drift 19s ease-in-out infinite alternate;
+}
+@keyframes ap-aurora-drift {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); opacity: 1; }
+  50%      { transform: translate3d(-1.8%, 1.4%, 0) scale(1.05); opacity: 0.82; }
+}
+
+/* playful gradient blobs — bigger amplitude, warmer mix */
+[data-tpl] .ap-blob {
+  background:
+    radial-gradient(closest-side at 16% 20%, color-mix(in oklab, var(--ap-c1) 26%, transparent), transparent 72%),
+    radial-gradient(closest-side at 88% 14%, color-mix(in oklab, var(--ap-c2) 22%, transparent), transparent 70%),
+    radial-gradient(closest-side at 72% 92%, color-mix(in oklab, var(--ap-c1) 18%, transparent), transparent 74%);
+  animation: ap-blob-drift 15s ease-in-out infinite alternate;
+}
+@keyframes ap-blob-drift {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50%      { transform: translate3d(2.4%, -3%, 0) scale(1.08); }
+}
+
+/* dense grid texture (marketplace) — masked so it fades out */
+[data-tpl] .ap-mesh {
+  background-image:
+    linear-gradient(to right,  color-mix(in oklab, var(--ap-c1) 9%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in oklab, var(--ap-c1) 9%, transparent) 1px, transparent 1px);
+  background-size: 30px 30px;
+  -webkit-mask-image: radial-gradient(78% 88% at 50% 42%, black 30%, transparent 80%);
+          mask-image: radial-gradient(78% 88% at 50% 42%, black 30%, transparent 80%);
+}
+
+/* fresh dot-grid (novatrend) — top fade */
+[data-tpl] .ap-dots {
+  background-image: radial-gradient(color-mix(in oklab, var(--ap-c1) 26%, transparent) 1.4px, transparent 1.4px);
+  background-size: 22px 22px;
+  -webkit-mask-image: linear-gradient(to bottom, black 20%, transparent 82%);
+          mask-image: linear-gradient(to bottom, black 20%, transparent 82%);
+}
+
+/* soft sky wash (novatrend) — barely-there fresh air gradient */
+[data-tpl] .ap-sky {
+  background: linear-gradient(to bottom,
+    color-mix(in oklab, var(--ap-c2) calc(var(--ap-a1, 55) * 1%), transparent) 0%,
+    color-mix(in oklab, var(--ap-c2) calc(var(--ap-a1, 55) * 1% * 0.25), transparent) 42%,
+    transparent 72%);
+}
+
+/* paper / film grain — SVG turbulence tile, soft-light blend;
+   inverted in dark mode so the tooth stays visible on dark paper */
+[data-tpl] .ap-grain {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity: var(--ap-o, 0.35);
+  mix-blend-mode: soft-light;
+}
+html.dark [data-tpl] .ap-grain { filter: invert(1); }
+
+/* autumn falling-leaf bokeh — warm soft circles sinking slowly */
+[data-tpl] .ap-bokeh {
+  background-image:
+    radial-gradient(circle at 18% 12%, color-mix(in oklab, var(--ap-c1) 30%, transparent) 0 26px, transparent 30px),
+    radial-gradient(circle at 76% 22%, color-mix(in oklab, var(--ap-c2) 26%, transparent) 0 18px, transparent 22px),
+    radial-gradient(circle at 42% 64%, color-mix(in oklab, var(--ap-c1) 22%, transparent) 0 34px, transparent 40px),
+    radial-gradient(circle at 88% 78%, color-mix(in oklab, var(--ap-c2) 20%, transparent) 0 14px, transparent 18px),
+    radial-gradient(circle at 8% 86%, color-mix(in oklab, var(--ap-c1) 18%, transparent) 0 22px, transparent 26px);
+  filter: blur(2px);
+  animation: ap-bokeh-fall 22s ease-in-out infinite alternate;
+}
+@keyframes ap-bokeh-fall {
+  0%, 100% { transform: translate3d(0, -2%, 0) scale(1); opacity: 0.9; }
+  50%      { transform: translate3d(2.5%, 4%, 0) scale(1.12); opacity: 0.6; }
+}
+
+/* glass-morphism drifting color orbs — soft pre-blurred radials */
+[data-tpl] .ap-orbs {
+  background:
+    radial-gradient(closest-side at 22% 30%, color-mix(in oklab, var(--ap-c1) 30%, transparent), transparent 74%),
+    radial-gradient(closest-side at 78% 18%, color-mix(in oklab, var(--ap-c2) 24%, transparent), transparent 70%),
+    radial-gradient(closest-side at 62% 84%, color-mix(in oklab, var(--ap-c1) 22%, transparent), transparent 76%);
+  animation: ap-orbs-drift 24s ease-in-out infinite alternate;
+}
+@keyframes ap-orbs-drift {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); opacity: 1; }
+  33%      { transform: translate3d(-3%, 2%, 0) scale(1.07); opacity: 0.85; }
+  66%      { transform: translate3d(2.5%, -3%, 0) scale(0.96); opacity: 0.95; }
+}
+
+/* retro paper stains — static rust blotches, corner-weighted */
+[data-tpl] .ap-stains {
+  background:
+    radial-gradient(26% 34% at 88% 8%,  color-mix(in oklab, var(--ap-c2) 12%, transparent) 0%, transparent 70%),
+    radial-gradient(30% 26% at 6% 96%,  color-mix(in oklab, var(--ap-c2) 10%, transparent) 0%, transparent 72%),
+    radial-gradient(18% 20% at 62% 42%, color-mix(in oklab, var(--ap-c2) 7%, transparent) 0%, transparent 75%);
+}
+
+/* ── 2 · hover / depth classes (class swaps on existing cards) ────── */
+/* glow card — lift + hue glow + border tint */
+[data-tpl] .ap-glow-card {
+  transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.4s ease, border-color 0.3s ease;
+}
+[data-tpl] .ap-glow-card:hover {
+  transform: translateY(-4px);
+  border-color: color-mix(in oklab, var(--ap-c1) 42%, var(--border));
+  box-shadow: 0 18px 44px -18px color-mix(in oklab, var(--ap-c1) 48%, transparent);
+}
+
+/* edge glow — ring + halo on hover (safe with inline styles) */
+[data-tpl] .ap-edge-glow { position: relative; }
+[data-tpl] .ap-edge-glow::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.45s ease;
+  box-shadow:
+    inset 0 0 0 1px color-mix(in oklab, var(--ap-c1) 55%, transparent),
+    0 0 28px -6px color-mix(in oklab, var(--ap-c1) 55%, transparent);
+}
+[data-tpl] .ap-edge-glow:hover::after,
+[data-tpl] .ap-edge-glow:focus-within::after { opacity: 1; }
+
+/* story-tile pop — playful scale + shadow */
+[data-tpl] .ap-pop { transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1); }
+[data-tpl] .ap-pop:hover {
+  transform: translateY(-6px) scale(1.025);
+  box-shadow: 0 16px 38px -14px color-mix(in oklab, var(--ap-c1) 45%, transparent);
+}
+
+/* gold sweep on hover (luxury) — house taj-sweep keyframes, gold tint */
+[data-tpl] .ap-shine { position: relative; overflow: hidden; isolation: isolate; }
+[data-tpl] .ap-shine::after {
+  content: "";
+  position: absolute;
+  top: -40%;
+  bottom: -40%;
+  inline-size: 34%;
+  inset-inline-start: 0;
+  background: linear-gradient(90deg,
+    transparent,
+    color-mix(in oklab, var(--ap-c1) 34%, white) 46%,
+    color-mix(in oklab, var(--ap-c1) 18%, white) 54%,
+    transparent);
+  transform: translate3d(-160%, 0, 0) rotate(12deg);
+  pointer-events: none;
+  z-index: 1;
+}
+[data-tpl] .ap-shine:hover::after,
+[data-tpl] .ap-shine:focus-within::after { animation: taj-sweep 1.5s ease-out; }
+
+/* metallic sheen (nova-glass) — chrome band, slow ambient loop */
+[data-tpl] .ap-sheen { position: relative; overflow: hidden; isolation: isolate; }
+[data-tpl] .ap-sheen::after {
+  content: "";
+  position: absolute;
+  top: -60%;
+  bottom: -60%;
+  inline-size: 28%;
+  inset-inline-start: 0;
+  background: linear-gradient(90deg,
+    transparent,
+    color-mix(in oklab, var(--ap-c2) 22%, transparent) 34%,
+    color-mix(in oklab, white 42%, var(--ap-c1)) 50%,
+    color-mix(in oklab, var(--ap-c2) 22%, transparent) 66%,
+    transparent);
+  transform: translate3d(-170%, 0, 0) rotate(14deg);
+  pointer-events: none;
+  z-index: 1;
+  animation: taj-sweep 6.5s ease-in-out infinite;
+  animation-delay: 1.2s;
+}
+
+/* price-flash pulse — discount badges (superstore): scale + brightness */
+[data-tpl] .ap-flash { animation: ap-flash-pulse 1.9s ease-in-out infinite; }
+@keyframes ap-flash-pulse {
+  0%, 100% { transform: scale(1); filter: brightness(1); }
+  50%      { transform: scale(1.07); filter: brightness(1.12); }
+}
+
+/* urgency pulse — countdown cells (flash-deals) */
+[data-tpl] .ap-pulse { animation: ap-pulse-urgent 2.4s ease-in-out infinite; }
+@keyframes ap-pulse-urgent {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50%      { transform: scale(1.035); opacity: 0.9; }
+}
+
+/* accent ticker glow — «پیشنهاد روز» chip (marketplace) */
+[data-tpl] .ap-ticker { animation: ap-ticker-glow 3.2s ease-in-out infinite; }
+@keyframes ap-ticker-glow {
+  0%, 100% { filter: brightness(1); transform: translateY(0); }
+  50%      { filter: brightness(1.14); transform: translateY(-1px); }
+}
+
+/* neon sign flicker — noir headers (reuses the house taj-flicker;
+   per-header --t-delay desynchronizes the signs) */
+[data-tpl] .ap-sign {
+  animation: taj-flicker var(--t-dur, 11s) linear infinite;
+  animation-delay: var(--t-delay, 0s);
+}
+
+/* retro paper stack — print-catalog sheet depth */
+[data-tpl] .ap-sheet {
+  box-shadow:
+    3px 4px 0 -1px color-mix(in oklab, var(--card) 92%, var(--foreground)),
+    7px 9px 0 -2px color-mix(in oklab, var(--card) 85%, var(--foreground)),
+    14px 22px 34px -16px color-mix(in oklab, var(--foreground) 28%, transparent);
+}
+
+/* dotted ink frame — print-catalog inner border */
+[data-tpl] .ap-ink { position: relative; }
+[data-tpl] .ap-ink::after {
+  content: "";
+  position: absolute;
+  inset: 7px;
+  border: 2px dotted color-mix(in oklab, var(--ap-c1) 26%, transparent);
+  pointer-events: none;
+}
+
+/* bottom-sheet top — mobile-first-pwa grabber + soft elevation */
+[data-tpl] .ap-sheet-top { position: relative; }
+[data-tpl] .ap-sheet-top::before {
+  content: "";
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  width: 44px;
+  height: 4px;
+  border-radius: 99px;
+  background: color-mix(in oklab, var(--muted-foreground) 32%, transparent);
+  transform: translateX(-50%);
+  pointer-events: none;
+  z-index: 5;
+}
+[data-tpl] .ap-sheet-top {
+  box-shadow: 0 10px 30px -14px color-mix(in oklab, var(--foreground) 24%, transparent);
+}
+
+/* elegant underline reveal — minimal-premium numbered headers */
+[data-tpl] .ap-rule { position: relative; }
+[data-tpl] .ap-rule::after {
+  content: "";
+  position: absolute;
+  bottom: -1px;
+  inset-inline: 0;
+  height: 2px;
+  background: linear-gradient(to left, transparent, color-mix(in oklab, var(--ap-c1) 70%, transparent), transparent);
+  transform: scaleX(0);
+  transform-origin: 100% 0;
+  animation: ap-rule-in 1.4s cubic-bezier(0.22, 1, 0.36, 1) 0.25s forwards;
+}
+@keyframes ap-rule-in { to { transform: scaleX(1); } }
+
+/* moving rule lines — editorial-magazine masthead rails */
+[data-tpl] .ap-rules { position: relative; }
+[data-tpl] .ap-rules::before,
+[data-tpl] .ap-rules::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  height: 2px;
+  pointer-events: none;
+  background: linear-gradient(to left,
+    transparent,
+    color-mix(in oklab, var(--ap-c1) 60%, transparent) 30%,
+    color-mix(in oklab, var(--ap-c1) 15%, transparent) 55%,
+    transparent);
+  background-size: 25% 100%;
+  background-repeat: no-repeat;
+  background-position: 0 0;
+  animation: ap-rule-slide 7.5s linear infinite;
+}
+[data-tpl] .ap-rules::before { top: -2px; }
+[data-tpl] .ap-rules::after  { bottom: -2px; animation-delay: -3.6s; }
+@keyframes ap-rule-slide {
+  0%   { transform: translate3d(-420%, 0, 0); }
+  100% { transform: translate3d(420%, 0, 0); }
+}
+
+/* editorial drop-cap accent — tinted plate behind the first letter */
+[data-tpl] .ap-dropcap::first-letter {
+  background: linear-gradient(to bottom, color-mix(in oklab, var(--ap-c1) 24%, transparent), transparent);
+  padding: 0.02em 0.14em;
+  border-radius: 0.1em;
+}
+
+/* art-deco sunburst — repeating rays rotating behind the hero */
+[data-tpl] .ap-sunburst {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 1200px;
+  height: 1200px;
+  margin: -600px 0 0 -600px;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: -1;
+  background: repeating-conic-gradient(from 0deg,
+    transparent 0deg 6.5deg,
+    color-mix(in oklab, var(--ap-c1) 11%, transparent) 6.5deg 8.5deg);
+  -webkit-mask-image: radial-gradient(circle, transparent 12%, black 30%, transparent 72%);
+          mask-image: radial-gradient(circle, transparent 12%, black 30%, transparent 72%);
+  animation: taj-spin-slow 60s linear infinite;
+}
+
+/* art-deco stepped corner brackets — DecoCard frames */
+[data-tpl] .ap-step { position: relative; }
+[data-tpl] .ap-step::before,
+[data-tpl] .ap-step::after {
+  content: "";
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  pointer-events: none;
+  border: 2px solid color-mix(in oklab, var(--ap-c1) 60%, transparent);
+  opacity: 0.85;
+  transition: transform 0.35s ease, opacity 0.35s ease;
+}
+[data-tpl] .ap-step::before { top: 5px; inset-inline-start: 5px; border-inline-end: 0; border-bottom: 0; }
+[data-tpl] .ap-step::after  { bottom: 5px; inset-inline-end: 5px; border-inline-start: 0; border-top: 0; }
+[data-tpl] .ap-step:hover::before,
+[data-tpl] .ap-step:hover::after { opacity: 1; }
+[data-tpl] .ap-step:hover::before { transform: translate3d(-2px, -2px, 0); }
+[data-tpl] .ap-step:hover::after  { transform: translate3d(2px, 2px, 0); }
+
+/* violet halo orbits — nexora-tech rings around the product collage */
+[data-tpl] .ap-orbit {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  border-radius: 50%;
+  pointer-events: none;
+  border: 1.5px dashed color-mix(in oklab, var(--ap-c1) 42%, transparent);
+  animation: taj-spin-slow 30s linear infinite;
+  will-change: transform;
+}
+[data-tpl] .ap-orbit-a { width: 300px; height: 300px; margin: -150px 0 0 -150px; }
+[data-tpl] .ap-orbit-b { width: 420px; height: 420px; margin: -210px 0 0 -210px; animation-direction: reverse; animation-duration: 44s; border-color: color-mix(in oklab, var(--ap-c1) 26%, transparent); }
+
+/* dark glow halos — techhub-dark (flag-gated via data-glow) */
+[data-tpl="techhub-dark"][data-glow="on"] .ap-halo {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  border-radius: inherit;
+  background:
+    radial-gradient(46% 60% at 88% 0%, color-mix(in oklab, var(--ap-c1) 17%, transparent) 0%, transparent 70%),
+    radial-gradient(40% 55% at 4% 100%, color-mix(in oklab, var(--ap-c1) 13%, transparent) 0%, transparent 74%);
+  animation: ap-halo-breathe 7.5s ease-in-out infinite;
+}
+@keyframes ap-halo-breathe {
+  0%, 100% { opacity: 0.65; transform: scale(1); }
+  50%      { opacity: 1;    transform: scale(1.025); }
+}
+
+/* neon carousel ring halo — purple-mall breathing violet aura */
+[data-tpl="purple-mall"] .ap-ring-halo {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  pointer-events: none;
+  background: radial-gradient(closest-side, transparent 62%, color-mix(in oklab, var(--ap-c1) 22%, transparent) 78%, transparent 88%);
+  animation: ap-halo-breathe 6.5s ease-in-out infinite;
+}
+
+/* animated conic border — future-3d hero frame (registered angle;
+   unsupported browsers keep the static gradient ring) */
+@property --ap-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+[data-tpl="future-3d"] .ap-conic {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  padding: 1.5px;
+  pointer-events: none;
+  background: conic-gradient(from var(--ap-angle, 0deg),
+    transparent 0deg 20deg,
+    color-mix(in oklab, var(--primary) 78%, transparent) 60deg,
+    transparent 120deg,
+    color-mix(in oklab, var(--destructive) 55%, transparent) 185deg,
+    transparent 250deg,
+    color-mix(in oklab, var(--primary) 45%, transparent) 310deg,
+    transparent 360deg);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+          mask-composite: exclude;
+  animation: ap-conic-spin 9s linear infinite;
+}
+@keyframes ap-conic-spin { to { --ap-angle: 360deg; } }
+
+/* rain streaks + drops — neon-noir (component spans, house taj-snow pattern) */
+[data-tpl="neon-noir"] .ap-raindrop {
+  position: absolute;
+  top: -12%;
+  width: 1.5px;
+  border-radius: 99px;
+  background: linear-gradient(to bottom, transparent, color-mix(in oklab, var(--ap-c1) 38%, transparent) 60%, transparent);
+  pointer-events: none;
+  animation: ap-rain-fall var(--t-dur, 7s) linear infinite;
+  animation-delay: var(--t-delay, 0s);
+  will-change: transform, opacity;
+}
+@keyframes ap-rain-fall {
+  0%   { transform: translate3d(0, -20vh, 0); opacity: 0; }
+  10%  { opacity: var(--t-o, 0.5); }
+  90%  { opacity: var(--t-o, 0.5); }
+  100% { transform: translate3d(var(--t-drift, -26px), 115vh, 0); opacity: 0; }
+}
+
+/* floating pastel bubbles — startup-light (component spans, rising) */
+[data-tpl="startup-light"] .ap-bubble {
+  position: absolute;
+  bottom: -8%;
+  border-radius: 999px;
+  pointer-events: none;
+  background: radial-gradient(circle at 32% 28%,
+    color-mix(in oklab, white 55%, transparent) 0%,
+    color-mix(in oklab, var(--ap-c1) 26%, transparent) 34%,
+    color-mix(in oklab, var(--ap-c1) 10%, transparent) 68%,
+    transparent 76%);
+  box-shadow: inset 0 0 6px color-mix(in oklab, white 30%, transparent);
+  animation: ap-bubble-rise var(--t-dur, 14s) ease-in-out infinite;
+  animation-delay: var(--t-delay, 0s);
+  will-change: transform, opacity;
+}
+@keyframes ap-bubble-rise {
+  0%   { transform: translate3d(0, 0, 0) scale(0.9); opacity: 0; }
+  12%  { opacity: var(--t-o, 0.7); }
+  88%  { opacity: var(--t-o, 0.7); }
+  100% { transform: translate3d(var(--t-drift, 30px), -78vh, 0) scale(1.1); opacity: 0; }
+}
+
+/* ── 3 · reduced-motion contract for the whole art pass ──────────── */
+@media (prefers-reduced-motion: reduce) {
+  [data-tpl] .ap-aurora,
+  [data-tpl] .ap-blob,
+  [data-tpl] .ap-bokeh,
+  [data-tpl] .ap-orbs,
+  [data-tpl] .ap-sunburst,
+  [data-tpl] .ap-orbit,
+  [data-tpl] .ap-flash,
+  [data-tpl] .ap-pulse,
+  [data-tpl] .ap-ticker,
+  [data-tpl] .ap-sign,
+  [data-tpl] .ap-sheen::after,
+  [data-tpl] .ap-rule::after,
+  [data-tpl] .ap-rules::before,
+  [data-tpl] .ap-rules::after,
+  [data-tpl="techhub-dark"][data-glow="on"] .ap-halo,
+  [data-tpl="purple-mall"] .ap-ring-halo,
+  [data-tpl="future-3d"] .ap-conic,
+  [data-tpl="neon-noir"] .ap-raindrop,
+  [data-tpl="startup-light"] .ap-bubble {
+    animation: none !important;
+  }
+  [data-tpl] .ap-rule::after { transform: scaleX(1); }
+  [data-tpl] .ap-glow-card,
+  [data-tpl] .ap-pop,
+  [data-tpl] .ap-edge-glow::after,
+  [data-tpl] .ap-step::before,
+  [data-tpl] .ap-step::after {
+    transition: none !important;
+  }
+}
+
+/* shimmer bar — modern-tech announcement strip (bottom-edge light band) */
+[data-tpl] .ap-shimmer-bar { position: relative; overflow: hidden; }
+[data-tpl] .ap-shimmer-bar::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  inset-inline: 0;
+  height: 2px;
+  pointer-events: none;
+  background: linear-gradient(to left,
+    transparent,
+    color-mix(in oklab, var(--ap-c1) 70%, transparent) 45%,
+    color-mix(in oklab, var(--ap-c1) 20%, transparent) 60%,
+    transparent);
+  background-size: 30% 100%;
+  background-repeat: no-repeat;
+  animation: ap-rule-slide 6.5s linear infinite;
+}

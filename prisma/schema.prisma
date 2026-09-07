@@ -1,0 +1,834 @@
+// TAJ Electronics — تاج الکترونیکس
+// Full e-commerce schema (SQLite: no enums → String; JSON stored as String)
+
+generator client {
+  provider      = "prisma-client-js"
+  // Query engines for every environment this app may run in:
+  //  - native               → wherever `prisma generate` runs (dev sandbox, Docker builder)
+  //  - debian-openssl-3.0.x → Debian 12/13 runtime with OpenSSL 3 (node:22-slim etc.)
+  //  - debian-openssl-1.1.x → slim images WITHOUT the openssl CLI, where Prisma's
+  //                          platform detection falls back to the legacy 1.1.x
+  //                          target (fixes: "Prisma Client could not locate the
+  //                          Query Engine for runtime debian-openssl-1.1.x").
+  // The Dockerfile additionally installs the openssl CLI in the runtime image so
+  // detection resolves correctly; together both layers make the engine always
+  // locatable. The CLI closure (scripts/prisma-cli-closure.js) copies the whole
+  // generated .prisma client — engines included — into the runtime image.
+  binaryTargets = ["native", "debian-openssl-1.1.x", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────── Users & Auth ───────────────────────────
+
+model User {
+  id           String   @id @default(cuid())
+  email        String?  @unique
+  phone        String?  @unique
+  passwordHash String
+  firstName    String?
+  lastName     String?
+  // CUSTOMER | SUPPORT | ORDER_MANAGER | PRODUCT_MANAGER | ADMIN | SUPER_ADMIN
+  role         String   @default("CUSTOMER")
+  isBlocked    Boolean  @default(false)
+  avatar       String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  sessions       Session[]
+  addresses      Address[]
+  orders         Order[]
+  reviews        Review[]
+  wishlistItems  WishlistItem[]
+  cart           Cart?
+  notifications  Notification[]
+  adminLogs      AdminLog[]            @relation("AdminActor")
+  passwordResets PasswordResetToken[]
+  c2cPayments    CardToCardPayment[]
+  tickets        SupportTicket[]
+  ticketMessages SupportTicketMessage[]
+
+  // v29: one-time recovery phrase (login without password from the admin
+  // login «فراموشی رمز» flow). Only its SHA-256 hash is stored — the plain
+  // phrase is shown ONCE (installer DoneStep / admin profile regenerate)
+  // and can never be viewed again.
+  recoveryCodeHash String?
+
+  // v29.2 · MANAGERS (افزودن مدیران): granular admin permissions for
+  // non-super-admin staff accounts. JSON array of permission keys
+  // ("products", "orders", …) — null/empty = the role's default access
+  // (see lib/auth.ts PERMISSION defaults). Only SUPER_ADMIN/ADMIN can edit.
+  adminPermissions String?
+
+  @@index([role])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  ip        String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  // LEGACY raw token (rows created before hash upgrade). New rows store a
+  // non-sensitive filler here — the real token only ever lives in the email link.
+  token     String    @unique
+  // SHA-256 hex hash of the raw token (v2 security: DB never holds raw token).
+  // NULL only on legacy rows (validated via `token` fallback).
+  tokenHash String?   @unique
+  userId    String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Address {
+  id           String  @id @default(cuid())
+  userId       String
+  title        String  @default("آدرس من")
+  isDefault    Boolean @default(false)
+  receiverName String?
+  phone        String?
+  province     String
+  city         String
+  address      String
+  postalCode   String?
+  createdAt    DateTime @default(now())
+  user         User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// ─────────────────────────── Catalog ───────────────────────────
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  image       String?
+  icon        String? // lucide icon name
+  // JSON template: [{key, label, type}] — admin-editable spec definitions per category
+  specTemplate String?
+  parentId    String?
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  parent   Category?  @relation("CategoryTree", fields: [parentId], references: [id])
+  children Category[] @relation("CategoryTree")
+  products Product[]
+  stories  Story[]
+
+  @@index([parentId])
+}
+
+model Brand {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  logo        String?
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  products    Product[]
+}
+
+model Product {
+  id               String   @id @default(cuid())
+  name             String
+  slug             String   @unique
+  sku              String   @unique
+  shortDescription String?
+  description      String?
+  price            Int      // Toman
+  discountPrice    Int?
+  // v23: flash-sale deadline — while in the future the discount is ACTIVE;
+  // the moment it passes, the product is no longer on sale (price falls back
+  // to the base price everywhere: storefront, cart, checkout, search).
+  // null/absent = the classic always-on discount behavior.
+  discountEndsAt   DateTime?
+  stock            Int      @default(0)
+  minStock         Int      @default(5)
+  // JSON [{name, hex, image?}]
+  colors           String?
+  // JSON [{name, priceDelta, stock, sku}]
+  variants         String?
+  // v20: SIMPLE (single price) | VARIABLE (per-combination pricing).
+  // Simple products show one price field; variable products open the
+  // color/spec editors + combination price matrix in the admin form.
+  productType      String  @default("SIMPLE")
+  // v20: JSON [{color, variant, price, stock?}] — the EXACT price for one
+  // color + specification combination (each row carries ONE absolute price
+  // in Toman, e.g. مشکی + 8GB/256GB = 20,000,000). Empty = legacy
+  // color-price/delta rules from colors/variants apply.
+  combinations     String?
+  // JSON [{key, label, value, group?}]
+  specifications   String?
+  // JSON [string]
+  tags             String?
+  // normalized concat of name/sku/brand/category/tags/specs for FA/EN search
+  searchText       String   @default("")
+  mainImage        String?
+  // DRAFT | PUBLISHED | ARCHIVED
+  status           String   @default("PUBLISHED")
+  featured         Boolean  @default(false)
+  isSpecial        Boolean  @default(false) // پیشنهاد ویژه
+  rating           Float    @default(0)
+  reviewCount      Int      @default(0)
+  soldCount        Int      @default(0)
+  viewCount        Int      @default(0)
+  seoTitle         String?
+  seoDescription   String?
+  seoKeywords      String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  categoryId     String
+  brandId        String
+  category       Category       @relation(fields: [categoryId], references: [id])
+  brand          Brand          @relation(fields: [brandId], references: [id])
+  images         ProductImage[]
+  reviews        Review[]
+  cartItems      CartItem[]
+  wishlistItems  WishlistItem[]
+  orderItems     OrderItem[]
+  sliders        Slider[]
+  stories        Story[]
+  showcases      PromotionalShowcase[]
+
+  @@index([categoryId])
+  @@index([brandId])
+  @@index([status])
+  @@index([featured])
+  @@index([createdAt])
+  @@index([soldCount])
+}
+
+model ProductImage {
+  id        String  @id @default(cuid())
+  productId String
+  url       String
+  alt       String?
+  sortOrder Int     @default(0)
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+}
+
+// ─────────────────────────── Cart & Wishlist ───────────────────────────
+
+model Cart {
+  id         String   @id @default(cuid())
+  userId     String?  @unique
+  guestToken String?  @unique
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  user       User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items      CartItem[]
+}
+
+model CartItem {
+  id        String   @id @default(cuid())
+  cartId    String
+  productId String
+  quantity  Int      @default(1)
+  color     String?
+  unitPrice Int // snapshot at add time (discount price if set)
+  createdAt DateTime @default(now())
+  cart      Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([cartId, productId, color])
+  @@index([cartId])
+}
+
+model WishlistItem {
+  id        String   @id @default(cuid())
+  userId    String
+  productId String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+}
+
+// ─────────────────────────── Orders & Payments ───────────────────────────
+
+model Order {
+  id            String   @id @default(cuid())
+  orderNumber   String   @unique
+  userId        String?
+  // PENDING_PAYMENT | PAID | PROCESSING | CONFIRMED | READY_TO_SHIP | SHIPPED | DELIVERED | CANCELLED | REFUNDED
+  status        String   @default("PENDING_PAYMENT")
+  // UNPAID | VERIFYING | PAID | REJECTED | FAILED | REFUNDED
+  paymentStatus String   @default("UNPAID")
+  // ZARINPAL | CARD_TO_CARD
+  paymentMethod String
+  subtotal      Int
+  discount      Int      @default(0)
+  couponCode    String?
+  shippingCost  Int      @default(0)
+  tax           Int      @default(0)
+  total         Int
+  // customer snapshot
+  firstName     String
+  lastName      String
+  phone         String
+  email         String?
+  province      String
+  city          String
+  address       String
+  postalCode    String?
+  note          String?
+  trackingCode  String?
+  // ── v16 delivery method snapshot (chosen at checkout) ──
+  // The FK is SetNull so deleting a method never breaks order history;
+  // the denormalized name/type/eta keep receipts readable forever.
+  deliveryMethodId   String?
+  deliveryMethodName String?
+  deliveryType       String?
+  deliveryEta        String?
+  couponId      String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  deliveryMethod DeliveryMethod?   @relation("OrderDelivery", fields: [deliveryMethodId], references: [id], onDelete: SetNull)
+  user       User?              @relation(fields: [userId], references: [id])
+  items      OrderItem[]
+  payments   Payment[]
+  c2cPayment CardToCardPayment?
+  coupon     Coupon?            @relation(fields: [couponId], references: [id])
+
+  @@index([userId])
+  @@index([status])
+  @@index([paymentStatus])
+  @@index([createdAt])
+  @@index([phone])
+}
+
+model OrderItem {
+  id        String   @id @default(cuid())
+  orderId   String
+  productId String?
+  name      String // snapshot
+  sku       String
+  image     String?
+  unitPrice Int
+  discount  Int      @default(0)
+  quantity  Int
+  color     String?
+  total     Int
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product   Product? @relation(fields: [productId], references: [id])
+
+  @@index([orderId])
+}
+
+model Payment {
+  id         String   @id @default(cuid())
+  orderId    String
+  gateway    String   @default("ZARINPAL")
+  amount     Int // Rials sent to gateway
+  authority  String?  @unique
+  refId      String?
+  cardPan    String?
+  // PENDING | VERIFIED | FAILED | CANCELLED
+  status     String   @default("PENDING")
+  // JSON log of gateway raw responses
+  raw        String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([status])
+}
+
+model CardToCardPayment {
+  id             String    @id @default(cuid())
+  orderId        String    @unique
+  userId         String?
+  senderName     String
+  senderPhone    String
+  senderCard     String
+  trackingNumber String?
+  amount         Int
+  paidAt         DateTime
+  receiptImage   String
+  // PENDING | APPROVED | REJECTED
+  status         String    @default("PENDING")
+  rejectionReason String?
+  reviewedBy     String?
+  reviewedAt     DateTime?
+  note           String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  order          Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  user           User?     @relation(fields: [userId], references: [id])
+
+  @@index([status])
+}
+
+// ─────────────────────────── Delivery Methods (v16) ───────────────────────────
+// Admin-managed shipping options the customer picks at checkout
+// (پست ایران، تیپاکس، باربری، پیک، تحویل حضوری …). Cost is a flat Toman fee;
+// the legacy StoreSettings.shippingFlat stays as the fallback when no
+// active method exists (data preservation + zero-config stores).
+model DeliveryMethod {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  // POST | COURIER | FREIGHT | EXPRESS | PICKUP
+  type        String   @default("POST")
+  cost        Int      @default(0) // Toman
+  etaMinDays  Int      @default(1)
+  etaMaxDays  Int      @default(5)
+  icon        String? // lucide icon name
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  orders      Order[]  @relation("OrderDelivery")
+
+  @@index([isActive, sortOrder])
+}
+
+model Coupon {
+  id           String   @id @default(cuid())
+  code         String   @unique
+  // PERCENT | FIXED
+  type         String
+  value        Int // percent (1-100) or amount (Toman)
+  minAmount    Int      @default(0)
+  maxUsage     Int      @default(0) // 0 = unlimited
+  usedCount    Int      @default(0)
+  perUserLimit Int      @default(1)
+  startsAt     DateTime?
+  expiresAt    DateTime?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  orders       Order[]
+
+  @@index([isActive])
+}
+
+// ─────────────────────────── Content ───────────────────────────
+
+model Slider {
+  id           String    @id @default(cuid())
+  title        String
+  subtitle     String?
+  desktopImage String
+  mobileImage  String?
+  buttonText   String?
+  buttonUrl    String?
+  badge        String?
+  productId    String?
+  sortOrder    Int       @default(0)
+  isActive     Boolean   @default(true)
+  startsAt     DateTime?
+  endsAt       DateTime?
+  createdAt    DateTime  @default(now())
+  product      Product?  @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([isActive])
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  productId String
+  userId    String
+  rating    Int // 1..5
+  title     String?
+  comment   String
+  // PENDING | APPROVED | REJECTED
+  status    String   @default("PENDING")
+  createdAt DateTime @default(now())
+  // v23: official/admin (or AI-generated) reply shown attached to the
+  // comment on the product page. replyAuthorName = the persona the admin
+  // chose (defaults to the store name).
+  replyText       String?
+  replyAuthorName String?
+  repliedAt       DateTime?
+  // v24: CUSTOMER | AI — comments written by the AI comment studio are
+  // flagged so the studio can count commented products and auto-detect
+  // newly inserted products that still have no AI comment.
+  source          String   @default("CUSTOMER")
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, userId])
+  @@index([status])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  // INFO | ORDER | PAYMENT | SYSTEM
+  type      String   @default("INFO")
+  isRead    Boolean  @default(false)
+  link      String?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+}
+
+// ─────────────────────────── Support Tickets (v14.1) ───────────────────────────
+// Ticketing system: logged-in customers open tickets (from /contact or their
+// account); staff replies land in the customer's profile AND as a
+// notification. Contact-form messages are stored as tickets from now on
+// (CustomerMessage is kept for data preservation of legacy rows).
+model SupportTicket {
+  id          String                 @id @default(cuid())
+  ticketNo    String                 @unique
+  userId      String
+  user        User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject     String
+  // OPEN (awaiting staff) | ANSWERED (staff replied) | CLOSED
+  status      String                 @default("OPEN")
+  // denormalized for list views / sorting
+  lastReplyAt DateTime               @default(now())
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+  messages    SupportTicketMessage[]
+
+  @@index([userId, status])
+  @@index([status, lastReplyAt])
+}
+
+model SupportTicketMessage {
+  id        String            @id @default(cuid())
+  ticketId  String
+  ticket    SupportTicket     @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  // sender: null = system-generated message
+  senderId  String?
+  sender    User?             @relation(fields: [senderId], references: [id], onDelete: SetNull)
+  isStaff   Boolean           @default(false)
+  body      String
+  // JSON [{url, name, kind, size}] — media attachments (v16: images + videos,
+  // uploaded via /api/tickets/upload into public/uploads/tickets/)
+  attachments String?
+  createdAt DateTime          @default(now())
+
+  @@index([ticketId, createdAt])
+}
+
+// ─────────────────────────── Settings & Logs ───────────────────────────
+
+model StoreSettings {
+  id                   String  @id @default("main")
+  storeName            String  @default("تاج الکترونیکس")
+  storeNameEn          String  @default("TAJ Electronics")
+  logo                 String?
+  favicon              String?
+  // Optional separate footer logo; falls back to logo
+  footerLogo           String?
+  // Branding / SEO
+  shortDescription     String?
+  metaTitle            String?
+  metaDescription      String?
+  phone                String  @default("021-91000000")
+  // Mobile contact shown in footer/contact
+  mobile               String?
+  email                String  @default("support@tajelectronics.ir")
+  address              String  @default("تهران، خیابان ولیعصر، مرکز رایانه پردیس، طبقه ۳، واحد ۳۱۲")
+  workingHours         String?
+  instagram            String?
+  telegram             String?
+  whatsapp             String?
+  youtube              String?
+  twitter              String?
+  linkedin             String?
+  footerText           String  @default("تاج الکترونیکس — فروشگاه تخصصی کالای دیجیتال با ضمانت اصالت کالا")
+  description          String?
+  shippingFlat         Int     @default(60000) // Toman
+  freeShippingOver     Int     @default(0) // 0 = disabled
+  taxPercent           Float   @default(0) // 0 = prices include tax
+  currency             String  @default("تومان")
+  minOrderAmount       Int     @default(0)
+  maintenanceMode      Boolean @default(false)
+  announcement         String?
+  // Announcement bar controls (Settings → فروشگاه) — admin managed
+  announcementActive   Boolean  @default(true)
+  // Optional link target for the announcement (internal path or https URL)
+  announcementLink     String?
+  // v20: editable marquee ticker messages (JSON [{text, link?}]) — rotate in
+  // the template header ticker strips; empty/null = fall back to the single
+  // announcement above. Managed from Settings → فروشگاه → پیام‌های نوار متحرک.
+  tickerMessages       String?
+  // v22: admin-controlled marquee speed for the header ticker strips —
+  // seconds per loop (lower = faster). null/0 = use each template's own
+  // designed default (gaming 16s … editorial 28s). Managed from the same
+  // ticker card in Settings → فروشگاه.
+  tickerSpeed          Int?
+  // v23: per-template feature flags (JSON { "<templateId>": { "<feature>": bool } })
+  // — e.g. { "gaming-cyber": { "timer": true, "glow": true } }. The registry
+  // declares which features a template supports (Admin → ظاهر); this column
+  // stores the admin's on/off choices. Missing template/key = feature ON
+  // (templates render their designed default).
+  templateFeatures    String?
+  // v23: persona name used for AI-generated comment replies (defaults to the
+  // store name when empty) — «پاسخ از: <name>».
+  aiReviewReplier     String?
+  // ACTIVE STOREFRONT TEMPLATE (Appearance → تغییر قالب فروشگاه).
+  // Presentation-layer ONLY — switching never touches store data (spec §21/§22).
+  // One of TEMPLATE_IDS in src/lib/templates/registry.ts; default "modern-tech".
+  activeTemplate       String  @default("modern-tech")
+  // v25: admin-set GLOBAL countdown deadline (ISO) used by templates that
+  // register a "timer" feature (christmas / gaming-cyber / flash-deals /
+  // techhub-dark …). null = templates fall back to their designed defaults
+  // (per-product discount deadlines / midnight). Managed per-template from
+  // Admin → ظاهر → ویژگی‌های قالب (toggle + datetime).
+  templateTimerEndsAt DateTime?
+  // v24: per-template header/footer chrome overrides (JSON
+  // { "<templateId>": { "header": { bg?, fg?, accent?, logo?, sticky?, … },
+  //                     "footer": { bg?, fg?, accent?, trust?, … } } }).
+  // Managed from Admin → ظاهر → «هدر و فوتر». Missing template/field = the
+  // template's own theme palette (header/footer match the storefront colors).
+  templateChrome        String?
+  // v27b: per-template footer CONTENT overrides (JSON
+  // { "<templateId>": { footerText?, copyrightText?, customerLinks?: [{label, url}],
+  //                     storeLinks?: [{label, url}] } }). Managed from
+  // Admin → تنظیمات → فوتر (template-aware). Missing template/field = the
+  // global StoreSettings/FooterLink values apply.
+  templateFooters       String?
+  // Footer copyright; {year} auto-replaced with current year
+  copyrightText        String  @default("© {year} {storeName}. All rights reserved.")
+  // ── v29 · MAINTENANCE (repair) PAGE ──
+  // which repair-page template renders for closed visitors
+  // (MAINTENANCE_TEMPLATE_IDS in src/lib/maintenance.ts; default "tech-dark")
+  maintenanceTemplate  String  @default("tech-dark")
+  // JSON of every editable word on the repair page (title, description,
+  // labels, tracking button …). null/missing key = designed default.
+  // Managed from Settings → فروشگاه → حالت تعمیر.
+  maintenanceContent   String?
+  // ── v29 · AI WIDGET LOGO ──
+  // admin-uploaded image used as the AI chat-widget logo (FAB + panel
+  // header + empty state). null = per-template designed assistant art.
+  aiWidgetLogo         String?
+  // JSON { "<templateId>": true } — templates the custom AI logo applies
+  // to. null = applies to ALL templates (when aiWidgetLogo is set).
+  templateAiLogos      String?
+  // v29.2 · UPDATE SCRIPT: URL of the update manifest (update-manifest.json)
+  // the admin wants this installation to check — a raw GitHub URL, a GitHub
+  // Release asset URL or a file on the shop's own server (https://…/manifest.json).
+  // null = the built-in default (env UPDATE_MANIFEST_URL or the shipped demo).
+  updateManifestUrl   String?
+  updatedAt            DateTime @updatedAt
+}
+
+// Admin-selectable visual theme (see globals.css [data-theme] tokens)
+model ThemeSettings {
+  id        String   @id @default("main")
+  // gold | emerald | crimson | electric | royal | neutral
+  themeId   String   @default("gold")
+  // light | dark | system  (default mode; visitors may override locally)
+  colorMode String   @default("light")
+  updatedAt DateTime @updatedAt
+}
+
+// Footer CMS — admin-managed link lists grouped by section
+model FooterLink {
+  id        String   @id @default(cuid())
+  // CUSTOMER | STORE
+  section   String   @default("CUSTOMER")
+  label     String
+  url       String
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([section, isActive, sortOrder])
+}
+
+// CMS pages — content managed from Admin → Content → Pages
+model CmsPage {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  title       String
+  // lucide icon name shown in page header
+  icon        String?
+  // JSON [{h: string, p: string}] — ordered content sections
+  sections    String?
+  seoTitle    String?
+  seoDescription String?
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isActive, sortOrder])
+}
+
+// Contact-form submissions — managed from Admin → Messages
+model CustomerMessage {
+  id        String   @id @default(cuid())
+  firstName String
+  lastName  String
+  email     String?
+  phone     String?
+  subject   String
+  message   String
+  // NEW | READ | REPLIED | CLOSED
+  status    String   @default("NEW")
+  adminNote String?
+  ip        String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+// Instagram-style homepage stories
+model Story {
+  id         String    @id @default(cuid())
+  title      String
+  image      String
+  // Optional story VIDEO (spec §10) — when set, the viewer plays the video and
+  // the progress bar follows the video's real duration; image acts as poster.
+  videoUrl   String?
+  // Per-story slide duration in ms (admin-configurable, spec §26). Default 6s.
+  duration   Int       @default(6000)
+  linkUrl    String?
+  badge      String?
+  productId  String?
+  categoryId String?
+  expiresAt  DateTime?
+  sortOrder  Int       @default(0)
+  isActive   Boolean   @default(true)
+  viewCount  Int       @default(0)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  product    Product?  @relation(fields: [productId], references: [id], onDelete: SetNull)
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  @@index([isActive, sortOrder])
+}
+
+// Homepage promotional showcase blocks (animated, below hero)
+model PromotionalShowcase {
+  id         String   @id @default(cuid())
+  title      String
+  subtitle   String?
+  image      String
+  buttonText String?
+  buttonUrl  String?
+  badge      String?
+  productId  String?
+  sortOrder  Int      @default(0)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  product    Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([isActive, sortOrder])
+}
+
+model PaymentSettings {
+  id                String  @id @default("main")
+  zarinpalEnabled   Boolean @default(false)
+  zarinpalSandbox   Boolean @default(true)
+  zarinpalMerchantId String?
+  // v19 (ZarinPal v4 docs): IRR = amount in Rials (default, keeps legacy
+  // Toman×10 behavior) | IRT = amount in Tomans sent as-is
+  zarinpalCurrency  String  @default("IRR")
+  // v19: optional referrer_id (کد معرف) forwarded to the gateway
+  zarinpalReferrer  String?
+  c2cEnabled        Boolean @default(true)
+  c2cCardNumber     String  @default("")
+  c2cCardHolder     String  @default("")
+  c2cIBAN           String  @default("")
+  c2cAccountNumber  String  @default("")
+  c2cInstructions   String  @default("پس از واریز، تصویر رسید را در بخش پیگیری سفارش ارسال کنید. تأیید حداکثر تا ۲ ساعت کاری طول می‌کشد.")
+  updatedAt         DateTime @updatedAt
+}
+
+model AiSettings {
+  id          String   @id @default("main")
+  enabled     Boolean  @default(true)
+  // builtin (z-ai SDK) | gapgpt (GapGPT API — https://api.gapgpt.app/v1,
+  // OpenAI-compatible, rial payments + Persian docs; v28 replaced the old
+  // openai/gemini/auto providers which were removed from the product)
+  provider    String   @default("builtin")
+  // v28: GapGPT credentials (admin-managed; key lives server-side only)
+  gapApiKey   String?
+  gapModel    String   @default("gpt-4o")
+  temperature Float    @default(0.7)
+  maxTokens   Int      @default(2048)
+  systemPrompt String? // custom override; default prompt in code
+  // legacy v25 columns kept so `prisma db push` stays non-destructive on
+  // existing deployments; v28 no longer reads or writes them anywhere
+  geminiApiKey String?
+  geminiModel  String  @default("gemini-2.0-flash")
+  openaiApiKey String?
+  openaiModel  String  @default("gpt-4o-mini")
+  updatedAt    DateTime @updatedAt
+}
+
+// ─────────────────────────── Email / SMTP ───────────────────────────
+// Mail server configuration used by password recovery (and future mail features).
+// `password` is stored AES-256-GCM encrypted (see src/lib/crypto-secret.ts).
+model SmtpSettings {
+  id         String   @id @default("main")
+  enabled    Boolean  @default(false)
+  host       String   @default("")
+  port       Int      @default(587)
+  // NONE | STARTTLS | SSL_TLS
+  security   String   @default("STARTTLS")
+  username   String   @default("")
+  password   String?
+  fromName   String   @default("")
+  fromEmail  String   @default("")
+  replyTo    String?
+  updatedAt  DateTime @updatedAt
+}
+
+model AdminLog {
+  id        String   @id @default(cuid())
+  adminId   String
+  action    String // LOGIN, PRODUCT_CREATE, ORDER_STATUS_CHANGE ...
+  entity    String?
+  entityId  String?
+  ip        String?
+  metadata  String? // JSON
+  createdAt DateTime @default(now())
+  admin     User     @relation("AdminActor", fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([adminId])
+  @@index([createdAt])
+}
+
+// ─────────────────────────── Installer ───────────────────────────
+// Persistent installation lock — created/managed exclusively by /install wizard.
+// installed=true → installer UI + installer APIs are permanently disabled.
+model InstallationState {
+  id          String    @id @default("main")
+  installed   Boolean   @default(false)
+  version     String? // app version recorded at install time
+  adminUserId String? // first SUPER_ADMIN created by the wizard
+  installedAt DateTime?
+  updatedAt   DateTime  @updatedAt
+}
