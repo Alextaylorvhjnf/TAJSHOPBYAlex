@@ -38,48 +38,25 @@
 
 1. آدرس ذخیره‌شده در پنل (ستون `updateManifestUrl` در تنظیمات فروشگاه)
 2. متغیر محیطی `UPDATE_MANIFEST_URL`
-3. **گیت‌هاب رسمی اسکریپت (پیش‌فرض v30):**
-   `https://raw.githubusercontent.com/Alextaylorvhjnf/TAJSHOPBYAlex/main/updates/update-manifest.json`
-4. مانیفست نمونهٔ همراه اسکریپت: `/update/update-manifest.json` (فقط حالت آفلاین/بی‌ارتباط)
+3. مانیفست نمونهٔ همراه اسکریپت: `/update/update-manifest.json` (نسخهٔ فعلی — همیشه «به‌روز هستید»)
 
 ---
 
-## ۲) میزبانی به‌روزرسانی
+## ۲) میزبانی به‌روزرسانی — دو روش پشتیبانی‌شده
 
-### ⭐ گیت‌هاب رسمی این فروشگاه (فعال و پیش‌فرض)
+### روش A) گیت‌هاب (پیشنهادی ⭐)
 
-از نسخهٔ v30، منبع اصلی به‌روزرسانی ریپوی رسمی خود اسکریپت است:
+1. یک ریپازیتوری عمومی مثلاً به نام `taj-updates` بسازید.
+2. دو راه دارید (هر دو پشتیبانی می‌شوند):
+   - **فایل خام در شاخه:** پوشه‌ای مثل `updates/` بسازید و `update-manifest.json` + فایل‌های ZIP را داخل آن commit کنید. آدرس مانیفست:
+     `https://raw.githubusercontent.com/USER/taj-updates/main/update-manifest.json`
+   - **GitHub Releases (بهتر):** یک Release (مثلاً با تگ `v29.3.0`) بسازید و ZIP را به‌عنوان asset ضمیمه کنید. آدرس مستقیم asset را در `zipUrl` بگذارید (لینک‌های Releases ریدایرکت دارند — اسکریپت به‌روزرسان به‌صورت خودکار ریدایرکت‌ها را دنبال می‌کند).
+3. آدرس raw مانیفست را در پنل → «اسکریپت به‌روزرسانی» → فیلد آدرس مانیفست ذخیره کنید.
 
-- **ریپو:** `https://github.com/Alextaylorvhjnf/TAJSHOPBYAlex`
-- **مانیفست (پیش‌فرض، بدون هیچ تنظیمی):**
-  `https://raw.githubusercontent.com/Alextaylorvhjnf/TAJSHOPBYAlex/main/updates/update-manifest.json`
-- **بسته‌های ZIP:** `updates/taj-electronics-update-<نسخه>.zip` در همان ریپو
+**مزایا:** رایگان، بدون هاست اضافه، CDN سریع و پایدار، تاریخچهٔ نسخه‌ها داخلی است.
+**معایب:** در ایران ممکن است نیاز به ابزار دورزدن محدودیت باشد (از سمت سرور فروشگاه، نه مرورگر).
 
-دکمهٔ «بررسی به‌روزرسانی» پنل، وقتی نه آدرسی در پنل ذخیره شده باشد و نه
-`UPDATE_MANIFEST_URL` ست شده باشد، **خودش همین مانیفست گیت‌هاب را چک می‌کند**.
-
-**دو راه نصب:**
-1. پنل → «اسکریپت به‌روزرسانی» → بررسی → دانلود و نصب (فقط مدیر ارشد).
-   در نصب داکری، فایل‌های `public/` و اسکیمای دیتابیس داخل کانتینر اعمال
-   می‌شود؛ برای اعمال کامل `src/` راه ۲ را اجرا کنید.
-2. ترمینال سرور: `cd ~/taj-electronics && ./update.sh` — ZIP را از گیت‌هاب
-   دانلود، چک‌سام را تأیید، کدها را اعمال و تصویر داکر را rebuild می‌کند.
-   `--check` فقط بررسی می‌کند و `--force` نصب مجدد همان نسخه است.
-
-**نصب قدیمی (v29.2 و قبل‌تر) — فقط یک بار:**
-```bash
-cd ~/taj-electronics
-curl -sL -o update.sh https://raw.githubusercontent.com/Alextaylorvhjnf/TAJSHOPBYAlex/main/updates/update.sh
-chmod +x update.sh && ./update.sh
-```
-
-> انتشار نسخهٔ جدید = push در همان ریپو (فایل `updates/update-manifest.json`
-> + ZIP). سازندهٔ بسته از `scripts/release-update.mjs` داخل ریپو استفاده
-> می‌کند که همهٔ این‌ها را خودکار می‌سازد و پوش می‌کند.
-
-### روش جایگزین) سرور / هاست خودتان (cPanel و…)
-
-اگر سرور فروشگاه به گیت‌هاب دسترسی نداشت:
+### روش B) سرور / هاست خودتان (cPanel و…)
 
 1. در هاست، پوشه‌ای مثل `public_html/updates/` بسازید.
 2. `update-manifest.json` و فایل ZIP نسخه را داخل آن آپلود کنید.
