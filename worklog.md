@@ -179,3 +179,20 @@ Stage Summary:
 - VERDICT: SITE VERIFIED — all 17 checklist items PASS; no defects found; no code changes made (or needed).
 - Evidence: 25 screenshots in /tmp/qa-task7/ (desktop/mobile homepage, mobile menu, live search, product page, login/register, 6 mega-menu states incl. the tree hover swap, admin login + recovery mode, dashboard, maintenance tab + live-preview dialog, update panel, bell, gaming-cyber hero override, admin products) + 7 VLM reviews (all pass: homepage hero 1/1, product grid, login 4/4, tree menu 4/4, maintenance tab 5/5, admin login 5/5).
 - Notable observations (no action required): ① auth variant for modern-tech is CYBER by design (task brief assumed clean-light); ② mega-menu hover-only effects don't compute in headless ((hover:hover)=false) — verified via markers + collapsed-state widths instead; ③ VLM can misjudge very tall full-page screenshots (downscale artifact) — viewport crops + DOM metrics are authoritative; ④ marketplace has a hidden mobile nav instance first in DOM (harmless, QA-script footgun); ⑤ update check reached the real GitHub channel and correctly reports "on latest" (26.0.0 local vs 25.0.0 remote) pending the owner's git push.
+
+---
+Task ID: 8
+Agent: main (github push + channel verification)
+Task: Push v26.0.0/v31 with the owner's new token and verify the live GitHub update channel end-to-end
+
+Work Log:
+- Set new token on origin remote and pushed commits 16ade3e + 1970006 (84285b4..1970006 main)
+- Verified remote manifest on raw.githubusercontent.com = version 26.0.0, zipUrl + sha256 + minAppVersion 24.0.0
+- Downloaded updates/taj-electronics-update-26.0.0.zip from GitHub: HTTP 200, 5.59MB, sha256 EXACT match with manifest
+- Extracted zip: all v31 files present (mega-menus.tsx, auth-shell.tsx, poll/route.ts, template-content-editor.tsx, content.ts), package.json = 26.0.0, NO user data (no db/custom.db, no .env, no user uploads)
+- App's own /api/admin/update/check with admin session: fetched real GitHub → current 26.0.0 = latest 26.0.0, "on latest"
+- Simulated an old 25.0.0 site (temp package.json downgrade): check → available: true with 26.0.0 details; poll (real fetch after module reload) → hasUpdate: true AND auto-created the admin notification «به‌روزرسانی جدید نسخه 26.0.0» (type SYSTEM, link to settings?tab=update)
+- Cleanup: restored package.json 26.0.0, deleted test notification, reverted test comments in poll route, removed temp session artifacts; / and /api/health green
+
+Stage Summary:
+- GitHub channel FULLY VERIFIED end-to-end: push ✓, manifest ✓, zip hash ✓, contents ✓, old-version detection ✓, auto-notification ✓. Any site on 24.0.0+ will see and can install 26.0.0 from GitHub; user data protected by whitelist.
