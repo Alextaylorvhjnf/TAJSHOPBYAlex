@@ -66,7 +66,7 @@ const rsync = (srcRel, destRel, extra = []) =>
 rsync("src/", "src/");
 rsync("prisma/", "prisma/");
 rsync("scripts/", "scripts/", ["--exclude", "release-update.mjs"]);
-rsync("public/", "public/", ["--exclude", "uploads"]);
+rsync("public/", "public/", ["--exclude", "uploads", "--exclude", "downloads"]);
 fs.copyFileSync(path.join(SOURCE, "db", "catalog-seed.db"), path.join(REPO_DIR, "db", "catalog-seed.db"));
 for (const f of [
   "package.json",
@@ -114,7 +114,7 @@ sh("rsync", [
   path.join(REPO_DIR, "scripts") + "/",
   path.join(STAGING, "scripts") + "/",
 ]);
-sh("rsync", ["-a", "--exclude", "uploads", path.join(REPO_DIR, "public") + "/", path.join(STAGING, "public") + "/"]);
+sh("rsync", ["-a", "--exclude", "uploads", "--exclude", "downloads", path.join(REPO_DIR, "public") + "/", path.join(STAGING, "public") + "/"]);
 for (const f of [
   "package.json",
   "next.config.ts",
