@@ -26,16 +26,19 @@ import {
   Cpu, Orbit, Square, Smartphone, Leaf, Snowflake, Moon, Gamepad2, Crown, LayoutGrid,
   Shapes, Palette, Sparkles, Newspaper, Store, MoonStar, Zap, BookOpen, Rocket,
   Sparkle, Waves, ShoppingBag, Gem, ShoppingCart,
-  Eye, Check, ExternalLink, Info, Loader2, SlidersHorizontal, Timer, PanelTop, type LucideIcon,
+  Eye, Check, ExternalLink, Info, Loader2, SlidersHorizontal, Timer, PanelTop, Images, type LucideIcon,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AdminPageHeader, CardsSkeleton, EmptyState } from "@/components/admin/ui-bits";
 import { apiFetch } from "@/components/admin/api-client";
 import { cn } from "@/lib/utils";
 import type { TemplateDef } from "@/lib/templates/registry";
 import type { ChromeOverrides, HomeData } from "@/lib/templates/types";
 import { ChromeEditorDialog } from "./chrome-editor";
+import { TemplateContentEditor } from "./template-content-editor";
 import { ModernTechTemplate } from "@/components/store/templates/modern-tech";
 import { Future3DTemplate } from "@/components/store/templates/future-3d";
 import { MinimalPremiumTemplate } from "@/components/store/templates/minimal-premium";
@@ -321,6 +324,9 @@ export default function AdminAppearancePage() {
   const [previewing, setPreviewing] = useState<TemplateDef | null>(null);
   /* v24: template whose header/footer chrome editor dialog is open */
   const [chromeEditing, setChromeEditing] = useState<TemplateDef | null>(null);
+  /* v5-f: template selected in the «محتوای اختصاصی قالب» editor (null = the
+   * active template until the admin picks another one) */
+  const [contentTemplateId, setContentTemplateId] = useState<string | null>(null);
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["admin", "templates"],
@@ -328,12 +334,17 @@ export default function AdminAppearancePage() {
   });
 
   // Real store data — fetched lazily (only once a preview is opened), shared
-  // between all template cards.
+  // between all template cards. v5-f: the PREVIEWED template's own content is
+  // applied server-side (?template=) so the dialog shows slides/texts/brand
+  // exactly as /?template=<id> renders them.
   const { data: previewData } = useQuery({
-    queryKey: ["admin", "templates", "preview"],
-    queryFn: () => apiFetch<{ data: HomeData }>("/api/admin/templates/preview"),
+    queryKey: ["admin", "templates", "preview", previewing?.id],
+    queryFn: () =>
+      apiFetch<{ data: HomeData }>(
+        `/api/admin/templates/preview${previewing ? `?template=${previewing.id}` : ""}`,
+      ),
     enabled: !!previewing,
-    staleTime: 60_000,
+    staleTime: 0,
   });
 
   const applyMutation = useMutation({
@@ -353,6 +364,9 @@ export default function AdminAppearancePage() {
   const active = data?.active ?? "modern-tech";
   const featureFlags = data?.featureFlags ?? {};
   const chromeMap = data?.chrome ?? {};
+  /* v5-f: effective template selected in the content editor */
+  const contentTemplate = contentTemplateId ?? active;
+  const contentTemplateDef = templates.find((t) => t.id === contentTemplate);
 
   return (
     <div className="space-y-6">
@@ -485,6 +499,58 @@ export default function AdminAppearancePage() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* v5-f · per-template dedicated content — each of the 25 templates
+          carries its OWN slides / showcases / texts / links / brand; empty
+          fields fall back to the global entities. */}
+      {!isLoading && !isError && templates.length > 0 && (
+        <div className="space-y-4 rounded-xl border bg-card p-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="flex items-start gap-2.5">
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/15 text-primary">
+                <Images className="h-5 w-5" />
+              </span>
+              <div>
+                <p className="text-sm font-black">محتوای اختصاصی قالب</p>
+                <p className="mt-0.5 max-w-xl text-[11px] leading-5 text-muted-foreground">
+                  اسلایدها، شوکیس‌ها، متن‌ها، لینک‌ها و برندِ مخصوص هر قالب — به‌محض فعال شدن قالب،
+                  همین محتوا جایگزین مقادیر سراسری می‌شود.
+                </p>
+              </div>
+            </div>
+            <div className="w-full sm:w-64">
+              <Label className="sr-only">انتخاب قالب</Label>
+              <Select value={contentTemplate} onValueChange={setContentTemplateId}>
+                <SelectTrigger className="rounded-lg" aria-label="انتخاب قالب برای ویرایش محتوا">
+                  <SelectValue placeholder="قالب موردنظر را انتخاب کنید" />
+                </SelectTrigger>
+                <SelectContent>
+                  {templates.map((t) => (
+                    <SelectItem key={t.id} value={t.id}>
+                      <span className="flex items-center gap-2">
+                        <span className="truncate">{t.nameFa}</span>
+                        {t.id === active && (
+                          <span className="shrink-0 rounded-full bg-primary/15 px-2 py-0.5 text-[9px] font-black text-primary">
+                            قالب فعال
+                          </span>
+                        )}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          {contentTemplateDef && (
+            <TemplateContentEditor
+              key={contentTemplate}
+              templateId={contentTemplate}
+              templateName={contentTemplateDef.nameFa}
+              active={contentTemplate === active}
+            />
+          )}
         </div>
       )}
 

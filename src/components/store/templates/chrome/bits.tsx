@@ -35,12 +35,15 @@ import {
   ChevronDown, ChevronLeft, Plus, Minus, Trash2, LayoutGrid,
 } from "lucide-react";
 import type { HomeData, TemplateCategory, TemplateBrand, TemplateStore } from "@/lib/templates/types";
-import { useCart, type CartItemDTO } from "@/hooks/use-store";
+import type { MegaMenuStyle } from "./config";
+import { MegaMenuBody } from "./mega-menus";
+import { useCart, useMe, type CartItemDTO } from "@/hooks/use-store";
 import { formatPrice, toFaDigits } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 /* ── Accent vocabulary (static Tailwind strings only) ─────────────── */
 
@@ -758,18 +761,55 @@ export function ChromeAccount({
   onDark?: boolean;
   className?: string;
 }) {
+  /* v31 (gaming-cyber ask, applied kit-wide): logged-in visitors see their
+   * REAL avatar + first name — the exact same /api/auth/me session hook
+   * the shared storefront header uses (useMe → react-query, client-side,
+   * 60s staleTime, cache shared with the storefront header). Anonymous
+   * visitors keep the plain login icon link. SSR/hydration render the
+   * anonymous icon (query starts unset), then the avatar swaps in. */
+  const { data } = useMe();
+  const user = data?.user;
+
+  if (!user) {
+    return (
+      <Link
+        href="/account"
+        aria-label="حساب کاربری من"
+        className={cn(
+          "grid h-11 w-11 shrink-0 place-items-center rounded-full transition-all hover:-translate-y-0.5 active:scale-95",
+          onDark ? "bg-white/10 hover:bg-white/20" : "bg-muted hover:bg-muted/60",
+          a && a.text,
+          className
+        )}
+      >
+        <User className="h-5 w-5" aria-hidden />
+      </Link>
+    );
+  }
+
+  const initials = `${user.firstName?.[0] ?? ""}${user.lastName?.[0] ?? ""}`.trim() || "ت";
+
   return (
     <Link
       href="/account"
-      aria-label="حساب کاربری من"
+      aria-label={`حساب کاربری ${user.firstName ?? ""}`.trim()}
       className={cn(
-        "grid h-11 w-11 shrink-0 place-items-center rounded-full transition-all hover:-translate-y-0.5 active:scale-95",
+        "group flex h-11 shrink-0 items-center gap-2.5 rounded-full ps-1.5 pe-3.5 transition-all hover:-translate-y-0.5 active:scale-95",
         onDark ? "bg-white/10 hover:bg-white/20" : "bg-muted hover:bg-muted/60",
         a && a.text,
         className
       )}
     >
-      <User className="h-5 w-5" aria-hidden />
+      {/* neon gradient ring — subtle scale + glow bloom on hover */}
+      <span className="grid h-[38px] w-[38px] shrink-0 place-items-center rounded-full bg-gradient-to-br from-violet-500 via-fuchsia-500 to-cyan-400 p-[2px] shadow-[0_0_10px_rgba(168,85,247,.35)] transition-all duration-200 group-hover:scale-105 group-hover:shadow-[0_0_16px_rgba(168,85,247,.65)]">
+        <Avatar className="h-full w-full rounded-full border-0 bg-background/85">
+          <AvatarImage src={user.avatar ?? undefined} alt="" />
+          <AvatarFallback className="bg-transparent text-[11px] font-black">{initials}</AvatarFallback>
+        </Avatar>
+      </span>
+      <span className="hidden max-w-24 truncate text-xs font-bold sm:block">
+        {user.firstName}
+      </span>
     </Link>
   );
 }
@@ -1012,6 +1052,7 @@ export function ChromeHeaderNav({
   a,
   onDark,
   showCategories = true,
+  menuStyle,
   className,
 }: {
   data: HomeData;
@@ -1020,21 +1061,47 @@ export function ChromeHeaderNav({
   /** v24 admin toggle («منوی مگا»): false hides the categories dropdown
    *  trigger — the four plain links stay. Defaults to ON. */
   showCategories?: boolean;
+  /** v32 (5-e): the active template's mega-menu VARIANT — threaded from
+   *  the chrome config by header.tsx (cfg.menuStyle). Undefined (the
+   *  shared storefront header / modern-tech default) renders the classic
+   *  digikala tree. */
+  menuStyle?: MegaMenuStyle;
   className?: string;
 }) {
   const [open, setOpen] = useState(false);
+  /* v32 (5-e): close = zoom-out + fade — instead of hard-unmounting the
+   *  panel the moment `open` flips false, hide() flips it into a 180ms
+   *  exit animation (data-closing → the mm-out keyframes in
+   *  mega-menus.tsx) and unmounts right after. The hover-intent timings
+   *  (130ms open / 260ms close grace) are untouched; every close path
+   *  (hover-out grace, ESC, click-toggle, click-outside, link click) funnels
+   *  through hide(), and measureAndOpen() aborts a pending exit so a fast
+   *  re-hover never leaves a zombie timer behind. */
+  const [exiting, setExiting] = useState(false);
   /* v26: viewport top (px) of the full-width mega overlay — measured from
    *  the trigger's bounding rect at open time so the panel attaches flush
    *  under the header bar on EVERY template and every device. */
   const [panelTop, setPanelTop] = useState(0);
   const openT = useRef<ReturnType<typeof setTimeout> | null>(null);
   const closeT = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const exitT = useRef<ReturnType<typeof setTimeout> | null>(null);
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const trigRef = useRef<HTMLButtonElement | null>(null);
+  /* v32 (5-e) fix: ESC closes and returns focus to the trigger — but the
+   *  wrap's onFocus auto-open would instantly re-open the panel when focus
+   *  actually MOVES to the trigger (focus on an already-focused trigger is
+   *  a no-op, so the usual Tab→Enter→Escape flow never hit this; only the
+   *  focus-elsewhere-inside-the-nav edge did). The flag suppresses the
+   *  auto-open for the synchronous focus the ESC handler itself issues. */
+  const escFocus = useRef(false);
   /* v26: latest route, synced in an effect — a pending hover-intent timer
    *  must not open the mega on a page the user already navigated away to. */
   const pathRef = useRef<string | null>(null);
 
+  /* hover-intent timers only — exitT is deliberately NOT touched: while
+   * the panel plays its 180ms exit, hovering the fading panel must never
+   * cancel the unmount (only measureAndOpen / navigation / unmount abort
+   * an exit, and each resets `exiting`). */
   const clearTimers = () => {
     if (openT.current) clearTimeout(openT.current);
     if (closeT.current) clearTimeout(closeT.current);
@@ -1042,16 +1109,35 @@ export function ChromeHeaderNav({
     closeT.current = null;
   };
 
+  /* v32 (5-e): animated close — open flips false immediately (a11y state
+   *  is honest), the panel stays mounted with data-closing for the 180ms
+   *  mm-out animation, then unmounts. No-op when already closed/exiting. */
+  const hide = () => {
+    if (exitT.current) return;
+    if (!open) return;
+    clearTimers();
+    setOpen(false);
+    setExiting(true);
+    exitT.current = setTimeout(() => {
+      exitT.current = null;
+      setExiting(false);
+    }, 190);
+  };
+
   /* v26: measure the trigger, then open the FULL-WIDTH fixed overlay. */
   const measureAndOpen = () => {
+    if (exitT.current) {
+      clearTimeout(exitT.current);
+      exitT.current = null;
+    }
+    setExiting(false);
     const r = trigRef.current?.getBoundingClientRect();
     setPanelTop(r ? Math.round(r.bottom) : 0);
     setOpen(true);
   };
 
   const closeNow = () => {
-    clearTimers();
-    setOpen(false);
+    hide();
   };
 
   /* hover-intent: short delay in, slightly longer grace out */
@@ -1074,7 +1160,14 @@ export function ChromeHeaderNav({
       openT.current = null;
     }
     if (!open) return;
-    closeT.current = setTimeout(() => setOpen(false), MEGA_CLOSE_MS);
+    /* route captured at schedule time — if the user navigated before the
+     * grace elapsed, the panel is already hard-closed: abort instead of
+     * resurrecting it via hide()'s exit animation. */
+    const pathAtLeave = pathRef.current;
+    closeT.current = setTimeout(() => {
+      if (pathAtLeave !== null && pathAtLeave !== pathRef.current) return;
+      hide();
+    }, MEGA_CLOSE_MS);
   };
 
   /* click-outside while open */
@@ -1083,8 +1176,7 @@ export function ChromeHeaderNav({
     const onDocPointerDown = (e: PointerEvent) => {
       const t = e.target;
       if (t instanceof Node && wrapRef.current && !wrapRef.current.contains(t)) {
-        clearTimers();
-        setOpen(false);
+        hide();
       }
     };
     document.addEventListener("pointerdown", onDocPointerDown);
@@ -1124,7 +1216,13 @@ export function ChromeHeaderNav({
   const [prevPathname, setPrevPathname] = useState(pathname);
   if (prevPathname !== pathname) {
     setPrevPathname(pathname);
+    /* hard close (no exit animation): the new page must never start under
+     * the overlay. Pure state (the sanctioned adjust-during-render
+     * pattern) — a pending hover-out timer can't resurrect the panel
+     * afterwards because closeSoon aborts when the route changed since it
+     * was scheduled, and exitT's own callback only ever clears state. */
     setOpen(false);
+    setExiting(false);
   }
 
   /* never leave a pending timer behind on unmount */
@@ -1132,6 +1230,7 @@ export function ChromeHeaderNav({
     () => () => {
       if (openT.current) clearTimeout(openT.current);
       if (closeT.current) clearTimeout(closeT.current);
+      if (exitT.current) clearTimeout(exitT.current);
     },
     []
   );
@@ -1150,6 +1249,7 @@ export function ChromeHeaderNav({
       className={cn("relative flex min-w-0 flex-1 items-center", className)}
       onMouseLeave={closeSoon}
       onFocus={() => {
+        if (escFocus.current) return;
         clearTimers();
         measureAndOpen();
       }}
@@ -1158,9 +1258,10 @@ export function ChromeHeaderNav({
       }}
       onKeyDown={(e) => {
         if (e.key === "Escape" && open) {
-          clearTimers();
-          setOpen(false);
+          escFocus.current = true;
+          hide();
           trigRef.current?.focus();
+          escFocus.current = false;
         }
       }}
     >
@@ -1182,7 +1283,7 @@ export function ChromeHeaderNav({
               aria-label={open ? "بستن منوی دسته‌بندی‌ها" : "باز کردن منوی دسته‌بندی‌ها"}
               onClick={() => {
                 clearTimers();
-                if (open) setOpen(false);
+                if (open) hide();
                 else measureAndOpen();
               }}
               className={cn(linkCls, "gap-1.5")}
@@ -1206,9 +1307,11 @@ export function ChromeHeaderNav({
         </Link>
       </nav>
 
-      {open && (
+      {(open || exiting) && (
         <ChromeCategoriesPanel
           data={data}
+          menuStyle={menuStyle}
+          closing={exiting && !open}
           a={a}
           onDark={onDark}
           style={{ position: "fixed", top: `${panelTop}px`, left: 0, right: 0, zIndex: 50 }}
@@ -1221,16 +1324,20 @@ export function ChromeHeaderNav({
   );
 }
 
-/** v26: the categories mega panel itself — a FULL-WIDTH overlay of photo
- *  category tiles (name + live count + branch chips UNDER the photo, e.g.
- *  موبایل → اپل / سامسونگ / شیائومی), brand tiles (logo + name under) and
- *  a CTA. Shared by ChromeHeaderNav (all chrome headers + the shared
- *  storefront header) so hovering «دسته‌بندی‌ها» reveals the same branches
- *  everywhere. Pure presentational, token-based so the active template
- *  canvas themes it automatically; responsive from phones to desktops
- *  (inner scroll keeps very tall content reachable on small screens). */
+/** v32 (5-e): the categories mega panel — now a thin SHELL. It keeps the
+ *  full-width fixed overlay plumbing (dialog semantics, hover-intent /
+ *  click-close behaviour, constrained self-scrolling body) and delegates
+ *  its CONTENT to one of FIVE per-template menu styles rendered by
+ *  MegaMenuBody (./mega-menus.tsx): درختی دیجی‌کالایی · تصویری بزرگ ·
+ *  آبشاری · زوم و محو · آبشاری + محصول کنار. The style comes from the
+ *  active template's chrome config (cfg.menuStyle, mapped for all 25
+ *  templates in ./config.ts); the shared storefront header (modern-tech
+ *  default) renders the classic tree. Same data as always — HomeData
+ *  categories (admin-managed images + branches) and brands. */
 export function ChromeCategoriesPanel({
   data,
+  menuStyle,
+  closing,
   a,
   onDark,
   className,
@@ -1240,6 +1347,12 @@ export function ChromeCategoriesPanel({
   onNavigate,
 }: {
   data: HomeData;
+  /** v32 (5-e): the active template's mega-menu variant (undefined → tree) */
+  menuStyle?: MegaMenuStyle;
+  /** v32 (5-e): true while the panel plays its 180ms close animation
+   *  (zoom-out + fade, see mm-out in mega-menus.tsx) — set by
+   *  ChromeHeaderNav, which unmounts the node right after. */
+  closing?: boolean;
   a?: ChromeAccentClasses;
   onDark?: boolean;
   className?: string;
@@ -1251,14 +1364,12 @@ export function ChromeCategoriesPanel({
    *  on search-param-only navigations (e.g. /products?category=… …). */
   onNavigate?: () => void;
 }) {
-  const cats = data.categories.slice(0, 10);
-  const brands = data.brands.slice(0, 10);
-
   return (
     <div
       id="chrome-mega-panel"
       role="dialog"
       aria-label="منوی دسته‌بندی‌ها و برندها"
+      data-closing={closing ? "true" : undefined}
       style={style}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
@@ -1274,115 +1385,10 @@ export function ChromeCategoriesPanel({
         className
       )}
     >
-      {/* constrained, self-scrolling body — full-width bar, centered content */}
-      <div className="mx-auto flex max-h-[min(78dvh,38rem)] max-w-6xl flex-col gap-4 overflow-y-auto px-3 pb-4 pt-3 sm:px-5 md:pb-5 md:pt-4">
-        {/* ── categories: photo tile + name UNDER + branch chips UNDER ── */}
-        <section aria-label="دسته‌بندی‌های فروشگاه">
-          <div className="mb-3 flex items-center justify-between gap-2">
-            <p className="flex items-center gap-1.5 text-[11px] font-black tracking-wide text-muted-foreground">
-              <LayoutGrid className={cn("h-3.5 w-3.5", a && a.text)} aria-hidden />
-              دسته‌بندی‌ها
-            </p>
-            <Link
-              href="/products"
-              className="flex shrink-0 items-center gap-1 text-[11px] font-bold text-muted-foreground transition-colors hover:text-foreground"
-            >
-              همه محصولات
-              <ChevronLeft className="h-3.5 w-3.5" aria-hidden />
-            </Link>
-          </div>
-          {cats.length > 0 ? (
-            <div className="grid grid-cols-2 gap-2.5 min-[420px]:grid-cols-3 sm:grid-cols-4 lg:grid-cols-5">
-              {cats.map((c) => (
-                <div key={c.id} className="flex min-w-0 flex-col">
-                  <Link
-                    href={`/products?category=${c.slug}`}
-                    className="group flex min-w-0 flex-col items-center gap-1.5 rounded-2xl border border-border/70 bg-background/60 p-2.5 text-center transition-all hover:-translate-y-0.5 hover:border-border hover:shadow-lg sm:p-3"
-                  >
-                    <span className="relative aspect-square w-[min(100%,5.25rem)] shrink-0 overflow-hidden rounded-xl border border-border/50 bg-muted">
-                      {c.image ? (
-                        <Image
-                          src={c.image}
-                          alt={c.name}
-                          fill
-                          sizes="(max-width: 420px) 45vw, (max-width: 640px) 28vw, 88px"
-                          className="object-cover transition-transform duration-300 group-hover:scale-110"
-                        />
-                      ) : (
-                        <span className="grid h-full w-full place-items-center bg-gradient-to-b from-muted/70 to-muted/10 text-xl font-black text-muted-foreground/90">
-                          {c.name.charAt(0)}
-                        </span>
-                      )}
-                    </span>
-                    <span className="w-full truncate text-[12.5px] font-bold leading-5 text-foreground">{c.name}</span>
-                    <span className="text-[10px] leading-4 tabular-nums text-muted-foreground">
-                      {toFaDigits(c.productCount.toLocaleString("fa-IR"))} کالا
-                    </span>
-                  </Link>
-                  {(c.branches?.length ?? 0) > 0 && (
-                    <div className="mt-1.5 flex flex-wrap justify-center gap-1">
-                      {c.branches!.slice(0, 4).map((b) => (
-                        <Link
-                          key={`${b.kind}-${b.slug}`}
-                          href={b.kind === "child" ? `/products?category=${b.slug}` : `/products?category=${c.slug}&brand=${b.slug}`}
-                          className="max-w-full truncate rounded-full border border-border/60 bg-muted/40 px-2 py-[3px] text-[10px] font-semibold leading-4 text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground"
-                        >
-                          {b.name}
-                        </Link>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="rounded-xl border border-dashed border-border p-4 text-center text-[12px] text-muted-foreground">
-              دسته‌بندی‌ای برای نمایش وجود ندارد
-            </p>
-          )}
-        </section>
-
-        {/* ── brands: logo tile + name UNDER ── */}
-        {brands.length > 0 && (
-          <section aria-label="برندهای فروشگاه" className="border-t border-border/60 pt-3">
-            <p className="mb-2.5 flex items-center gap-1.5 text-[11px] font-black tracking-wide text-muted-foreground">
-              <Crown className={cn("h-3.5 w-3.5", a && a.text)} aria-hidden />
-              برندها
-            </p>
-            <div className="grid grid-cols-4 gap-1.5 min-[420px]:grid-cols-5 sm:grid-cols-6 lg:grid-cols-8">
-              {brands.map((b) => (
-                <Link
-                  key={b.id}
-                  href={`/products?brand=${b.slug}`}
-                  className="group flex min-w-0 flex-col items-center gap-1.5 rounded-xl p-1.5 transition-colors hover:bg-muted/50 sm:p-2"
-                >
-                  <span className="relative h-11 w-11 shrink-0 overflow-hidden rounded-full border border-border/70 bg-muted sm:h-12 sm:w-12">
-                    {b.logo || b.image ? (
-                      <Image src={(b.logo ?? b.image)!} alt={b.name} fill sizes="48px" className="object-cover" />
-                    ) : (
-                      <span className="grid h-full w-full place-items-center bg-gradient-to-b from-muted/70 to-muted/10 text-[13px] font-black text-muted-foreground/90">
-                        {b.name.charAt(0)}
-                      </span>
-                    )}
-                  </span>
-                  <span className="w-full truncate text-center text-[11px] font-bold leading-4 text-foreground">{b.name}</span>
-                </Link>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* ── CTA bar ── */}
-        <Link
-          href="/products"
-          className={cn(
-            "flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-[12.5px] font-black shadow-lg transition-all hover:-translate-y-0.5",
-            a ? a.solid : "bg-primary text-primary-foreground"
-          )}
-        >
-          مشاهده همه محصولات
-          <ChevronLeft className="h-4 w-4 shrink-0" aria-hidden />
-        </Link>
+      {/* constrained, self-scrolling body — full-width bar, centered content.
+          The per-template menu style renders inside (see ./mega-menus.tsx). */}
+      <div className="mx-auto flex max-h-[min(80dvh,44rem)] max-w-6xl flex-col gap-4 overflow-y-auto px-3 pb-4 pt-3 sm:px-5 md:pb-5 md:pt-4">
+        <MegaMenuBody menuStyle={menuStyle} data={data} a={a} onDark={onDark} />
       </div>
     </div>
   );

@@ -172,7 +172,7 @@ function HeaderBar({ data, cfg, a, onDark, tint, announcement, ticker, tickerDur
           <Link href="/" aria-label={`صفحه اصلی ${data.store.storeName}`} className="shrink-0">
             <ChromeLogo store={data.store} mark={data.store.logo ?? undefined} style={cfg.logo ?? "square"} a={a} onDark={onDark} />
           </Link>
-          <ChromeHeaderNav data={data} a={a} onDark={onDark} showCategories={cfg.megaMenu !== false} className="hidden min-[560px]:flex" />
+          <ChromeHeaderNav data={data} a={a} onDark={onDark} showCategories={cfg.megaMenu !== false} menuStyle={cfg.menuStyle} className="hidden min-[560px]:flex" />
           <div className="ms-auto flex items-center gap-2">
             {cfg.showSearch !== false && <ChromeSearch mode="pill" a={a} onDark={onDark} className="hidden md:flex" />}
             {cfg.showThemeToggle !== false && <ChromeThemeToggle a={a} onDark={onDark} />}
@@ -215,7 +215,7 @@ function HeaderFloat({ data, cfg, a, onDark, tint, announcement, ticker, tickerD
         <Link href="/" aria-label={`صفحه اصلی ${data.store.storeName}`} className="shrink-0">
           <ChromeLogo store={data.store} mark={data.store.logo ?? undefined} style={cfg.logo ?? "square"} a={a} onDark={onDark} compact />
         </Link>
-        <ChromeHeaderNav data={data} a={a} onDark={onDark} showCategories={cfg.megaMenu !== false} className="hidden min-[560px]:flex lg:flex" />
+        <ChromeHeaderNav data={data} a={a} onDark={onDark} showCategories={cfg.megaMenu !== false} menuStyle={cfg.menuStyle} className="hidden min-[560px]:flex lg:flex" />
         <div className="ms-auto flex items-center gap-2">
           {cfg.showSearch !== false && <ChromeSearch mode="pill" a={a} onDark={onDark} className="hidden sm:flex" />}
           {cfg.showThemeToggle !== false && <ChromeThemeToggle a={a} onDark={onDark} />}
@@ -281,7 +281,7 @@ function HeaderSplit({ data, cfg, a, onDark, tint, announcement, ticker, tickerD
         </div>
         {/* category deck — v25: the five header buttons + categories mega */}
         <div className={cn("border-t py-1", onDark ? "border-white/10" : "border-border")}>
-          <ChromeHeaderNav data={data} a={a} onDark={onDark} showCategories={cfg.megaMenu !== false} className="flex-none" />
+          <ChromeHeaderNav data={data} a={a} onDark={onDark} showCategories={cfg.megaMenu !== false} menuStyle={cfg.menuStyle} className="flex-none" />
         </div>
       </div>
     </header>
@@ -302,7 +302,7 @@ function HeaderSide({ data, cfg, a, onDark, tint, announcement, ticker, tickerDu
             <ChromeLogo store={data.store} mark={data.store.logo ?? undefined} style={cfg.logo ?? "square"} a={a} onDark={onDark} />
           </Link>
           {/* v25: the five header buttons + categories mega (all sizes) */}
-          <ChromeHeaderNav data={data} a={a} onDark={onDark} showCategories={cfg.megaMenu !== false} className="hidden min-[560px]:flex" />
+          <ChromeHeaderNav data={data} a={a} onDark={onDark} showCategories={cfg.megaMenu !== false} menuStyle={cfg.menuStyle} className="hidden min-[560px]:flex" />
           <div className="ms-auto flex items-center gap-2">
             {cfg.showSearch !== false && <ChromeSearch mode="icon" a={a} onDark={onDark} />}
             {cfg.showThemeToggle !== false && <ChromeThemeToggle a={a} onDark={onDark} />}
@@ -329,7 +329,7 @@ function HeaderCenter({ data, cfg, a, onDark, tint, announcement, ticker, ticker
         <p className={cn("max-w-md text-center text-[11.5px] leading-6", onDark ? "text-background/60" : "text-muted-foreground")}>
           {announcement ?? "فروشگاه تخصصی کالای دیجیتال با ضمانت اصالت و ارسال سریع"}
         </p>
-        <ChromeHeaderNav data={data} a={a} onDark={onDark} showCategories={cfg.megaMenu !== false} />
+        <ChromeHeaderNav data={data} a={a} onDark={onDark} showCategories={cfg.megaMenu !== false} menuStyle={cfg.menuStyle} />
         <div className="flex w-full items-center justify-center gap-3">
           {cfg.showSearch !== false && (
             <div className="w-full max-w-md">
@@ -364,7 +364,7 @@ function HeaderApp({ data, cfg, a, onDark, tint, announcement, ticker, tickerDur
             پشتیبانی آنلاین
           </span>
           {/* v25: the five header buttons + categories mega */}
-          <ChromeHeaderNav data={data} a={a} onDark={onDark} showCategories={cfg.megaMenu !== false} className="hidden min-[560px]:flex" />
+          <ChromeHeaderNav data={data} a={a} onDark={onDark} showCategories={cfg.megaMenu !== false} menuStyle={cfg.menuStyle} className="hidden min-[560px]:flex" />
           <div className="ms-auto flex items-center gap-2">
             {cfg.showSearch !== false && <ChromeSearch mode="icon" a={a} onDark={onDark} />}
             {cfg.showThemeToggle !== false && <ChromeThemeToggle a={a} onDark={onDark} />}
@@ -406,7 +406,7 @@ function HeaderTicket({ data, cfg, a, onDark, tint, announcement, ticker, ticker
           </Link>
           {/* zone 2 · v25: the five header buttons + categories mega */}
           <div className={cn("flex min-w-0 flex-1 items-center px-3 py-1.5 md:pe-6 md:border-e md:border-dashed", onDark ? "border-white/15" : "border-border")}>
-            <ChromeHeaderNav data={data} a={a} onDark={onDark} showCategories={cfg.megaMenu !== false} />
+            <ChromeHeaderNav data={data} a={a} onDark={onDark} showCategories={cfg.megaMenu !== false} menuStyle={cfg.menuStyle} />
           </div>
           {/* zone 3 · search + actions */}
           <div className="flex flex-1 items-center gap-2 px-3 py-1.5">
@@ -482,7 +482,7 @@ function HeaderMega({ data, cfg, a, onDark, tint, announcement, ticker, tickerDu
         </div>
         {/* v25: the five header buttons + categories mega */}
         <div className={cn("border-t py-1", onDark ? "border-white/10" : "border-border")}>
-          <ChromeHeaderNav data={data} a={a} onDark={onDark} showCategories={cfg.megaMenu !== false} className="flex-none" />
+          <ChromeHeaderNav data={data} a={a} onDark={onDark} showCategories={cfg.megaMenu !== false} menuStyle={cfg.menuStyle} className="flex-none" />
         </div>
       </div>
     </header>

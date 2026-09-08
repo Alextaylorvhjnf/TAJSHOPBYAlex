@@ -236,14 +236,20 @@ function sanitizeManifest(json: unknown): UpdateManifest {
   };
 }
 
-/** Fetch + parse the manifest with a 15s timeout. Persian errors on failure. */
-export async function fetchManifest(rawUrl: string, origin?: string): Promise<UpdateManifest> {
+/** Fetch + parse the manifest with a 15s timeout (Persian errors on failure).
+ * v31: `timeoutMs` is optional — the background poll route passes a shorter
+ * 10s budget; every other caller keeps the default. */
+export async function fetchManifest(
+  rawUrl: string,
+  origin?: string,
+  timeoutMs: number = MANIFEST_TIMEOUT_MS
+): Promise<UpdateManifest> {
   const url = toAbsoluteManifestUrl(rawUrl, origin);
   if (!/^https?:\/\//i.test(url)) {
     throw new Error("آدرس مانیفست معتبر نیست — باید یک URL کامل http(s) باشد");
   }
   const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), MANIFEST_TIMEOUT_MS);
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
     // redirect: "follow" is the default — required for GitHub Release asset URLs
     const res = await fetch(url, {

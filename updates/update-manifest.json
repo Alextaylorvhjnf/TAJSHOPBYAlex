@@ -1,8 +1,8 @@
 {
-  "version": "25.0.0",
-  "releasedAt": "2026-09-07T23:10:41.342Z",
-  "notes": "نسخهٔ ۲۵.۰.۰ (v30):\n• اتصال به‌روزرسانی به گیت‌هاب رسمی اسکریپت (پیش‌فرض، بدون تنظیم)\n• update.sh جدید: دانلود خودکار از گیت‌هاب + تأیید SHA-256 + rebuild داکر\n• تشخیص محیط standalone/داکر در پنل با راهنمای نصب کامل\n• اجرای prisma db push با سه روش (bunx / node / npx)\nداده‌های کاربران (سفارش‌ها، کاربران، محصولات) کاملاً محفوظ می‌مانند.",
-  "zipUrl": "https://raw.githubusercontent.com/Alextaylorvhjnf/TAJSHOPBYAlex/main/updates/taj-electronics-update-25.0.0.zip",
-  "sha256": "21f28f63e85963accb453a57228c8b185c992d8ad6228a6594d8db2791fb996e",
+  "version": "26.0.0",
+  "releasedAt": "2026-09-08T21:17:19.363Z",
+  "notes": "نسخهٔ ۲۶.۰.۰ (v31): بازطراحی کامل UX — حالت تعمیر ۴ کارتی با پیش‌نمایش زنده + ۴ قالب بازطراحی‌شده، نظرسنجی خودکار به‌روزرسانی + اعلان مدیران + زنگ اعلان‌ها، قالب گیمینگ با ریگ کد-تراش RGB و ماوس‌پد ARGB و هدفون‌های سه‌بعدی، صفحات ورود/ثبت‌نام قالب‌محور (۶ سبک)، ۵ سبک مگامنو برای ۲۵ قالب، محتوای اختصاصی هر قالب (اسلاید/شوکیس/متن/لینک/برند) — داده‌های کاربران کاملاً محفوظ",
+  "zipUrl": "https://raw.githubusercontent.com/Alextaylorvhjnf/TAJSHOPBYAlex/main/updates/taj-electronics-update-26.0.0.zip",
+  "sha256": "3556aa3881f9dec4dab3711468f82549102813136b1734a90488c23de087b577",
   "minAppVersion": "24.0.0"
 }

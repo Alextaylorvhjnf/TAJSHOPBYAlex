@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ══════════════════════════════════════════════════════════════════════
-#  TAJ Electronics — GitHub auto-update script (v30 · app 25.0.0)
+#  TAJ Electronics — GitHub auto-update script (v31 · app 26.0.0)
 #
 #  Downloads the newest release from the store's official GitHub repo
 #  (https://github.com/Alextaylorvhjnf/TAJSHOPBYAlex) and rebuilds the

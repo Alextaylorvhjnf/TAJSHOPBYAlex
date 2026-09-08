@@ -13,6 +13,7 @@
 import { db } from "@/lib/db";
 import { serializeProduct, productInclude, type ProductDTO } from "@/lib/product";
 import { getStoreSettings, parseTickerMessages, resolveTemplateFeatures, parseTemplateChrome, getTemplateFooterContent } from "@/lib/settings";
+import { applyTemplateBrandToStore, getTemplateContentData } from "@/lib/templates/content";
 import type {
   HomeData,
   TemplateProduct,
@@ -468,6 +469,14 @@ export async function getChromeData(): Promise<HomeData> {
     footerLogo: settings.footerLogo ?? settings.logo ?? null,
   };
 
+  // v5-f: the ACTIVE template's own brand (Admin → ظاهر → محتوای اختصاصی
+  // قالب → برند) — when set, its name/logo win over the global branding on
+  // EVERY store page's chrome (header/footer/chat title), matching what the
+  // homepage renders via applyTemplateContentToData. Slides/showcases are
+  // NOT swapped here — the chrome never renders them. (applyTemplateBrandToStore
+  // returns a NEW object — never mutates.)
+  const brandedStore = applyTemplateBrandToStore(store, await getTemplateContentData(settings.activeTemplate));
+
   const templateCategories: TemplateCategory[] = categories.map((c) => ({
     id: c.id,
     name: c.name,
@@ -511,7 +520,7 @@ export async function getChromeData(): Promise<HomeData> {
     });
 
   return {
-    store,
+    store: brandedStore,
     slides: [],
     categories: templateCategories,
     featured: [],

@@ -50,8 +50,10 @@ import {
   Moon,
   Palette,
   Pencil,
+  Phone,
   Plug,
   Plus,
+  Power,
   RotateCw,
   Save,
   Send,
@@ -60,6 +62,7 @@ import {
   Sparkles,
   Store,
   Sun,
+  Timer,
   Trash2,
   Wrench,
   X,
@@ -234,65 +237,6 @@ export function GuideNote({ children, className }: { children: ReactNode; classN
   );
 }
 
-/** mini CSS mockup of each repair-page template (chooser preview) */
-function MaintenanceTemplatePreview({ id }: { id: string }) {
-  const dot = <span className="h-1 w-1 rounded-full bg-current opacity-70" />;
-  switch (id) {
-    case "minimal-light":
-      return (
-        <span className="block h-full w-full bg-white p-3">
-          <span className="mx-auto flex h-full max-w-[80%] flex-col items-center justify-center gap-1.5 rounded-lg border border-zinc-200 bg-zinc-50 p-2 shadow-sm">
-            <span className="h-3 w-3 rounded-md bg-primary/30" />
-            <span className="h-1 w-3/5 rounded-full bg-zinc-300" />
-            <span className="h-1 w-2/5 rounded-full bg-zinc-200" />
-            <span className="h-2.5 w-2/3 rounded bg-primary" />
-          </span>
-        </span>
-      );
-    case "neon-glass":
-      return (
-        <span className="relative block h-full w-full overflow-hidden bg-[#07070d] p-3">
-          <span className="absolute -top-3 -right-2 h-8 w-8 rounded-full bg-primary/60 blur-lg" />
-          <span className="absolute -bottom-3 -left-2 h-7 w-7 rounded-full bg-purple-600/50 blur-lg" />
-          <span className="relative mx-auto flex h-full max-w-[85%] items-center justify-center gap-1.5 rounded-lg border border-white/15 bg-white/10">
-            <span className="h-3.5 w-3.5 rounded-full border border-dashed border-white/40" />
-            <span className="flex flex-col gap-1">
-              <span className="h-1 w-8 rounded-full bg-white/70" />
-              <span className="h-1 w-5 rounded-full bg-white/30" />
-            </span>
-          </span>
-        </span>
-      );
-    case "countdown-eta":
-      return (
-        <span className="block h-full w-full bg-[#0b0f16] p-3">
-          <span className="flex h-full flex-col items-center justify-center gap-1.5">
-            <span className="flex gap-1">{dot}{dot}{dot}{dot}</span>
-            <span className="h-1 w-3/4 overflow-hidden rounded-full bg-white/10">
-              <span className="block h-full w-1/3 rounded-full bg-primary" />
-            </span>
-            <span className="h-1 w-4/5 rounded-full bg-white/25" />
-            <span className="h-2.5 w-2/3 rounded bg-primary/80" />
-          </span>
-        </span>
-      );
-    case "tech-dark":
-    default:
-      return (
-        <span className="relative block h-full w-full bg-[#0a0a10] p-3">
-          <span className="absolute inset-0 opacity-30 [background-image:linear-gradient(to_right,rgba(255,255,255,.08)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,.08)_1px,transparent_1px)] [background-size:9px_9px]" />
-          <span className="absolute -top-4 left-1/2 h-10 w-16 -translate-x-1/2 rounded-full bg-primary/40 blur-xl" />
-          <span className="relative flex h-full flex-col items-center justify-center gap-1.5">
-            <span className="grid h-4 w-4 place-items-center rounded border border-primary/50 bg-primary/15 text-[7px] font-black text-primary">ت</span>
-            <span className="h-1 w-4/5 rounded-full bg-white/60" />
-            <span className="h-1 w-3/5 rounded-full bg-white/25" />
-            <span className="h-2.5 w-2/3 rounded bg-primary" />
-          </span>
-        </span>
-      );
-  }
-}
-
 /**
  * v29.2 · live preview dialog for ONE repair-page template — renders the
  * REAL RepairPage (the exact component closed visitors see) with the
@@ -351,30 +295,162 @@ function MaintenancePreviewDialog({
   );
 }
 
+/* ═══════════════ v30 · «حالت تعمیر» — dedicated maintenance section ═══════════════ */
+
 /**
- * v29 · «قالب و متن‌های صفحه تعمیر» — the admin picks which repair-page
- * TEMPLATE closed visitors see (each with a live mini preview) and edits
- * EVERY word of the page. Empty field = the designed default word.
+ * v30 · BIG live template card («انتخاب قالب» section) — renders the REAL
+ * repair-page template at its natural 1280px logical width, scaled (CSS
+ * transform: scale) into a fixed h-64 mini browser viewport. The templates
+ * are min-h-screen pages, so their natural height equals the browser
+ * viewport; scaling by 256/innerHeight fits the viewport exactly (each
+ * template centers its content, so any horizontal overhang clips
+ * symmetrically and invisibly). Selecting a card writes maintenanceTemplate;
+ * «پیش‌نمایش زنده» opens the full-size MaintenancePreviewDialog.
  */
-function MaintenanceTemplateEditor({
+function MaintenanceTemplateCard({
+  tpl,
+  active,
   form,
-  set,
+  onSelect,
+  onPreview,
 }: {
+  tpl: (typeof MAINTENANCE_TEMPLATES)[number];
+  active: boolean;
   form: StoreSettingsFull;
-  set: <K extends keyof StoreSettingsFull>(k: K, v: StoreSettingsFull[K]) => void;
+  onSelect: () => void;
+  onPreview: () => void;
 }) {
-  const [texts, setTexts] = useState<MaintenanceContentForm>(() => parseMaintenanceContentForm(form.maintenanceContent));
-  const [textsOpen, setTextsOpen] = useState(false);
-  /* v29.2: which template's LIVE preview dialog is open */
+  /* v30: scale the full-size page into the h-64 (256px) preview area */
+  const [scale, setScale] = useState(0);
+  useEffect(() => {
+    const measure = () => setScale(Math.max(0.14, Math.min(0.4, 256 / (window.innerHeight || 800))));
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, []);
+
+  /* the exact component closed visitors see — with this form's own words */
+  const data: MaintenanceScreenData = {
+    templateId: tpl.id,
+    content: resolveMaintenanceContent(form.maintenanceContent),
+    storeName: form.storeName?.trim() || "فروشگاه",
+    logo: form.logo ?? null,
+    phone: form.phone?.trim() || null,
+    email: form.email?.trim() || null,
+    workingHours: form.workingHours?.trim() || null,
+  };
+
+  return (
+    <div
+      className={cn(
+        "relative flex flex-col rounded-2xl border-2 bg-card p-3 transition-all",
+        active ? "border-primary shadow-xl shadow-primary/20 ring-1 ring-primary/40" : "border-border hover:border-primary/40 hover:shadow-lg"
+      )}
+    >
+      {/* mini browser viewport with the REAL template rendered inside */}
+      <div className="overflow-hidden rounded-xl border border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900">
+        <div className="flex h-7 items-center gap-1.5 border-b border-zinc-200 bg-zinc-100 px-2.5 dark:border-zinc-800 dark:bg-zinc-800/70" dir="ltr">
+          <span aria-hidden className="h-2 w-2 rounded-full bg-red-400/80" />
+          <span aria-hidden className="h-2 w-2 rounded-full bg-amber-400/80" />
+          <span aria-hidden className="h-2 w-2 rounded-full bg-emerald-400/80" />
+          <span dir="ltr" className="ms-1.5 flex-1 truncate rounded-md bg-white/80 px-2 py-0.5 font-mono text-[9px] text-zinc-500 dark:bg-zinc-900/70 dark:text-zinc-400">
+            taj-electronics.ir/{tpl.nameEn}
+          </span>
+        </div>
+        <div className="relative h-64 w-full overflow-hidden">
+          {scale > 0 ? (
+            <div className="absolute inset-0 flex justify-center overflow-hidden">
+              <div
+                className="pointer-events-none select-none [transform-origin:top_center]"
+                style={{ width: 1280, transform: `scale(${scale})` }}
+              >
+                <RepairPage data={data} />
+              </div>
+            </div>
+          ) : (
+            <Skeleton className="h-full w-full rounded-none" />
+          )}
+        </div>
+      </div>
+
+      {/* Persian name, 2-line description, active badge, actions */}
+      <div className="flex flex-1 flex-col pt-3">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-sm font-black">{tpl.nameFa}</p>
+          {active ? (
+            <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 text-[10px] font-black text-primary">
+              <Check className="h-3 w-3" />
+              قالب فعال
+            </span>
+          ) : (
+            <span dir="ltr" className="shrink-0 font-mono text-[9px] text-muted-foreground">{tpl.nameEn}</span>
+          )}
+        </div>
+        <p className="mt-1.5 min-h-8 text-[11px] leading-4 text-muted-foreground">{tpl.desc}</p>
+        <div className="mt-3 flex items-center gap-2">
+          <Button
+            type="button"
+            size="sm"
+            variant={active ? "outline" : "default"}
+            disabled={active}
+            className="h-9 flex-1 rounded-lg text-[11px] font-black"
+            onClick={onSelect}
+            aria-label={`انتخاب قالب ${tpl.nameFa}`}
+          >
+            {active && <Check className="h-3.5 w-3.5" />}
+            {active ? "قالب فعال" : "انتخاب این قالب"}
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="h-9 flex-1 rounded-lg text-[11px] font-bold"
+            onClick={onPreview}
+            aria-label={`پیش‌نمایش زنده قالب ${tpl.nameFa}`}
+          >
+            <Eye className="h-3.5 w-3.5" />
+            پیش‌نمایش زنده
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * v30 · «حالت تعمیر» tab — everything maintenance-related in one place
+ * (it used to be squeezed inside the فروشگاه tab):
+ *   ① وضعیت — the maintenance ON/OFF switch card (writes maintenanceMode)
+ *   ② اطلاعات تماس و پیام‌ها — every editable word of the repair page +
+ *      the phone/email/hours values shown on it
+ *   ③ انتخاب قالب — the 4 BIG live template cards
+ * Saves through the same /api/admin/settings/store PUT as the other tabs.
+ */
+function MaintenanceTab() {
+  const queryClient = useQueryClient();
+  const { data, isLoading, isError, error } = useSetting<StoreSettingsFull>("/api/admin/settings/store", "admin-settings-store");
+  const [form, setForm] = useState<StoreSettingsFull | null>(null);
+  const [saving, setSaving] = useState(false);
+  /* every editable word of the repair page (write-through to the JSON column) */
+  const [texts, setTexts] = useState<MaintenanceContentForm>(() => parseMaintenanceContentForm(null));
+  /* which template's LIVE full-size preview dialog is open */
   const [previewing, setPreviewing] = useState<string | null>(null);
 
-  const selected = normalizeMaintenanceTemplateId(form.maintenanceTemplate);
-  const onSelect = (id: string) => set("maintenanceTemplate", id);
+  useEffect(() => {
+    if (data?.settings && !form) {
+      setForm(data.settings);
+      setTexts(parseMaintenanceContentForm(data.settings.maintenanceContent));
+    }
+  }, [data, form]);
+
+  const set = <K extends keyof StoreSettingsFull>(k: K, v: StoreSettingsFull[K]) =>
+    setForm((f) => (f ? { ...f, [k]: v } : f));
+
+  /* serialize immediately — every key with content goes into the JSON
+   * column; a fully-empty form stores null (= all defaults). */
   const setText = (k: keyof MaintenanceContentForm, v: string) => {
     const next = { ...texts, [k]: v };
     setTexts(next);
-    /* serialize immediately — every key with content goes into the JSON
-     * column; a fully-empty form stores null (= all defaults). */
     const cleaned: Record<string, string> = {};
     for (const [key, val] of Object.entries(next)) {
       if (val.trim()) cleaned[key] = val.trim();
@@ -384,159 +460,224 @@ function MaintenanceTemplateEditor({
 
   const def = (k: keyof MaintenanceContentForm) => DEFAULT_MAINTENANCE_CONTENT[k];
 
-  return (
-    <div className="space-y-3 rounded-xl border bg-card p-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="flex items-center gap-1.5 text-sm font-bold">
-          <Wrench className="h-4 w-4 text-primary" />
-          قالب و متن‌های صفحه تعمیر
-        </p>
-        <span className="rounded-full border border-primary/30 bg-primary/10 px-2.5 py-0.5 text-[10px] font-bold text-primary">
-          {form.maintenanceMode ? "فعلاً فعال و در حال نمایش" : "نمایش وقتی حالت تعمیر روشن باشد"}
-        </span>
+  const save = async () => {
+    if (!form || saving) return;
+    if (form.storeName.trim().length < 2) return toast.error("نام فروشگاه الزامی است");
+    if (form.storeNameEn.trim().length < 2) return toast.error("نام انگلیسی فروشگاه الزامی است");
+    setSaving(true);
+    try {
+      const msg = await putStoreSettings(form);
+      toast.success(msg);
+      queryClient.invalidateQueries({ queryKey: ["admin-settings-store"] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "ذخیره ناموفق بود");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (isError) return <EmptyState title="خطا در دریافت تنظیمات" desc={error instanceof Error ? error.message : undefined} />;
+  if (isLoading || !form) {
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-36 rounded-xl" />
+        <Skeleton className="h-80 rounded-xl" />
+        <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-96 rounded-2xl" />)}
+        </div>
       </div>
+    );
+  }
 
-      <GuideNote>
-        وقتی «حالت تعمیر» روشن است، بازدیدکنندگان عادی به‌جای فروشگاه این صفحه را می‌بینند. قالب ظاهر صفحه را از کارت‌های پایین انتخاب کنید — کارت انتخاب‌شده با کادر طلایی مشخص می‌شود. «پیگیری سفارش» روی این صفحه باز می‌ماند تا مشتری‌ها بتوانند سفارش خود را ردیابی کنند؛ مدیران هم همیشه با آدرس /admin وارد می‌شوند.
-      </GuideNote>
+  const selected = normalizeMaintenanceTemplateId(form.maintenanceTemplate);
+  const on = form.maintenanceMode;
 
-      {/* template chooser with previews — v29.2: cards with live-preview +
-          open-in-new-tab actions (like the store-template chooser in ظاهر) */}
-      <div role="radiogroup" aria-label="انتخاب قالب صفحه تعمیر" className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        {MAINTENANCE_TEMPLATES.map((t) => {
-          const active = selected === t.id;
-          return (
-            <div
-              key={t.id}
-              role="radio"
-              aria-checked={active}
-              tabIndex={0}
-              onClick={() => onSelect(t.id)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  onSelect(t.id);
-                }
-              }}
+  return (
+    <div className="space-y-4">
+      {/* ── Section 1 · وضعیت — maintenance ON/OFF ── */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-sm font-bold">
+            <Power className="h-4 w-4 text-primary" />
+            وضعیت
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div
+            className={cn(
+              "flex flex-wrap items-center gap-4 rounded-2xl border p-5 transition-colors",
+              on ? "border-amber-500/40 bg-amber-500/[0.06]" : "border-emerald-500/30 bg-emerald-500/[0.05]"
+            )}
+          >
+            <span
               className={cn(
-                "relative rounded-xl border-2 p-2.5 text-right transition-all cursor-pointer",
-                active ? "border-primary shadow-lg shadow-primary/20" : "border-border hover:border-primary/40"
+                "grid h-14 w-14 shrink-0 place-items-center rounded-2xl border",
+                on ? "border-amber-500/40 bg-amber-500/15 text-amber-600" : "border-emerald-500/30 bg-emerald-500/10 text-emerald-600"
               )}
             >
-              {active && (
-                <span className="absolute left-2 top-2 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow">
-                  <Check className="h-3 w-3" />
+              {on ? <Wrench className="h-7 w-7" /> : <Store className="h-7 w-7" />}
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-base font-black">{on ? "فروشگاه در حالت تعمیر است" : "فروشگاه باز است"}</p>
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-bold",
+                    on ? "border-amber-500/40 bg-amber-500/10 text-amber-600" : "border-emerald-500/40 bg-emerald-500/10 text-emerald-600"
+                  )}
+                >
+                  <span className={cn("h-1.5 w-1.5 rounded-full", on ? "bg-amber-500" : "bg-emerald-500")} />
+                  {on ? "حالت تعمیر فعال" : "فروشگاه آنلاین"}
                 </span>
-              )}
-              <span className="block h-24 w-full overflow-hidden rounded-lg border">
-                <MaintenanceTemplatePreview id={t.id} />
-              </span>
-              <span className="mt-2 block text-xs font-black">{t.nameFa}</span>
-              <span dir="ltr" className="block text-[9px] font-mono text-muted-foreground">{t.nameEn}</span>
-              <span className="mt-1 block min-h-8 text-[10px] leading-4 text-muted-foreground">{t.desc}</span>
-              {/* v29.2 actions — live dialog + real demo tab (stopPropagation
-                  so the buttons don't re-select the card) */}
-              <span className="mt-2 flex items-center gap-1.5">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  className="h-8 flex-1 rounded-lg px-2 text-[10px] font-bold"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setPreviewing(t.id);
-                  }}
-                  aria-label={`پیش‌نمایش زنده قالب ${t.nameFa}`}
-                >
-                  <Eye className="h-3.5 w-3.5" />
-                  پیش‌نمایش زنده
-                </Button>
-                <Button
-                  asChild
-                  size="sm"
-                  variant="ghost"
-                  className="h-8 w-9 shrink-0 rounded-lg p-0"
-                >
-                  <Link
-                    href={`/maintenance-preview?template=${t.id}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={(e) => e.stopPropagation()}
-                    aria-label={`باز کردن دمو قالب ${t.nameFa} در تب جدید`}
-                    title="باز کردن در تب جدید"
-                  >
-                    <ExternalLink className="h-3.5 w-3.5" />
-                  </Link>
-                </Button>
-              </span>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* v29.2: live preview dialog for the hovered/selected repair template */}
-      <MaintenancePreviewDialog tplId={previewing} form={form} onClose={() => setPreviewing(null)} />
-
-      {/* every-word editor (collapsible) */}
-      <div className="rounded-lg border bg-muted/30">
-        <button
-          type="button"
-          onClick={() => setTextsOpen((v) => !v)}
-          aria-expanded={textsOpen}
-          className="flex w-full items-center justify-between gap-2 p-3 text-start"
-        >
-          <span className="flex items-center gap-1.5 text-xs font-bold">
-            <Pencil className="h-3.5 w-3.5 text-primary" />
-            متن‌های صفحه تعمیر (هر واژه قابل ویرایش)
-          </span>
-          <span className="text-[10px] text-muted-foreground">{textsOpen ? "بستن ▲" : "نمایش ▼"}</span>
-        </button>
-        {textsOpen && (
-          <div className="space-y-3.5 border-t p-3">
-            <GuideNote>
-              هر فیلد را که خالی بگذارید، همان واژهٔ پیش‌فرض طراحی (به‌عنوان placeholder نمایش داده می‌شود) روی صفحه می‌آید. برای بازگشت به پیش‌فرض، متن را پاک کنید و ذخیره بزنید.
-            </GuideNote>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Field label="ادامهٔ عنوان (بعد از نام فروشگاه)" htmlFor="mc-titlesuffix" hint={`پیش‌فرض: ${def("titleSuffix")}`}>
-                <Input id="mc-titlesuffix" className="rounded-lg" value={texts.titleSuffix} onChange={(e) => setText("titleSuffix", e.target.value)} placeholder={def("titleSuffix")} />
-              </Field>
-              <Field label="متن نشان (بَج) صفحه" htmlFor="mc-badge" hint={`پیش‌فرض: ${def("badge")}`}>
-                <Input id="mc-badge" className="rounded-lg" value={texts.badge} onChange={(e) => setText("badge", e.target.value)} placeholder={def("badge")} />
-              </Field>
-              <div className="sm:col-span-2">
-                <Field label="توضیح اصلی صفحه" htmlFor="mc-desc" hint={`پیش‌فرض: ${def("description").slice(0, 60)}…`}>
-                  <Textarea id="mc-desc" rows={3} className="rounded-lg" value={texts.description} onChange={(e) => setText("description", e.target.value)} placeholder={def("description")} />
-                </Field>
               </div>
-              <Field label="برچسب تلفن" htmlFor="mc-phone" hint={`پیش‌فرض: ${def("phoneLabel")}`}>
-                <Input id="mc-phone" className="rounded-lg" value={texts.phoneLabel} onChange={(e) => setText("phoneLabel", e.target.value)} placeholder={def("phoneLabel")} />
+              <p className="mt-1.5 text-xs leading-6 text-muted-foreground">
+                {on
+                  ? "بازدیدکنندگان عادی به‌جای فروشگاه، صفحهٔ تعمیر با قالب انتخابی پایین را می‌بینند."
+                  : "فروشگاه برای همهٔ بازدیدکنندگان باز است — با روشن کردن کلید، صفحهٔ تعمیر جای آن را می‌گیرد."}
+              </p>
+            </div>
+            <div className="flex shrink-0 items-center gap-3">
+              <Switch id="mt-enabled" checked={on} onCheckedChange={(v) => set("maintenanceMode", v)} />
+              <Label htmlFor="mt-enabled" className="cursor-pointer text-xs font-bold text-muted-foreground">
+                {on ? "خاموش کردن" : "روشن کردن"}
+              </Label>
+            </div>
+          </div>
+          {on && (
+            <p className="flex items-center gap-1.5 rounded-lg bg-destructive/10 p-2.5 text-xs leading-5 text-destructive">
+              <ShieldAlert className="h-4 w-4 shrink-0" />
+              مدیرها با حساب خودشان همیشه فروشگاه کامل را می‌بینند — صفحهٔ «پیگیری سفارش» هم برای مشتری‌ها باز می‌ماند.
+            </p>
+          )}
+          <GuideNote>
+            در حالت تعمیر، کل فروشگاه برای مهمان‌ها بسته می‌شود و به‌جای آن صفحهٔ تعمیر (قالب انتخابی در بخش «انتخاب قالب») نمایش داده می‌شود؛ پنل مدیریت و صفحهٔ پیگیری سفارش در دسترس می‌مانند. تغییر وضعیت با دکمهٔ «ذخیره تنظیمات حالت تعمیر» ثبت می‌شود.
+          </GuideNote>
+        </CardContent>
+      </Card>
+
+      {/* ── Section 2 · اطلاعات تماس و پیام‌ها ── */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-sm font-bold">
+            <Phone className="h-4 w-4 text-primary" />
+            اطلاعات تماس و پیام‌ها
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <GuideNote>
+            هر فیلد متنی که خالی بگذارید، همان واژهٔ پیش‌فرضِ طراحی (به‌صورت placeholder نشان داده می‌شود) روی صفحه می‌آید؛ برای بازگشت به پیش‌فرض متن را پاک کنید و ذخیره بزنید. تلفن، ایمیل و ساعات کاری همان مقادیر تب «فروشگاه» هستند و از همین‌جا هم قابل ویرایش‌اند.
+          </GuideNote>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <p className="md:col-span-2 flex items-center gap-1.5 text-xs font-black text-muted-foreground">
+              <Pencil className="h-3.5 w-3.5 text-primary/70" />
+              پیام‌های اصلی صفحه
+            </p>
+            <Field label="ادامهٔ عنوان (بعد از نام فروشگاه)" htmlFor="mt-titlesuffix" hint={`پیش‌فرض: ${def("titleSuffix")}`}>
+              <Input id="mt-titlesuffix" className="rounded-lg" value={texts.titleSuffix} onChange={(e) => setText("titleSuffix", e.target.value)} placeholder={def("titleSuffix")} />
+            </Field>
+            <Field label="متن نشان (بَج) صفحه" htmlFor="mt-badge" hint={`پیش‌فرض: ${def("badge")}`}>
+              <Input id="mt-badge" className="rounded-lg" value={texts.badge} onChange={(e) => setText("badge", e.target.value)} placeholder={def("badge")} />
+            </Field>
+            <div className="md:col-span-2">
+              <Field label="توضیح اصلی صفحه" htmlFor="mt-desc" hint={`پیش‌فرض: ${def("description").slice(0, 60)}…`}>
+                <Textarea id="mt-desc" rows={3} className="rounded-lg" value={texts.description} onChange={(e) => setText("description", e.target.value)} placeholder={def("description")} />
               </Field>
-              <Field label="برچسب ایمیل" htmlFor="mc-email" hint={`پیش‌فرض: ${def("emailLabel")}`}>
-                <Input id="mc-email" className="rounded-lg" value={texts.emailLabel} onChange={(e) => setText("emailLabel", e.target.value)} placeholder={def("emailLabel")} />
+            </div>
+            <div className="md:col-span-2">
+              <Field label="یادداشت پایین صفحه" htmlFor="mt-note" hint={`پیش‌فرض: ${def("footerNote")}`}>
+                <Input id="mt-note" className="rounded-lg" value={texts.footerNote} onChange={(e) => setText("footerNote", e.target.value)} placeholder={def("footerNote")} />
               </Field>
-              <Field label="برچسب ساعات کاری" htmlFor="mc-hours" hint={`پیش‌فرض: ${def("hoursLabel")} — خودِ ساعات از فیلد «ساعات کاری» تب همین صفحه می‌آید`}>
-                <Input id="mc-hours" className="rounded-lg" value={texts.hoursLabel} onChange={(e) => setText("hoursLabel", e.target.value)} placeholder={def("hoursLabel")} />
+            </div>
+
+            <p className="md:col-span-2 flex items-center gap-1.5 text-xs font-black text-muted-foreground">
+              <Phone className="h-3.5 w-3.5 text-primary/70" />
+              اطلاعات تماس (روی صفحه تعمیر نمایش داده می‌شود)
+            </p>
+            <Field label="شماره تلفن" htmlFor="mt-phone" hint="همان تلفن تب «فروشگاه» — اینجا هم قابل ویرایش است">
+              <Input id="mt-phone" dir="ltr" className="rounded-lg text-left" value={form.phone} onChange={(e) => set("phone", e.target.value)} />
+            </Field>
+            <Field label="ایمیل" htmlFor="mt-email" hint="همان ایمیل تب «فروشگاه» — اینجا هم قابل ویرایش است">
+              <Input id="mt-email" dir="ltr" className="rounded-lg text-left" value={form.email} onChange={(e) => set("email", e.target.value)} />
+            </Field>
+            <Field label="ساعات کاری" htmlFor="mt-hours" hint="مثلاً: شنبه تا پنجشنبه ۱۰ تا ۱۸">
+              <Input id="mt-hours" className="rounded-lg" value={form.workingHours ?? ""} onChange={(e) => set("workingHours", e.target.value)} />
+            </Field>
+            <Field label="برچسب تلفن" htmlFor="mt-phonelabel" hint={`پیش‌فرض: ${def("phoneLabel")}`}>
+              <Input id="mt-phonelabel" className="rounded-lg" value={texts.phoneLabel} onChange={(e) => setText("phoneLabel", e.target.value)} placeholder={def("phoneLabel")} />
+            </Field>
+            <Field label="برچسب ایمیل" htmlFor="mt-emaillabel" hint={`پیش‌فرض: ${def("emailLabel")}`}>
+              <Input id="mt-emaillabel" className="rounded-lg" value={texts.emailLabel} onChange={(e) => setText("emailLabel", e.target.value)} placeholder={def("emailLabel")} />
+            </Field>
+            <Field label="برچسب ساعات کاری" htmlFor="mt-hourslabel" hint={`پیش‌فرض: ${def("hoursLabel")}`}>
+              <Input id="mt-hourslabel" className="rounded-lg" value={texts.hoursLabel} onChange={(e) => setText("hoursLabel", e.target.value)} placeholder={def("hoursLabel")} />
+            </Field>
+
+            <p className="md:col-span-2 flex items-center gap-1.5 text-xs font-black text-muted-foreground">
+              <PackageSearch className="h-3.5 w-3.5 text-primary/70" />
+              بخش پیگیری سفارش
+            </p>
+            <Field label="عنوان بخش پیگیری سفارش" htmlFor="mt-tracktitle" hint={`پیش‌فرض: ${def("trackingTitle")}`}>
+              <Input id="mt-tracktitle" className="rounded-lg" value={texts.trackingTitle} onChange={(e) => setText("trackingTitle", e.target.value)} placeholder={def("trackingTitle")} />
+            </Field>
+            <Field label="متن دکمهٔ پیگیری سفارش" htmlFor="mt-trackbtn" hint={`پیش‌فرض: ${def("trackingButton")} — دکمه به صفحه /track-order می‌رود`}>
+              <Input id="mt-trackbtn" className="rounded-lg" value={texts.trackingButton} onChange={(e) => setText("trackingButton", e.target.value)} placeholder={def("trackingButton")} />
+            </Field>
+            <div className="md:col-span-2">
+              <Field label="توضیح زیر عنوان پیگیری" htmlFor="mt-trackdesc" hint={`پیش‌فرض: ${def("trackingDesc")}`}>
+                <Input id="mt-trackdesc" className="rounded-lg" value={texts.trackingDesc} onChange={(e) => setText("trackingDesc", e.target.value)} placeholder={def("trackingDesc")} />
               </Field>
-              <Field label="عنوان بخش پیگیری سفارش" htmlFor="mc-tracktitle" hint={`پیش‌فرض: ${def("trackingTitle")}`}>
-                <Input id="mc-tracktitle" className="rounded-lg" value={texts.trackingTitle} onChange={(e) => setText("trackingTitle", e.target.value)} placeholder={def("trackingTitle")} />
-              </Field>
-              <Field label="متن دکمهٔ پیگیری سفارش" htmlFor="mc-trackbtn" hint={`پیش‌فرض: ${def("trackingButton")} — دکمه به صفحه /track-order می‌رود`}>
-                <Input id="mc-trackbtn" className="rounded-lg" value={texts.trackingButton} onChange={(e) => setText("trackingButton", e.target.value)} placeholder={def("trackingButton")} />
-              </Field>
-              <Field label="توضیح زیر عنوان پیگیری" htmlFor="mc-trackdesc" hint={`پیش‌فرض: ${def("trackingDesc")}`}>
-                <Input id="mc-trackdesc" className="rounded-lg" value={texts.trackingDesc} onChange={(e) => setText("trackingDesc", e.target.value)} placeholder={def("trackingDesc")} />
-              </Field>
-              <Field label="یادداشت پایین صفحه" htmlFor="mc-note" hint={`پیش‌فرض: ${def("footerNote")}`}>
-                <Input id="mc-note" className="rounded-lg" value={texts.footerNote} onChange={(e) => setText("footerNote", e.target.value)} placeholder={def("footerNote")} />
+            </div>
+
+            <p className="md:col-span-2 flex items-center gap-1.5 text-xs font-black text-muted-foreground">
+              <Timer className="h-3.5 w-3.5 text-primary/70" />
+              شمارش معکوس (فقط قالب «شمارش معکوس»)
+            </p>
+            <div className="md:col-span-2">
+              <Field label="متن بالای شمارش معکوس" htmlFor="mt-etanote" hint={`پیش‌فرض: ${def("etaNote")} — شمارش تا ساعت ۱۸:۰۰ امروز (یا فردا) ادامه دارد`}>
+                <Input id="mt-etanote" className="rounded-lg" value={texts.etaNote} onChange={(e) => setText("etaNote", e.target.value)} placeholder={def("etaNote")} />
               </Field>
             </div>
           </div>
-        )}
+        </CardContent>
+      </Card>
+
+      {/* ── Section 3 · انتخاب قالب — the 4 BIG live cards ── */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-sm font-bold">
+            <LayoutTemplate className="h-4 w-4 text-primary" />
+            انتخاب قالب
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <GuideNote>
+            قالب ظاهر صفحه‌ای را که بازدیدکنندهٔ عادی در حالت تعمیر می‌بیند انتخاب کنید — پیش‌نمایش هر کارت، خودِ همان قالب است و با متن‌ها، لوگو و اطلاعات تماسِ همین فرم (حتی ذخیره‌نشده) به‌روز می‌شود. کارت انتخاب‌شده با کادر طلایی مشخص می‌شود.
+          </GuideNote>
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
+            {MAINTENANCE_TEMPLATES.map((t) => (
+              <MaintenanceTemplateCard
+                key={t.id}
+                tpl={t}
+                active={selected === t.id}
+                form={form}
+                onSelect={() => set("maintenanceTemplate", t.id)}
+                onPreview={() => setPreviewing(t.id)}
+              />
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="flex justify-end">
+        <Button onClick={save} disabled={saving} className="gold-surface rounded-lg text-primary-foreground hover:opacity-90">
+          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+          ذخیره تنظیمات حالت تعمیر
+        </Button>
       </div>
 
-      <GuideNote className="bg-primary/5">
-        پس از ذخیره، با روشن کردن «حالت تعمیر» و خروج از حساب مدیر (یا بازدید در حالت ناشناس) صفحه را با قالب انتخابی ببینید. شماره تلفن، ایمیل و ساعات کاری از همین مقادیر تب «فروشگاه» خوانده می‌شوند و لازم نیست دوباره بنویسید.
-      </GuideNote>
+      {/* full-size live preview dialog (the real RepairPage, scaled device frame) */}
+      <MaintenancePreviewDialog tplId={previewing} form={form} onClose={() => setPreviewing(null)} />
     </div>
   );
 }
@@ -544,8 +685,9 @@ function MaintenanceTemplateEditor({
 // ── Store tab ──
 function StoreTab() {
   const queryClient = useQueryClient();
-  /* v29: the store tab also edits the repair-page template/texts — the form
-   * carries the FULL settings row (GET returns every column). */
+  /* v30: the repair-page template/texts now live in the dedicated
+   * «حالت تعمیر» tab — this tab keeps the plain store fields (the form
+   * still carries the FULL settings row, GET returns every column). */
   const { data, isLoading, isError, error } = useSetting<StoreSettingsFull>("/api/admin/settings/store", "admin-settings-store");
   const [form, setForm] = useState<StoreSettingsFull | null>(null);
   const [saving, setSaving] = useState(false);
@@ -832,26 +974,13 @@ function StoreTab() {
                 </div>
               </div>
             </div>
+            {/* v30: maintenance moved to its own tab — leave a signpost */}
             <div className="sm:col-span-2">
-              <SwitchRow
-                id="s-maint"
-                label="حالت تعمیر و نگهداری"
-                desc="فروشگاه برای بازدیدکنندگان عادی بسته می‌شود — صفحه «پیگیری سفارش» باز می‌ماند"
-                checked={form.maintenanceMode}
-                onChange={(v) => set("maintenanceMode", v)}
-              />
-              {form.maintenanceMode && (
-                <p className="mt-2 flex items-center gap-1.5 rounded-lg bg-destructive/10 p-2.5 text-xs text-destructive">
-                  <ShieldAlert className="h-4 w-4" />
-                  فروشگاه در حال حاضر در حالت تعمیر است — مدیران با ورود خودشان فروشگاه کامل را می‌بینند
-                </p>
-              )}
-            </div>
-            {/* v29: repair-page TEMPLATE chooser + every-word editor — the
-                store owner picks the look and rewrites any word of the
-                closed page from right here. */}
-            <div className="sm:col-span-2">
-              <MaintenanceTemplateEditor form={form} set={set} />
+              <GuideNote>
+                حالت تعمیر، انتخاب قالب صفحه تعمیر و متن‌های آن به تب اختصاصی{" "}
+                <Link href="?tab=maintenance" className="font-bold text-primary hover:opacity-80">«حالت تعمیر»</Link>{" "}
+                منتقل شد.
+              </GuideNote>
             </div>
           </CardContent>
         </Card>
@@ -1798,6 +1927,8 @@ interface MaintenanceContentForm {
   trackingDesc: string;
   trackingButton: string;
   footerNote: string;
+  /* v30: caption above the countdown digits (countdown-eta template) */
+  etaNote: string;
 }
 
 /** parse the raw JSON string into an editable all-strings form */
@@ -1805,6 +1936,7 @@ function parseMaintenanceContentForm(raw: string | null | undefined): Maintenanc
   const empty: MaintenanceContentForm = {
     titleSuffix: "", badge: "", description: "", phoneLabel: "", emailLabel: "",
     hoursLabel: "", trackingTitle: "", trackingDesc: "", trackingButton: "", footerNote: "",
+    etaNote: "",
   };
   if (!raw?.trim()) return empty;
   try {
@@ -3002,7 +3134,7 @@ function TemplateFooterLinksEditor({
  * history.replaceState (no navigation, no re-render churn).
  * v29.2: added the «به‌روزرسانی» tab — the Update Script panel (the
  * owner's «یه دونه هم گزینه اضافه کنیم به اسم Update Script»). */
-const SETTINGS_TABS = ["store", "branding", "appearance", "footer", "payment", "ai", "smtp", "update"] as const;
+const SETTINGS_TABS = ["store", "maintenance", "branding", "appearance", "footer", "payment", "ai", "smtp", "update"] as const;
 type SettingsTabId = (typeof SETTINGS_TABS)[number];
 
 function useSettingsTab(): [SettingsTabId, (v: string) => void] {
@@ -3034,11 +3166,12 @@ export default function AdminSettingsPage() {
     <div className="space-y-6">
       <AdminPageHeader
         title="تنظیمات"
-        desc="فروشگاه، برندینگ، پوسته، فوتر، درگاه‌های پرداخت، دستیار هوش مصنوعی، ایمیل و به‌روزرسانی اسکریپت"
+        desc="فروشگاه، حالت تعمیر، برندینگ، پوسته، فوتر، درگاه‌های پرداخت، دستیار هوش مصنوعی، ایمیل و به‌روزرسانی اسکریپت"
       />
       <Tabs value={tab} onValueChange={onTab}>
         <TabsList className="h-auto flex-wrap justify-start rounded-lg">
           <TabsTrigger value="store" className="rounded-lg">فروشگاه</TabsTrigger>
+          <TabsTrigger value="maintenance" className="rounded-lg">حالت تعمیر</TabsTrigger>
           <TabsTrigger value="branding" className="rounded-lg">برندینگ</TabsTrigger>
           <TabsTrigger value="appearance" className="rounded-lg">ظاهر و پوسته</TabsTrigger>
           <TabsTrigger value="footer" className="rounded-lg">فوتر</TabsTrigger>
@@ -3048,6 +3181,7 @@ export default function AdminSettingsPage() {
           <TabsTrigger value="update" className="rounded-lg">به‌روزرسانی اسکریپت</TabsTrigger>
         </TabsList>
         <TabsContent value="store" className="mt-4"><StoreTab /></TabsContent>
+        <TabsContent value="maintenance" className="mt-4"><MaintenanceTab /></TabsContent>
         <TabsContent value="branding" className="mt-4"><BrandingTab /></TabsContent>
         <TabsContent value="appearance" className="mt-4"><AppearanceTab /></TabsContent>
         <TabsContent value="footer" className="mt-4"><FooterTab /></TabsContent>

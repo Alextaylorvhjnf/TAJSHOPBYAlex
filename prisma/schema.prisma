@@ -638,6 +638,21 @@ model StoreSettings {
   updatedAt            DateTime @updatedAt
 }
 
+// v5-f · PER-TEMPLATE CONTENT (Admin → ظاهر → «محتوای اختصاصی قالب»)
+// One row per storefront template: its OWN dedicated slides, showcases,
+// texts, links and brand (JSON in `data`, shape = TemplateContentData in
+// src/lib/templates/content.ts). Template-specific values WIN over the
+// global Slider/PromotionalShowcase/StoreSettings entities while that
+// template is active (or admin-previewed via /?template=<id>); empty
+// fields fall back to the global values. Pure presentation-layer data —
+// the global entities and their admin CRUD stay untouched (spec §22).
+model TemplateContent {
+  id         String   @id @default(cuid())
+  templateId String   @unique
+  data       String   @default("{}")
+  updatedAt  DateTime @updatedAt
+}
+
 // Admin-selectable visual theme (see globals.css [data-theme] tokens)
 model ThemeSettings {
   id        String   @id @default("main")

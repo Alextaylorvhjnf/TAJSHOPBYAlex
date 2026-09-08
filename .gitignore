@@ -71,3 +71,16 @@ public/uploads/tickets
 # local backups made by update.sh
 backups/
 .taj-update-*.zip
+
+# ═══ v31 · release hygiene ═══
+# the template env file IS committed (install.sh requires it)
+!.env.example
+
+# local artifacts / sandbox workspace — never ship
+/download/
+/upload/
+/tool-results/
+/.zscripts/
+/examples/
+/mini-services/
+/prod*.html

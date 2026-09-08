@@ -1,3 +1,5 @@
+import type { TemplateContentData } from "./content";
+
 /**
  * STOREFRONT TEMPLATE SYSTEM — shared data contract (spec §18–§24)
  * ---------------------------------------------------------------
@@ -237,4 +239,11 @@ export type HomeData = {
     brands: number;
     stories: number;
   };
+  /** v5-f: the ACTIVE template's own dedicated content (Admin → ظاهر →
+   *  «محتوای اختصاصی قالب») — its slides/showcases/texts/links/brand.
+   *  Already merged into `slides`/`showcases`/`store` above by the server
+   *  (template-specific wins, empty falls back to global); templates can
+   *  additionally read `texts` / `links` / `brand.tagline` directly.
+   *  Additive — templates that ignore it render exactly as before. */
+  templateContent?: TemplateContentData;
 };

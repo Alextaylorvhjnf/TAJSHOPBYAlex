@@ -348,6 +348,8 @@ export const storeSettingsSchema = z.object({
       trackingDesc: z.string().max(300).optional().nullable(),
       trackingButton: z.string().max(60).optional().nullable(),
       footerNote: z.string().max(200).optional().nullable(),
+      /* v30: caption above the countdown digits (countdown-eta template) */
+      etaNote: z.string().max(200).optional().nullable(),
     })
     .optional()
     .nullable(),

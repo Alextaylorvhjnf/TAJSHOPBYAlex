@@ -21,6 +21,65 @@
 
 import type { ChromeAccent, ChromePalette, ChromeTint } from "./bits";
 
+/* ══ v32 (task 5-e): MEGA MENU STYLES ════════════════════════════════
+ * One of FIVE distinct category-menu presentations per template
+ * (rendered by ./mega-menus.tsx) — no more single shared mega panel.
+ * Mapping rationale (by template family):
+ *   tree            — classic Digikala commerce tree (root rail on the
+ *                     inline-start side + subcategory columns to its left)
+ *   images          — large image-led tiles, gradient caption, hover zoom
+ *   waterfall       — masonry cascade with staggered offsets + fade-in
+ *   zoomfade        — collapsed icon rail expanding on hover, zoom-in swap
+ *   waterfall-product — the cascade + a live featured-product side panel */
+export type MegaMenuStyle =
+  | "tree" /* درختی دیجی‌کالایی */
+  | "images" /* تصویری بزرگ */
+  | "waterfall" /* آبشاری */
+  | "zoomfade" /* زوم و محو */
+  | "waterfall-product"; /* آبشاری + محصول کنار */
+
+/** v32 (5-e): the full 25-template → mega-menu style mapping. Pure data —
+ *  attached onto each template's HeaderCfg at module load below (like the
+ *  palettes), and readable standalone via getMegaMenuStyle for callers
+ *  without a chrome cfg (the shared storefront header / modern-tech). */
+export const MEGA_MENU_STYLES: Record<string, MegaMenuStyle> = {
+  /* درختی دیجی‌کالایی — commerce/marketplace templates */
+  "modern-tech": "tree",
+  marketplace: "tree",
+  "superstore-grid": "tree",
+  /* تصویری بزرگ — clean/light premium imagery templates */
+  "minimal-premium": "images",
+  "startup-light": "images",
+  "novatrend-clean": "images",
+  "glass-morphism": "images",
+  "nova-glass": "images",
+  "nexora-tech": "images",
+  /* آبشاری — seasonal/deals templates */
+  autumn: "waterfall",
+  christmas: "waterfall",
+  "yalda-night": "waterfall",
+  "social-commerce": "waterfall",
+  "flash-deals": "waterfall",
+  "retro-vintage": "waterfall",
+  /* زوم و محو — dark/techy HUD templates */
+  "gaming-cyber": "zoomfade",
+  "neon-noir": "zoomfade",
+  "future-3d": "zoomfade",
+  "techhub-dark": "zoomfade",
+  /* آبشاری + محصول کنار — catalogue/luxury templates */
+  "luxury-electronics": "waterfall-product",
+  "art-deco": "waterfall-product",
+  "editorial-magazine": "waterfall-product",
+  "print-catalog": "waterfall-product",
+  "mobile-first-pwa": "waterfall-product",
+  "purple-mall": "waterfall-product",
+};
+
+/** v32 (5-e): resolve a template's mega-menu style (unknown ids → tree). */
+export function getMegaMenuStyle(id: string | null | undefined): MegaMenuStyle {
+  return MEGA_MENU_STYLES[id ?? ""] ?? "tree";
+}
+
 export type HeaderCfg = {
   /** template id — attached once at module load so chrome components can
    *  look up their own admin override from HomeData.store.chromeOverridesMap */
@@ -49,6 +108,10 @@ export type HeaderCfg = {
   logo?: "square" | "round" | "wordmark" | "mono";
   /** v23: show the products mega-menu nav row (خانه/فروشگاه/درباره/تماس) */
   megaMenu?: boolean;
+  /** v32 (5-e): which of the 5 mega-menu VARIANTS the «دسته‌بندی‌ها» panel
+   *  renders (see MEGA_MENU_STYLES). Attached at module load; undefined →
+   *  the classic tree (shared storefront header / modern-tech default). */
+  menuStyle?: MegaMenuStyle;
   /** v23: basket opens a popover under the icon instead of the side drawer */
   cartStyle?: "drawer" | "popover";
   /** v24 admin toggles (missing = visible) */
@@ -81,6 +144,10 @@ export type FooterCfg = {
   brandSpeed?: number;
   /** F2/F4 — big rounded top edge */
   round?: boolean;
+  /** v31 (gaming-cyber): render the REAL social icon row (links fetched
+   * client-side from the public /api/store-info payload). Additive, only
+   * set on gaming-cyber — every other footer renders exactly as before. */
+  social?: boolean;
 };
 
 export type TemplateChrome = { header: HeaderCfg; footer: FooterCfg };
@@ -179,7 +246,7 @@ export const TEMPLATE_CHROME: Record<string, TemplateChrome> = {
   },
   "gaming-cyber": {
     header: { variant: 7, tint: "theme", accent: "lime", ticker: true, tickerSpeed: 16, logo: "mono" },
-    footer: { variant: 6, tint: "theme", accent: "lime", brandStrip: "photos", brandSpeed: 26 },
+    footer: { variant: 6, tint: "theme", accent: "lime", brandStrip: "photos", brandSpeed: 26, social: true },
   },
   "luxury-electronics": {
     header: { variant: 5, tint: "theme", accent: "amber", categoryRow: "chips", logo: "wordmark" },
@@ -259,6 +326,8 @@ for (const [id, c] of Object.entries(TEMPLATE_CHROME)) {
   const light = TEMPLATE_PALETTES_LIGHT[id];
   c.header.id = id;
   c.footer.id = id;
+  // v32 (5-e): the template's mega-menu variant rides along too
+  c.header.menuStyle = getMegaMenuStyle(id);
   if (palette) {
     c.header.palette = palette;
     c.footer.palette = palette;

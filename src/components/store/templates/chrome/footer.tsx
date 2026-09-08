@@ -22,11 +22,12 @@
 
 import Link from "next/link";
 import { useTheme } from "next-themes";
-import { useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import {
   ShieldCheck, Truck, RotateCcw, Headphones, CreditCard, Phone,
   PackageSearch, MessageCircle, ShoppingCart, User, FileQuestion, ArrowLeft,
+  Instagram, Send, Youtube, Twitter, Linkedin,
 } from "lucide-react";
 import type { HomeData, ChromeFooterOverride } from "@/lib/templates/types";
 import type { ChromePalette } from "./bits";
@@ -570,7 +571,60 @@ function FooterContact({ data, cfg, a, onDark, tint, store, announcement, chrome
   );
 }
 
-/* ═══ F6 · COLUMNS — glowing link columns on dark ═══════════════════ */
+/* ═══ F6 · COLUMNS — link columns + brand block ═══════════════════ */
+
+/** v31 (gaming-cyber, cfg.social): REAL social icon row — the links come
+ * from the public /api/store-info payload (admin → تنظیمات، same source
+ * the shared server footer uses), fetched once client-side. Renders
+ * nothing until the fetch resolves and at least one link exists — no
+ * fabricated URLs. Icons carry the .gc-soc neon hover-glow class styled
+ * in the gaming template's scoped CSS. */
+function ChromeSocialRow({ onDark }: { onDark?: boolean }) {
+  const [links, setLinks] = useState<{ key: string; href: string; label: string; icon: React.ElementType }[]>([]);
+  useEffect(() => {
+    let alive = true;
+    fetch("/api/store-info")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j: { social?: Record<string, string | null> } | null) => {
+        if (!alive || !j?.social) return;
+        const s = j.social;
+        const out: { key: string; href: string; label: string; icon: React.ElementType }[] = [];
+        if (s.instagram) out.push({ key: "instagram", href: s.instagram, label: "اینستاگرام", icon: Instagram });
+        if (s.telegram) out.push({ key: "telegram", href: s.telegram, label: "تلگرام", icon: Send });
+        if (s.whatsapp) out.push({ key: "whatsapp", href: s.whatsapp, label: "واتس‌اپ", icon: MessageCircle });
+        if (s.youtube) out.push({ key: "youtube", href: s.youtube, label: "یوتیوب", icon: Youtube });
+        if (s.twitter) out.push({ key: "twitter", href: s.twitter, label: "توییتر", icon: Twitter });
+        if (s.linkedin) out.push({ key: "linkedin", href: s.linkedin, label: "لینکدین", icon: Linkedin });
+        setLinks(out);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
+  if (links.length === 0) return null;
+  return (
+    <div className="mt-4 flex flex-wrap gap-2" aria-label="شبکه‌های اجتماعی فروشگاه">
+      {links.map((s) => (
+        <a
+          key={s.key}
+          href={s.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={s.label}
+          title={s.label}
+          className={cn(
+            "gc-soc grid h-10 w-10 place-items-center rounded-full border",
+            onDark ? "border-white/15 bg-white/10" : "border-border bg-card"
+          )}
+        >
+          <s.icon className="h-4.5 w-4.5" aria-hidden />
+        </a>
+      ))}
+    </div>
+  );
+}
+
 function FooterColumns({ data, cfg, a, onDark, tint, store, announcement, chromeStyle }: VariantProps) {
   // v27b: per-template custom link columns (empty → column hidden, no gap)
   const customCustomer = store.footerContent?.customerLinks ?? [];
@@ -672,6 +726,8 @@ function FooterColumns({ data, cfg, a, onDark, tint, store, announcement, chrome
             <div className="mt-5 flex flex-wrap gap-2">
               <PhoneChip phone={store.phone} a={a} onDark={onDark} />
             </div>
+            {/* v31: gaming social row — real links, neon hover glow */}
+            {cfg.social && <ChromeSocialRow onDark={onDark} />}
             <Link
               href="/products"
               className={cn("mt-5 inline-flex h-11 items-center gap-2 rounded-2xl px-6 text-[12.5px] font-black taj-shine", a.solid)}

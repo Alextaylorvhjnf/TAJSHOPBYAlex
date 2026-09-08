@@ -76,6 +76,17 @@ interface UpdateCheck {
   runtime?: "source" | "standalone";
 }
 
+/** v31 · background poll response (GET /api/admin/update/poll — the server
+ * itself throttles the real GitHub fetch to once per 10 minutes, so this
+ * cheap call can repeat every 5 minutes without hammering the remote). */
+interface UpdatePoll {
+  current: string;
+  latest: string | null;
+  hasUpdate: boolean;
+  lastCheckedAt: string | null;
+  error?: string;
+}
+
 type UpdatePhase =
   | "idle"
   | "downloading"
@@ -170,6 +181,14 @@ export function UpdatePanel() {
   const [checkResult, setCheckResult] = useState<UpdateCheck | null>(null);
   const handledKey = useRef<string | null>(null);
 
+  /* v31 · AUTO-DETECT — the background poll flips this when a newer version
+   * appears WITHOUT the admin pressing «بررسی به‌روزرسانی»; the result card
+   * then carries a «به‌روزرسانی جدید شناسایی شد» badge. The next manual check
+   * clears it. */
+  const [autoDetected, setAutoDetected] = useState(false);
+  /** latest version already auto-handled (prevents repeat auto-checks) */
+  const autoPolled = useRef<string | null>(null);
+
   /* ── manifest URL config ── */
   const configQuery = useQuery({
     queryKey: ["admin-update-config"],
@@ -262,6 +281,65 @@ export function UpdatePanel() {
     checkResult.current &&
     compareVersionsLocal(checkResult.current, checkResult.minAppVersion) < 0;
 
+  /* ── v31 · background auto-poll ──────────────────────────────────
+   * GET /api/admin/update/poll ~3s after mount and then every 5 minutes.
+   * When it reports a new version that the visible card does not already
+   * show, the FULL /check is silently re-run so the details card (and the
+   * «دانلود و نصب به‌روزرسانی» button) refresh themselves without the admin
+   * pressing anything. Completely silent on failure — polling must never
+   * disturb the manual flow or the 7-step install progress. */
+  const busyRef = useRef(busy);
+  const checkPendingRef = useRef(check.isPending);
+  const checkResultRef = useRef<UpdateCheck | null>(checkResult);
+  useEffect(() => {
+    busyRef.current = busy;
+  }, [busy]);
+  useEffect(() => {
+    checkPendingRef.current = check.isPending;
+  }, [check.isPending]);
+  useEffect(() => {
+    checkResultRef.current = checkResult;
+  }, [checkResult]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const poll = async () => {
+      if (busyRef.current || checkPendingRef.current) return; // never fight a running install/check
+      let data: UpdatePoll;
+      try {
+        data = await apiFetch<UpdatePoll>("/api/admin/update/poll");
+      } catch {
+        return; // silent
+      }
+      if (cancelled || !data.hasUpdate || !data.latest) return;
+      if (autoPolled.current === data.latest) return; // already auto-handled
+      const shown = checkResultRef.current;
+      if (shown && shown.available && shown.latest === data.latest) {
+        autoPolled.current = data.latest; // card already shows this version
+        return;
+      }
+      autoPolled.current = data.latest;
+      // fetch the full manifest details SILENTLY (no toast, no button spinner)
+      try {
+        const full = await apiFetch<UpdateCheck>("/api/admin/update/check");
+        if (cancelled) return;
+        if (full.available && full.latest === data.latest) {
+          setAutoDetected(true);
+          setCheckResult(full);
+        }
+      } catch {
+        /* silent — next interval retries */
+      }
+    };
+    const early = setTimeout(() => void poll(), 3_000);
+    const interval = setInterval(() => void poll(), 5 * 60_000);
+    return () => {
+      cancelled = true;
+      clearTimeout(early);
+      clearInterval(interval);
+    };
+  }, []);
+
   /* ═══════ render ═══════ */
 
   return (
@@ -337,7 +415,10 @@ export function UpdatePanel() {
               type="button"
               className="gold-surface rounded-lg text-primary-foreground hover:opacity-90"
               disabled={check.isPending || busy}
-              onClick={() => check.mutate()}
+              onClick={() => {
+                setAutoDetected(false); // manual check → leave auto-detected mode
+                check.mutate();
+              }}
             >
               {check.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ScanSearch className="h-4 w-4" />}
               بررسی به‌روزرسانی
@@ -370,16 +451,24 @@ export function UpdatePanel() {
                     <p className="text-sm font-bold">{faDate(checkResult.releasedAt)}</p>
                   </div>
                 )}
-                <span
-                  className={cn(
-                    "ms-auto rounded-full border px-3 py-1 text-[11px] font-bold",
-                    checkResult.available
-                      ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-600"
-                      : "border-border bg-muted text-muted-foreground"
+                <div className="ms-auto flex flex-wrap items-center gap-2">
+                  {autoDetected && checkResult.available && (
+                    <span className="flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-[11px] font-bold text-primary">
+                      <ScanSearch className="h-3.5 w-3.5" />
+                      به‌روزرسانی جدید شناسایی شد
+                    </span>
                   )}
-                >
-                  {checkResult.available ? "به‌روزرسانی در دسترس است" : "شما در آخرین نسخه هستید"}
-                </span>
+                  <span
+                    className={cn(
+                      "rounded-full border px-3 py-1 text-[11px] font-bold",
+                      checkResult.available
+                        ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-600"
+                        : "border-border bg-muted text-muted-foreground"
+                    )}
+                  >
+                    {checkResult.available ? "به‌روزرسانی در دسترس است" : "شما در آخرین نسخه هستید"}
+                  </span>
+                </div>
               </div>
 
               {checkResult.notes && (

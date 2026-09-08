@@ -38,6 +38,8 @@ export interface MaintenanceContent {
   trackingButton?: string;
   /** tiny bottom note */
   footerNote?: string;
+  /** v30: caption above the countdown digits (countdown-eta template) */
+  etaNote?: string;
 }
 
 /** designed defaults — byte-identical to the v25–v28 screen wording */
@@ -53,6 +55,7 @@ export const DEFAULT_MAINTENANCE_CONTENT: Required<MaintenanceContent> = {
   trackingDesc: "حتی هنگام تعمیر، وضعیت سفارش خود را با شماره سفارش و موبایل پیگیری کنید.",
   trackingButton: "پیگیری سفارش",
   footerNote: "به‌زودی بازمی‌گردیم — از صبر شما سپاسگزاریم",
+  etaNote: "شمارش معکوس تا بازگشایی فروشگاه",
 };
 
 /** parse + merge the raw JSON column with the defaults (never throws) */
@@ -85,27 +88,27 @@ export interface MaintenanceTemplateDef {
 export const MAINTENANCE_TEMPLATES: MaintenanceTemplateDef[] = [
   {
     id: "tech-dark",
-    nameFa: "تک تاریک",
+    nameFa: "تِک تاریک",
     nameEn: "tech-dark",
-    desc: "همان نمای v28 — شبکه نئونی تیره، لوگو آبی و دکمه پیگیری طلایی (پیش‌فرض)",
+    desc: "پنل عیب‌یابی سخت‌افزاری با نئون سبز/فیروزه‌ای، LEDهای وضعیت و خط اسکن — حس تخصصی و فنی",
   },
   {
     id: "minimal-light",
     nameFa: "مینیمال روشن",
     nameEn: "minimal-light",
-    desc: "کارت سفید تمیز و آرام — مناسب برندهایی که سادگی را می‌پسندند",
+    desc: "سفید و تمیز با تایپوگرافی درشت، خط طلایی و فضای خالی — سادگی اپل‌گونه",
   },
   {
     id: "neon-glass",
-    nameFa: "شیشه‌ای نئون",
+    nameFa: "نئون شیشه‌ای",
     nameEn: "neon-glass",
-    desc: "گرادیان‌های شناور و کارت شیشه‌ای — حس مدرن و فان‌تزی‌تر",
+    desc: "گرادیان‌های فوشیا/فیروزه‌ای شناور + کارت شیشه‌ای با حلقهٔ نئونی چرخان",
   },
   {
     id: "countdown-eta",
     nameFa: "شمارش معکوس",
     nameEn: "countdown-eta",
-    desc: "خط پیشرفت متحرک + تأکید روی زمان بازگشتن — حس «به‌زودی» قوی‌تر",
+    desc: "شمارش معکوس بزرگ روز/ساعت/دقیقه/ثانیه + نوار پیشرفت و مراحل تعمیر (تشخیص، قطعات، تعمیر، تست)",
   },
 ];
 

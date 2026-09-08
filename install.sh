@@ -144,11 +144,12 @@ $COMPOSE build || die "Docker image build failed — check the output above"
 say "Starting TAJ Electronics…"
 $COMPOSE up -d --remove-orphans || die "docker compose up failed"
 
-# ── 7. wait for /api/health ──
+# ── 7. wait for /api/health (up to ~120s: in-container fetch OR host curl) ──
 say "Waiting for the application to become healthy…"
 HEALTHY=0
 for _ in $(seq 1 60); do
-  if $COMPOSE exec -T app node -e "fetch('http://127.0.0.1:${APP_PORT}${HEALTH_PATH}').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))" >/dev/null 2>&1; then
+  if $COMPOSE exec -T app node -e "fetch('http://127.0.0.1:${APP_PORT}${HEALTH_PATH}').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))" >/dev/null 2>&1 \
+     || curl -fsS -o /dev/null "http://127.0.0.1:${APP_PORT}${HEALTH_PATH}" 2>/dev/null; then
     HEALTHY=1
     break
   fi
@@ -161,19 +162,28 @@ if [ "$HEALTHY" -ne 1 ]; then
 fi
 ok "Application is healthy (/api/health → 200)"
 
-# ── 8. final status ──
+# ── 8. final status — big Persian success box ──
 SERVER_IP="$(hostname -I 2>/dev/null | awk '{print $1}')"
-[ -n "${SERVER_IP:-}" ] || SERVER_IP="YOUR-SERVER-IP"
+[ -n "${SERVER_IP:-}" ] || SERVER_IP="localhost"
 
 echo
 $COMPOSE ps
 echo
 ok "TAJ Electronics is running!"
-echo "──────────────────────────────────────────────────────────────"
-echo "  1. Open:   http://${SERVER_IP}:${APP_PORT}/install"
-echo "             (or https://YOUR-DOMAIN/install if a reverse proxy"
-echo "              is already configured — see DEPLOY.md § Nginx)"
-echo "  2. The web wizard creates the database + your admin account."
-echo "  3. Manage:  ${COMPOSE} ps | logs -f | restart | down"
-echo "     Update:  ./update.sh      Backup: ./backup.sh"
-echo "──────────────────────────────────────────────────────────────"
+
+echo
+echo "╔══════════════════════════════════════════════════════════════════════╗"
+echo "║"
+echo "║   ✅  نصب با موفقیت انجام شد — تاج الکترونیکس آماده است!"
+echo "║"
+echo "║   آدرس نصب: http://${SERVER_IP}:${APP_PORT}/install — در مرورگر باز کنید و مدیر کل را بسازید"
+echo "║   (دامنه/ریورس‌پروکسی دارید؟ همان‌جا /install را باز کنید — راهنما: DEPLOY.md § Nginx)"
+echo "║"
+echo "║   🐳 سرور خام یا مسیر جایگزین: sudo ./setup.sh"
+echo "║      (نصب خودکار Docker + Compose + Node 22 + Bun + OpenSSL)"
+echo "║"
+echo "║   مدیریت:    ${COMPOSE} ps | logs -f | restart | down"
+echo "║   به‌روزرسانی: ./update.sh        پشتیبان‌گیری: ./backup.sh"
+echo "║"
+echo "║   🔒 دیتابیس و آپلودها روی volumeهای مانگار (taj_db / taj_uploads) محفوظ می‌مانند."
+echo "╚══════════════════════════════════════════════════════════════════════╝"

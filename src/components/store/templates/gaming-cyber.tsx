@@ -1,8 +1,16 @@
 "use client";
 
 /**
- * TEMPLATE · gaming-cyber — «VICE ARENA» (v30 · GTA-Vice × GameUp PRO REDESIGN)
+ * TEMPLATE · gaming-cyber — «VICE ARENA» (v31 · RIG HERO REBUILD)
  * ---------------------------------------------------------------------------
+ * v31 hero: 100% CODE-DRAWN tempered-glass ARGB tower on an animated
+ * ARGB desk mat (edge LEDs + dot texture + code-drawn mouse), flanked by
+ * the two GENERATED 3D headset artworks (pink bunny / black tactical).
+ * 3 front + 2 internal RGB fans — rings hue-cycle at phase offsets, the
+ * BLADES never spin (owner's explicit demand). Top LED strip, PSU
+ * underglow, glass tint reacting to the ambient glow. Old photo slider
+ * removed; Persian copy/CTAs/parallax kept; scene stays dark in both
+ * skins so the RGB always reads.
  * GTA-6 VICE promo bones: magenta #D000FF + acid-lime #EAFF00, giant italic-
  * black display headlines (900 + skewX(-8deg), white→magenta gradient), lime
  * pill CTAs (lime bg + BLACK text + plus-circle), vertical lime tab, MAGENTA
@@ -13,8 +21,10 @@
  * «stage» (rotating conic rainbow RING + pulsing UNDERGLOW); name-aware fx —
  * فن/Fan SPINS like a GIF, کیبورد/Keyboard hue-breathes, ماوس/پد موس ring
  * accelerates — ALL gated by [data-glow="on"] + prefers-reduced-motion.
- * Art: vice-girl (hero) · stream-girl (CONNECT) · argb-rig (banner) · argb-fan
- * (spinning spotlight) · argb-keyboard (hue spotlight) + v28 anime set.
+ * Art: argb-bunny-pink + argb-tactical-black (generated 3D headsets flanking
+ * the code-drawn hero rig + ARGB_GEAR spotlights) · vice-girl (deal zone) ·
+ * stream-girl (CONNECT) · argb-rig (banner) · argb-fan (spinning spotlight) ·
+ * argb-keyboard (hue spotlight) + v28 anime set.
  * Feature toggles (timer/glow/parallax/scanlines, missing = ON) kept; v25
  * timerEndsAt global override kept; LIGHT SKIN + reduced-motion cover v30. */
 
@@ -22,21 +32,21 @@ import { useCallback, useEffect, useId, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useQueryClient } from "@tanstack/react-query";
-import { motion, useMotionValue, useReducedMotion, useSpring, useTransform } from "framer-motion";
+import { motion, useMotionValue, useReducedMotion, useSpring, useTransform, type MotionValue } from "framer-motion";
 import { toast } from "sonner";
 import {
-  Activity, BadgeCheck, Check, ChevronLeft, ChevronRight, Fan, Flame, Gamepad2,
+  Activity, BadgeCheck, Check, ChevronLeft, Fan, Flame, Gamepad2,
   Headphones, HelpCircle, Keyboard, Layers, Loader2, Package, Plus, Radio,
   ShieldCheck, ShoppingBasket, Sparkles, Star, Swords, Timer, Trophy, Truck,
   Users, Zap,
 } from "lucide-react";
-import type { HomeData, TemplateProduct, TemplateSlide } from "@/lib/templates/types";
+import type { HomeData, TemplateProduct } from "@/lib/templates/types";
+import type { TemplateContentData, TemplateShowcase } from "@/lib/templates/content";
 import { formatPrice } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { useChatStore } from "@/lib/stores";
 import { Reveal } from "../reveal";
 import { StoriesRow, type StoryItem } from "../stories-row";
-import { SlideArt } from "./slide-image";
 import { TemplateHeader } from "./chrome/header";
 import { TemplateFooter } from "./chrome/footer";
 import { TEMPLATE_CHROME } from "./chrome/config";
@@ -206,15 +216,8 @@ const GC_CSS = `
   display:flex;align-items:center;gap:10px;padding:10px 14px;
   background:linear-gradient(180deg,rgba(11,0,20,.8),transparent);
 }
-[data-tpl="gaming-cyber"] .gc-arrow{
-  position:absolute;top:50%;z-index:30;transform:translateY(-50%);cursor:pointer;
-  display:grid;place-items:center;width:44px;height:44px;border-radius:12px;
-  background:rgba(11,0,20,.72);border:1px solid rgba(139,92,246,.4);color:#EFEAF9;
-  backdrop-filter:blur(8px);transition:border-color .2s,color .2s,box-shadow .2s;
-}
-[data-tpl="gaming-cyber"] .gc-arrow:hover{border-color:rgba(255,62,240,.85);color:#fff;box-shadow:0 0 24px -6px rgba(208,0,255,.65)}
-[data-tpl="gaming-cyber"] .gc-dot{width:22px;height:6px;border-radius:999px;border:0;padding:0;background:rgba(239,234,249,.22);cursor:pointer;transition:background .3s,box-shadow .3s}
-[data-tpl="gaming-cyber"] .gc-dot-on{background:linear-gradient(90deg,#EAFF00,#FF3EF0);box-shadow:0 0 10px rgba(234,255,0,.5)}
+/* (v31: old photo-slider arrows/dots removed with the slider — the hero
+   centerpiece is now the code-drawn ARGB rig; see .gc-rig-* below) */
 /* ── stats tiles ────────────────────────────────────────────────────── */
 [data-tpl="gaming-cyber"] .gc-tile{
   position:relative;display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:12px;
@@ -727,8 +730,6 @@ html:not(.dark) [data-tpl="gaming-cyber"] .gc-grid-floor{
     linear-gradient(90deg,rgba(192,38,211,.35) 1.5px,transparent 1.5px);
 }
 html:not(.dark) [data-tpl="gaming-cyber"] .gc-hero-hud{background:linear-gradient(180deg,rgba(246,242,251,.92),transparent)}
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-arrow{background:rgba(255,255,255,.85);border-color:rgba(124,58,237,.4);color:#2A1B40}
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-dot{background:rgba(42,27,64,.2)}
 /* stats tiles */
 html:not(.dark) [data-tpl="gaming-cyber"] .gc-tile{border-color:rgba(124,58,237,.22);background:linear-gradient(180deg,rgba(255,255,255,.85),rgba(246,242,251,.92))}
 html:not(.dark) [data-tpl="gaming-cyber"] .gc-tile-ico{color:#C026D3}
@@ -928,6 +929,348 @@ html:not(.dark) [data-tpl="gaming-cyber"] .gc-final-mono{
   filter:drop-shadow(0 0 36px rgba(162,28,172,.35));
 }
 html:not(.dark) [data-tpl="gaming-cyber"] .gc-final-chip{background:rgba(255,255,255,.8);color:#2A1B40}
+/* ═════════════════════════════════════════════════════════════════════
+   v31 · CODE-DRAWN ARGB RIG HERO (owner's #1 ask — 100% CSS/JSX art)
+   Tempered-glass tower · 5 RGB fans (rings hue-cycle with phase offsets,
+   the BLADES never spin — owner's explicit demand) · top LED strip ·
+   PSU underglow · ARGB desk mat with animated edge LEDs + code-drawn
+   mouse. Every animation is pure CSS, gated by [data-glow="on"] and
+   killed by the reduced-motion block at the bottom of this file.
+   ═════════════════════════════════════════════════════════════════════ */
+@keyframes gc-rig-breathe{0%,100%{opacity:.3;transform:scale(.92)}50%{opacity:.62;transform:scale(1.06)}}
+@keyframes gc-cue-drop{0%{transform:translateY(-1px);opacity:0}30%{opacity:1}70%{transform:translateY(8px);opacity:1}100%{transform:translateY(9px);opacity:0}}
+/* studio ambience — the hero panel STAYS dark in both skins (photo-dark
+   pattern) so the RGB rig always reads; text-side restores live below. */
+[data-tpl="gaming-cyber"] .gc-hero-bg{
+  position:absolute;inset:0;pointer-events:none;
+  background:
+    radial-gradient(58% 46% at 80% 8%,rgba(208,0,255,.26),transparent 70%),
+    radial-gradient(46% 40% at 14% 92%,rgba(6,182,212,.12),transparent 70%),
+    linear-gradient(180deg,#170F23 0%,#0D0916 58%,#130A1D 100%);
+}
+[data-tpl="gaming-cyber"] .gc-hero-sub{margin-top:14px;max-width:34rem;font-size:14px;line-height:1.85;color:#C9BEE4}
+@media (min-width:640px){
+  [data-tpl="gaming-cyber"] .gc-hero-sub{font-size:15.5px;line-height:2}
+}
+/* ── the scene stage (fluid % — scales with its box) ─────────────────── */
+[data-tpl="gaming-cyber"] .gc-scene{position:relative;width:100%;height:100%}
+[data-tpl="gaming-cyber"] .gc-scene-amb{position:absolute;border-radius:50%;pointer-events:none;filter:blur(34px);opacity:.5}
+[data-tpl="gaming-cyber"] .gc-scene-amb-1{top:-6%;right:-6%;width:52%;height:44%;background:radial-gradient(circle,rgba(224,43,255,.5),transparent 70%)}
+[data-tpl="gaming-cyber"] .gc-scene-amb-2{bottom:2%;left:-4%;width:46%;height:38%;background:radial-gradient(circle,rgba(6,182,212,.38),transparent 70%)}
+/* floor shadow + glass reflection on the mat */
+[data-tpl="gaming-cyber"] .gc-rig-shadow{position:absolute;left:24%;right:24%;bottom:13%;height:7%;border-radius:50%;background:radial-gradient(ellipse at center,rgba(0,0,0,.62),transparent 70%);filter:blur(6px)}
+[data-tpl="gaming-cyber"] .gc-rig-reflect{position:absolute;left:35%;width:30%;bottom:8%;height:9%;border-radius:12px;background:linear-gradient(180deg,rgba(139,92,246,.30),rgba(6,182,212,.10) 55%,transparent);filter:blur(5px);opacity:.55}
+/* ── ARGB desk mat / mousepad — animated edge LEDs + dot texture ─────── */
+[data-tpl="gaming-cyber"] .gc-rig-mat{
+  position:absolute;left:4%;right:4%;bottom:3%;height:23%;border-radius:16px;
+  background:
+    radial-gradient(circle at 22% 30%,rgba(226,43,255,.10),transparent 42%),
+    radial-gradient(rgba(190,180,230,.075) 1px,transparent 1.7px),
+    linear-gradient(180deg,#231A33,#150E1F);
+  background-size:auto,15px 15px,auto;
+  border:1px solid rgba(139,92,246,.4);
+  box-shadow:0 20px 44px -18px rgba(0,0,0,.85),inset 0 0 30px rgba(0,0,0,.5);
+}
+[data-tpl="gaming-cyber"] .gc-rig-mat::after{
+  content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  background:radial-gradient(120% 140% at 50% 0%,transparent 40%,rgba(0,0,0,.35) 100%);
+}
+[data-tpl="gaming-cyber"][data-glow="on"] .gc-rig-mat::before{
+  content:"";position:absolute;inset:0;border-radius:inherit;padding:2.5px;pointer-events:none;
+  background:conic-gradient(#F43F5E,#FF3EF0,#D000FF,#8B5CF6,#06B6D4,#10B981,#EAFF00,#FF7A00,#F43F5E);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;
+  mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  mask-composite:exclude;
+  opacity:.9;filter:drop-shadow(0 0 7px rgba(255,62,240,.6));
+  animation:gc-rgb-flow 9s linear infinite;
+}
+/* code-drawn mouse resting on the mat */
+[data-tpl="gaming-cyber"] .gc-rig-mouse{
+  position:absolute;left:62%;bottom:5.5%;width:8.5%;aspect-ratio:.68;
+  border-radius:48% 48% 44% 44% / 60% 60% 40% 40%;
+  background:linear-gradient(180deg,#2B2238,#171021);
+  border:1px solid rgba(255,255,255,.14);
+  box-shadow:0 8px 18px -8px rgba(0,0,0,.8),inset 0 0 8px rgba(0,0,0,.55);
+  z-index:4;
+}
+[data-tpl="gaming-cyber"] .gc-rig-mouse::before{
+  content:"";position:absolute;top:6%;bottom:10%;left:50%;width:1.5px;background:rgba(255,255,255,.12);
+}
+[data-tpl="gaming-cyber"] .gc-rig-mouse::after{
+  content:"";position:absolute;left:50%;top:34%;width:22%;aspect-ratio:1;transform:translateX(-50%);
+  border-radius:50%;background:#F86BFF;box-shadow:0 0 10px 2px rgba(255,62,240,.75);
+}
+[data-tpl="gaming-cyber"][data-glow="on"] .gc-rig-mouse::after{animation:gc-rig-breathe 2.6s ease-in-out infinite}
+/* ── the tower — perspective wrapper + dark-metal chassis ────────────── */
+[data-tpl="gaming-cyber"] .gc-rig-case3d{
+  position:absolute;left:50%;bottom:17%;width:34%;aspect-ratio:.5;z-index:3;
+  transform:translateX(-50%) perspective(950px) rotateY(8deg);
+}
+/* mobile — widen the tower a touch so the fan rings/LED strip stay legible;
+   bottom eases up so the taller case never pokes out of the scene box */
+@media (max-width:639px){
+  [data-tpl="gaming-cyber"] .gc-rig-case3d{width:38%;bottom:13%}
+}
+[data-tpl="gaming-cyber"] .gc-rig-frame{
+  position:absolute;inset:0;border-radius:16px;overflow:hidden;
+  background:linear-gradient(105deg,#26212F 0%,#15111C 42%,#1E1927 100%);
+  border:1px solid rgba(255,255,255,.16);
+  box-shadow:
+    inset 0 0 0 1px rgba(0,0,0,.55),
+    inset 0 14px 30px -18px rgba(255,255,255,.10),
+    0 30px 60px -24px rgba(0,0,0,.9);
+}
+/* PSU underglow spilling under the chassis onto the mat */
+[data-tpl="gaming-cyber"][data-glow="on"] .gc-rig-underglow{
+  position:absolute;left:-12%;right:-12%;bottom:-4%;height:12%;border-radius:50%;
+  background:conic-gradient(from 90deg,#FF3EF0,#06B6D4,#EAFF00,#FF3EF0);
+  filter:blur(14px);opacity:.5;pointer-events:none;
+  animation:gc-rig-breathe 3.4s ease-in-out infinite,gc-rgb-flow 6s linear infinite;
+}
+/* interior — motherboard hints */
+[data-tpl="gaming-cyber"] .gc-rig-mobo{
+  position:absolute;left:11%;top:7%;bottom:33%;right:11%;border-radius:7px;
+  background:
+    repeating-linear-gradient(90deg,rgba(103,232,249,.05) 0 1px,transparent 1px 9px),
+    linear-gradient(160deg,#1B1426,#120C1B);
+  border:1px solid rgba(139,92,246,.22);
+}
+/* RAM sticks — glow tips breathe on staggered phases (--ph) */
+[data-tpl="gaming-cyber"] .gc-rig-ram{
+  position:absolute;left:14%;top:9%;width:4.6%;height:23%;border-radius:3px;
+  background:linear-gradient(180deg,#8B5CF6 0%,#3A2B52 55%,#1A1226 100%);
+  border:1px solid rgba(255,255,255,.14);
+  box-shadow:0 0 12px -2px rgba(139,92,246,.55);
+}
+[data-tpl="gaming-cyber"] .gc-rig-ram2{
+  left:20.8%;
+  background:linear-gradient(180deg,#06B6D4 0%,#274055 55%,#12202E 100%);
+  box-shadow:0 0 12px -2px rgba(6,182,212,.55);
+}
+[data-tpl="gaming-cyber"][data-glow="on"] .gc-rig-ram{animation:gc-rig-breathe 3s ease-in-out infinite var(--ph,0s)}
+/* GPU block with running accent stripes */
+[data-tpl="gaming-cyber"] .gc-rig-gpu{
+  position:absolute;left:6%;right:33%;top:42%;height:13%;border-radius:8px;
+  background:linear-gradient(180deg,#2E2740,#191323);
+  border:1px solid rgba(255,255,255,.15);
+  box-shadow:0 10px 22px -10px rgba(0,0,0,.85);
+}
+[data-tpl="gaming-cyber"] .gc-rig-gpu-fx{
+  position:absolute;inset:16% 7%;border-radius:4px;opacity:.75;
+  background:linear-gradient(90deg,#FF3EF0,#8B5CF6,#06B6D4,#EAFF00,#FF3EF0);
+  background-size:250% 100%;
+  -webkit-mask:repeating-linear-gradient(90deg,#000 0 34%,transparent 34% 50%);
+  mask:repeating-linear-gradient(90deg,#000 0 34%,transparent 34% 50%);
+}
+[data-tpl="gaming-cyber"][data-glow="on"] .gc-rig-gpu-fx{animation:gc-rgb-slide 4.5s linear infinite}
+/* PSU shroud with vents + LED accent */
+[data-tpl="gaming-cyber"] .gc-rig-psu{
+  position:absolute;left:4%;right:4%;bottom:4%;height:15%;border-radius:8px;
+  background:linear-gradient(180deg,#241E30,#100B18);
+  border:1px solid rgba(255,255,255,.12);
+  box-shadow:inset 0 8px 18px -10px rgba(0,0,0,.8);
+}
+[data-tpl="gaming-cyber"] .gc-rig-psu::before{
+  content:"";position:absolute;left:10%;right:10%;top:24%;height:36%;border-radius:3px;
+  background:repeating-linear-gradient(90deg,rgba(255,255,255,.08) 0 3px,transparent 3px 10px);
+}
+[data-tpl="gaming-cyber"] .gc-rig-psu::after{
+  content:"";position:absolute;left:10%;bottom:14%;width:34%;height:9%;border-radius:999px;
+  background:linear-gradient(90deg,#EAFF00,#FF3EF0);
+  box-shadow:0 0 8px rgba(255,62,240,.6);
+}
+/* ── the RGB fans — rings hue-cycle with phase offsets, BLADES STATIC ── */
+[data-tpl="gaming-cyber"] .gc-rig-fan{position:absolute;aspect-ratio:1;pointer-events:none}
+[data-tpl="gaming-cyber"] .gc-rig-fan-f1{right:7%;top:8%;width:25%}
+[data-tpl="gaming-cyber"] .gc-rig-fan-f2{right:7%;top:38.5%;width:25%}
+[data-tpl="gaming-cyber"] .gc-rig-fan-f3{right:7%;top:68%;width:25%}
+[data-tpl="gaming-cyber"] .gc-rig-fan-i1{left:9%;top:9%;width:26%}
+[data-tpl="gaming-cyber"] .gc-rig-fan-i2{left:9%;top:57%;width:26%}
+[data-tpl="gaming-cyber"] .gc-rig-fan i{position:absolute;display:block}
+[data-tpl="gaming-cyber"] .gc-rig-fan-blades{
+  inset:7%;border-radius:50%;
+  background:
+    radial-gradient(circle,#0C0814 0 21%,transparent 22%),
+    repeating-conic-gradient(rgba(214,222,255,.14) 0deg 14deg,rgba(8,6,14,.30) 14deg 60deg);
+  box-shadow:inset 0 0 12px rgba(0,0,0,.85),inset 0 0 4px rgba(255,255,255,.08);
+}
+[data-tpl="gaming-cyber"] .gc-rig-fan-glow{
+  inset:-26%;border-radius:50%;filter:blur(11px);opacity:.5;
+  background:conic-gradient(from 120deg,#FF3EF0,#8B5CF6,#06B6D4,#EAFF00,#FF3EF0);
+}
+[data-tpl="gaming-cyber"][data-glow="on"] .gc-rig-fan-glow{
+  animation:gc-rig-breathe 3.6s ease-in-out infinite var(--ph,0s),gc-rgb-flow 6.5s linear infinite var(--ph,0s);
+}
+[data-tpl="gaming-cyber"] .gc-rig-fan-ring{
+  inset:1.5%;border-radius:50%;
+  background:conic-gradient(from 210deg,#F43F5E,#FF3EF0,#D000FF,#8B5CF6,#06B6D4,#10B981,#EAFF00,#FF7A00,#F43F5E);
+  -webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 13%),#000 calc(100% - 12%));
+  mask:radial-gradient(farthest-side,transparent calc(100% - 13%),#000 calc(100% - 12%));
+  filter:drop-shadow(0 0 4px rgba(255,62,240,.55));
+}
+[data-tpl="gaming-cyber"][data-glow="on"] .gc-rig-fan-ring{animation:gc-rgb-flow 5.5s linear infinite;animation-delay:var(--ph,0s)}
+[data-tpl="gaming-cyber"] .gc-rig-fan-hub{
+  left:50%;top:50%;width:24%;aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,#3A3049 0%,#15101F 70%);
+  box-shadow:0 0 6px rgba(0,0,0,.9),inset 0 0 3px rgba(255,255,255,.22);
+}
+[data-tpl="gaming-cyber"] .gc-rig-fan-hub::after{
+  content:"";position:absolute;inset:28%;border-radius:50%;
+  background:linear-gradient(180deg,#F86BFF,#8B5CF6);
+  box-shadow:0 0 8px rgba(255,62,240,.8);
+}
+/* top LED strip along the case edge */
+[data-tpl="gaming-cyber"] .gc-rig-led{
+  position:absolute;left:7%;right:7%;top:1.8%;height:2.2%;border-radius:999px;
+  background:linear-gradient(90deg,#F43F5E,#FF3EF0,#D000FF,#8B5CF6,#06B6D4,#10B981,#EAFF00,#FF7A00,#F43F5E);
+  background-size:220% 100%;
+  box-shadow:0 0 12px rgba(255,62,240,.7);opacity:.95;
+}
+[data-tpl="gaming-cyber"][data-glow="on"] .gc-rig-led{animation:gc-rgb-slide 5s linear infinite}
+/* tempered-glass side panel — reflections + ambient RGB tint */
+[data-tpl="gaming-cyber"] .gc-rig-glass{
+  position:absolute;inset:4px;border-radius:12px;pointer-events:none;z-index:9;
+  border:1px solid rgba(255,255,255,.20);
+  background:
+    linear-gradient(118deg,rgba(255,255,255,.20) 0%,rgba(255,255,255,.03) 22%,transparent 42%),
+    linear-gradient(292deg,rgba(139,92,246,.13) 0%,transparent 38%);
+  box-shadow:inset 0 0 26px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.16);
+}
+[data-tpl="gaming-cyber"] .gc-rig-glass-tint{
+  position:absolute;inset:4px;border-radius:12px;pointer-events:none;z-index:8;
+  background:conic-gradient(from 40deg,#F43F5E,#FF3EF0,#8B5CF6,#06B6D4,#EAFF00,#F43F5E);
+  filter:blur(18px);opacity:.14;mix-blend-mode:overlay;
+}
+[data-tpl="gaming-cyber"][data-glow="on"] .gc-rig-glass-tint{animation:gc-rgb-flow 7s linear infinite}
+/* ── flanking headset showcase cards (generated 3D art) ─────────────── */
+[data-tpl="gaming-cyber"] .gc-hs{position:absolute;width:27%;z-index:5}
+[data-tpl="gaming-cyber"] .gc-hs-1{top:0;right:-1%}
+[data-tpl="gaming-cyber"] .gc-hs-2{top:47%;left:-2%;width:24%}
+[data-tpl="gaming-cyber"] .gc-hs-halo{position:absolute;inset:-14%;border-radius:50%;filter:blur(26px);opacity:.55;pointer-events:none}
+[data-tpl="gaming-cyber"] .gc-hs-halo-pink{background:radial-gradient(circle,rgba(255,62,190,.55),transparent 70%)}
+[data-tpl="gaming-cyber"] .gc-hs-halo-green{background:radial-gradient(circle,rgba(52,211,82,.4),rgba(251,191,36,.25),transparent 72%)}
+[data-tpl="gaming-cyber"] .gc-hs-float{animation:gc-float 7s ease-in-out infinite;animation-delay:var(--ph,0s)}
+[data-tpl="gaming-cyber"] .gc-hs-art{
+  position:relative;aspect-ratio:1;border-radius:18px;overflow:hidden;
+  border:1px solid rgba(255,255,255,.18);
+  box-shadow:0 24px 48px -20px rgba(0,0,0,.9);
+}
+[data-tpl="gaming-cyber"] .gc-hs-tag{
+  position:absolute;bottom:4.5%;left:50%;transform:translateX(-50%);white-space:nowrap;
+  display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;
+  background:rgba(11,0,20,.68);border:1px solid rgba(255,255,255,.22);color:#F3E8FF;
+  font-size:9.5px;font-weight:800;backdrop-filter:blur(6px);
+}
+/* scroll cue */
+[data-tpl="gaming-cyber"] .gc-scroll-cue{
+  position:absolute;bottom:10px;left:50%;transform:translateX(-50%);z-index:18;
+  display:flex;flex-direction:column;align-items:center;gap:3px;pointer-events:none;
+}
+[data-tpl="gaming-cyber"] .gc-scroll-cue-txt{
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:8.5px;font-weight:900;letter-spacing:.3em;color:rgba(167,155,198,.75);
+}
+[data-tpl="gaming-cyber"] .gc-scroll-cue-bar{position:relative;width:22px;height:15px;border-radius:999px;border:1.5px solid rgba(139,92,246,.5);overflow:hidden}
+[data-tpl="gaming-cyber"] .gc-scroll-cue-bar b{
+  position:absolute;left:50%;top:2px;width:4px;height:4px;margin-left:-2px;border-radius:999px;
+  background:#EAFF00;box-shadow:0 0 6px rgba(234,255,0,.8);
+}
+[data-tpl="gaming-cyber"][data-glow="on"] .gc-scroll-cue-bar b{animation:gc-cue-drop 1.8s ease-in-out infinite}
+/* light-skin restores — the hero panel stays a dark studio, so keep the
+   neon headline gradient + ghost pill + HUD bar exactly as dark mode */
+html:not(.dark) [data-tpl="gaming-cyber"] .gc-hero .gc-display{
+  background-image:linear-gradient(180deg,#FFFFFF 8%,#FFD6FF 48%,#F86BFF 78%,#D000FF 100%);
+  filter:drop-shadow(0 4px 26px rgba(208,0,255,.45)) drop-shadow(0 1px 2px rgba(0,0,0,.4));
+}
+html:not(.dark) [data-tpl="gaming-cyber"] .gc-hero .gc-btn-vice-ghost{
+  border-color:rgba(255,255,255,.8);color:#fff;background:rgba(255,255,255,.07);
+}
+html:not(.dark) [data-tpl="gaming-cyber"] .gc-hero .gc-btn-vice-ghost:hover{
+  background:rgba(255,255,255,.16);border-color:#fff;box-shadow:0 0 34px -8px rgba(255,255,255,.45);
+}
+html:not(.dark) [data-tpl="gaming-cyber"] .gc-hero .gc-hero-hud{background:linear-gradient(180deg,rgba(11,0,20,.8),transparent)}
+html:not(.dark) [data-tpl="gaming-cyber"] .gc-hero .gc-hero{border-color:rgba(124,58,237,.35)}
+
+/* ═══ v31 · GAMING CHROME POLISH (header variant 7 · footer variant 6) ═══
+   Scoped to the gaming template root so NO other template is touched.
+   Pure-CSS accents only — structure/data sources stay identical.       */
+/* thin animated RGB accent line under the ticket header box */
+[data-tpl="gaming-cyber"] [data-chrome-header] > div{position:relative}
+[data-tpl="gaming-cyber"] [data-chrome-header] > div::after{
+  content:"";position:absolute;left:12px;right:12px;bottom:-2px;height:2px;border-radius:999px;
+  background:linear-gradient(90deg,#F43F5E,#FF3EF0,#D000FF,#8B5CF6,#06B6D4,#10B981,#EAFF00,#FF7A00,#F43F5E);
+  background-size:220% 100%;
+  animation:gc-rgb-slide 14s linear infinite;
+  opacity:.75;filter:drop-shadow(0 0 5px rgba(255,62,240,.5));
+  pointer-events:none;
+}
+/* ticker — mono digits + neon gradient text */
+[data-tpl="gaming-cyber"] [data-chrome-header] .taj-marquee .whitespace-nowrap{
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-weight:900;font-variant-numeric:tabular-nums;letter-spacing:.02em;
+  background-image:linear-gradient(90deg,#D946EF,#EAFF00 45%,#67E8F9);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+html:not(.dark) [data-tpl="gaming-cyber"] [data-chrome-header] .taj-marquee .whitespace-nowrap{
+  background-image:linear-gradient(90deg,#A21CAC,#4D7C0F 45%,#0E7490);
+}
+/* search — neon focus ring */
+[data-tpl="gaming-cyber"] [data-chrome-header] form[role="search"]{
+  border-color:rgba(139,92,246,.4);
+  transition:border-color .25s,box-shadow .25s;
+}
+[data-tpl="gaming-cyber"] [data-chrome-header] form[role="search"]:focus-within{
+  border-color:rgba(255,62,240,.75);
+  box-shadow:0 0 0 3px rgba(208,0,255,.18),0 0 22px -6px rgba(208,0,255,.65);
+}
+html:not(.dark) [data-tpl="gaming-cyber"] [data-chrome-header] form[role="search"]:focus-within{
+  border-color:rgba(162,28,172,.65);
+  box-shadow:0 0 0 3px rgba(192,38,211,.14),0 0 18px -6px rgba(192,38,211,.55);
+}
+/* action buttons — neon hover glow */
+[data-tpl="gaming-cyber"] [data-chrome-header] a[href="/account"],
+[data-tpl="gaming-cyber"] [data-chrome-header] a[href="/cart"],
+[data-tpl="gaming-cyber"] [data-chrome-header] a[href="/login"]{
+  transition:box-shadow .25s,transform .25s;
+}
+[data-tpl="gaming-cyber"] [data-chrome-header] a[href="/account"]:hover,
+[data-tpl="gaming-cyber"] [data-chrome-header] a[href="/cart"]:hover,
+[data-tpl="gaming-cyber"] [data-chrome-header] a[href="/login"]:hover{
+  box-shadow:0 0 16px -4px rgba(168,85,247,.7),0 0 0 1px rgba(168,85,247,.3);
+}
+/* footer — slim animated RGB top border */
+[data-tpl="gaming-cyber"] [data-chrome-footer]{position:relative}
+[data-tpl="gaming-cyber"] [data-chrome-footer]::before{
+  content:"";position:absolute;top:0;left:0;right:0;height:2px;z-index:5;
+  background:linear-gradient(90deg,#F43F5E,#FF3EF0,#D000FF,#8B5CF6,#06B6D4,#10B981,#EAFF00,#FF7A00,#F43F5E);
+  background-size:220% 100%;
+  animation:gc-rgb-slide 14s linear infinite;opacity:.8;
+  filter:drop-shadow(0 0 5px rgba(255,62,240,.45));
+  pointer-events:none;
+}
+/* footer column rhythm — hairline dividers + roomier gutters (md+) */
+@media (min-width:768px){
+  [data-tpl="gaming-cyber"] [data-chrome-footer] .grid > :not(:first-child){
+    border-inline-start:1px solid rgba(139,92,246,.16);
+    padding-inline-start:1.6rem;
+  }
+}
+/* footer section-heading dots — neon bloom */
+[data-tpl="gaming-cyber"] [data-chrome-footer] .taj-breathe{
+  box-shadow:0 0 9px 1px rgba(139,92,246,.65);
+}
+/* footer social icons (real links from /api/store-info) — hover glow */
+[data-tpl="gaming-cyber"] .gc-soc{transition:transform .2s,box-shadow .2s,border-color .2s,color .2s}
+[data-tpl="gaming-cyber"] .gc-soc:hover{
+  transform:translateY(-2px);
+  border-color:rgba(168,85,247,.75);
+  box-shadow:0 0 18px -4px rgba(168,85,247,.8);
+}
+[data-tpl="gaming-cyber"] .gc-soc:hover,[data-tpl="gaming-cyber"] .gc-soc:hover *{color:#C4B5FD}
+html:not(.dark) [data-tpl="gaming-cyber"] .gc-soc:hover,
+html:not(.dark) [data-tpl="gaming-cyber"] .gc-soc:hover *{color:#7C3AED}
+
 /* ═══ v28 + v30 · prefers-reduced-motion — EVERY loop stops (static,
    still colorful gradients — just no movement) ═══ */
 @media (prefers-reduced-motion: reduce){
@@ -947,7 +1290,21 @@ html:not(.dark) [data-tpl="gaming-cyber"] .gc-final-chip{background:rgba(255,255
   [data-tpl="gaming-cyber"][data-glow="on"] .gc-fx-spin,
   [data-tpl="gaming-cyber"][data-glow="on"] .gc-fx-hue,
   [data-tpl="gaming-cyber"][data-glow="on"] .gc-spot-spin,
-  [data-tpl="gaming-cyber"][data-glow="on"] .gc-spot-hue{animation:none}
+  [data-tpl="gaming-cyber"][data-glow="on"] .gc-spot-hue,
+  /* v31 rig hero + chrome accents */
+  [data-tpl="gaming-cyber"] .gc-hs-float,
+  [data-tpl="gaming-cyber"][data-glow="on"] .gc-rig-fan-ring,
+  [data-tpl="gaming-cyber"][data-glow="on"] .gc-rig-fan-glow,
+  [data-tpl="gaming-cyber"][data-glow="on"] .gc-rig-ram,
+  [data-tpl="gaming-cyber"][data-glow="on"] .gc-rig-gpu-fx,
+  [data-tpl="gaming-cyber"][data-glow="on"] .gc-rig-led,
+  [data-tpl="gaming-cyber"][data-glow="on"] .gc-rig-underglow,
+  [data-tpl="gaming-cyber"][data-glow="on"] .gc-rig-glass-tint,
+  [data-tpl="gaming-cyber"][data-glow="on"] .gc-rig-mat::before,
+  [data-tpl="gaming-cyber"][data-glow="on"] .gc-rig-mouse::after,
+  [data-tpl="gaming-cyber"][data-glow="on"] .gc-scroll-cue-bar b,
+  [data-tpl="gaming-cyber"] [data-chrome-header] > div::after,
+  [data-tpl="gaming-cyber"] [data-chrome-footer]::before{animation:none}
   [data-tpl="gaming-cyber"][data-glow="on"] .gc-hero-shell:hover::before,
   [data-tpl="gaming-cyber"][data-glow="on"] .gc-rgb-edge:hover::after,
   [data-tpl="gaming-cyber"][data-glow="on"] .gc-rgb:hover::before{animation:none}
@@ -1289,13 +1646,129 @@ function CyberCard({
   );
 }
 
-/* ── VICE-ARENA hero — vice-girl.png is BOTH the persistent background
- * layer (under every admin slide, behind the magenta Vice scrim) AND the
- * first synthetic slide. Cross-fade + parallax + auto-advance kept. */
+/* ── v31 · RIG HERO — the centerpiece is 100% CODE-DRAWN: a tempered-glass
+ * ARGB tower standing on an ARGB desk mat (animated edge LEDs) with a
+ * code-drawn mouse, flanked by the two generated 3D headset artworks.
+ * The old rotating photo slider is GONE (admin slides dropped from the
+ * hero). Fan BLADES never spin — only the RGB glow hue-cycles/breathes
+ * with per-fan phase offsets. Persian copy + CTAs + parallax kept. */
+const BUNNY_SRC = "/images/gaming/argb-bunny-pink.png";
+const BUNNY_ALT = "هد گیمینگ ARGB صورتی با گوش‌های خرگوشی و حلقه‌های نور رنگین‌کمانی";
+const TACTICAL_SRC = "/images/gaming/argb-tactical-black.png";
+const TACTICAL_ALT = "هد گیمینگ تاکتیکال مشکی با نوارهای نور ARGB سبز و کهربایی";
+/* v31: vice-girl art stays only as the DEAL ZONE side illustration (it is
+ * no longer the hero centerpiece — see the rig hero above). */
 const VICE_SRC = "/images/gaming/vice-girl.png";
-const VICE_ALT = "دختر انیمه‌ای وسترن با سوپرکار نئونی در غروب صورتی نئون‌سیتی";
-const ANIME_HERO_SRC = "/images/gaming/anime-hero.png";
-const ANIME_HERO_ALT = "دختر گیمر انیمه‌ای در استیشن گیمینگ با نور آرین‌کمانی ARGB";
+
+/* one RGB fan — conic rainbow ring hue-cycles on a per-fan phase offset
+ * (--ph negative delay), blurred glow breathes behind; the BLADES are
+ * static by design (owner: fans must not spin). Pure CSS, aria-hidden. */
+function RigFan({ className, ph }: { className?: string; ph: string }) {
+  return (
+    <span aria-hidden className={cn("gc-rig-fan", className)} style={{ "--ph": ph } as React.CSSProperties}>
+      <i className="gc-rig-fan-glow" />
+      <i className="gc-rig-fan-blades" />
+      <i className="gc-rig-fan-ring" />
+      <i className="gc-rig-fan-hub" />
+    </span>
+  );
+}
+
+/* the code-drawn tower: metal chassis, glass panel, mobo hints, RAM,
+ * GPU block, PSU shroud, 3 front + 2 internal RGB fans, top LED strip,
+ * PSU underglow + an ambient RGB tint reacting on the glass. */
+function RigCase() {
+  return (
+    <div className="gc-rig-case3d" aria-hidden>
+      <span className="gc-rig-underglow" />
+      <div className="gc-rig-frame">
+        <span className="gc-rig-mobo" />
+        <span className="gc-rig-ram" style={{ "--ph": "-1.1s" } as React.CSSProperties} />
+        <span className="gc-rig-ram gc-rig-ram2" style={{ "--ph": "-2.4s" } as React.CSSProperties} />
+        <span className="gc-rig-gpu">
+          <i className="gc-rig-gpu-fx" />
+        </span>
+        <span className="gc-rig-psu" />
+        {/* front intake trio (right column) */}
+        <RigFan className="gc-rig-fan-f1" ph="0s" />
+        <RigFan className="gc-rig-fan-f2" ph="-1.6s" />
+        <RigFan className="gc-rig-fan-f3" ph="-3.1s" />
+        {/* internal duo (CPU + lower intake) */}
+        <RigFan className="gc-rig-fan-i1" ph="-2.2s" />
+        <RigFan className="gc-rig-fan-i2" ph="-0.8s" />
+        {/* top LED strip */}
+        <span className="gc-rig-led" />
+        {/* tempered glass — tint reacts to the ambient glow, then reflections */}
+        <span className="gc-rig-glass-tint" />
+        <span className="gc-rig-glass" />
+      </div>
+    </div>
+  );
+}
+
+/* flanking headset showcase card — generated 3D art in a floating frame
+ * with its own ARGB halo (pink for the bunny set, green/amber for the
+ * tactical one) + a small Persian tag. */
+function HeadsetCard({
+  src, alt, name, tone, className, ph,
+}: {
+  src: string;
+  alt: string;
+  name: string;
+  tone: "pink" | "green";
+  className?: string;
+  ph: string;
+}) {
+  return (
+    <div className={cn("gc-hs", className)}>
+      <span aria-hidden className={cn("gc-hs-halo", tone === "pink" ? "gc-hs-halo-pink" : "gc-hs-halo-green")} />
+      <div className="gc-hs-art gc-hs-float" style={{ "--ph": ph } as React.CSSProperties}>
+        <Image src={src} alt={alt} fill sizes="(max-width: 640px) 34vw, 220px" priority className="object-cover" />
+        <span className="gc-hs-tag">
+          <Headphones className="h-3.5 w-3.5" aria-hidden />
+          {name}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/* the whole scene: studio ambience, floor shadow + reflection, ARGB mat,
+ * mouse, the tower and the two flanking headset cards. */
+function RigScene({
+  x, y,
+}: {
+  x: MotionValue<number> | number;
+  y: MotionValue<number> | number;
+}) {
+  return (
+    <motion.div className="gc-scene" style={{ x, y }}>
+      <span aria-hidden className="gc-scene-amb gc-scene-amb-1" />
+      <span aria-hidden className="gc-scene-amb gc-scene-amb-2" />
+      <span aria-hidden className="gc-rig-shadow" />
+      <span aria-hidden className="gc-rig-reflect" />
+      <span aria-hidden className="gc-rig-mat" />
+      <span aria-hidden className="gc-rig-mouse" />
+      <RigCase />
+      <HeadsetCard
+        src={BUNNY_SRC}
+        alt={BUNNY_ALT}
+        name="هد ARGB صورتی"
+        tone="pink"
+        className="gc-hs-1"
+        ph="-1.8s"
+      />
+      <HeadsetCard
+        src={TACTICAL_SRC}
+        alt={TACTICAL_ALT}
+        name="هد تاکتیکال مشکی"
+        tone="green"
+        className="gc-hs-2"
+        ph="-3.9s"
+      />
+    </motion.div>
+  );
+}
 
 function CyberHero({
   data, parallax, scan, glow,
@@ -1305,64 +1778,37 @@ function CyberHero({
   scan: boolean;
   glow: boolean;
 }) {
-  const slides: TemplateSlide[] = [
-    {
-      id: "gc-vice-hero",
-      title: "به نئون‌سیتی خوش آمدی",
-      subtitle: "ریگ ARGB درخشان، سوپریگ گیمینگ و تخفیف‌های آتشین — پایتخت گیمرها همین‌جاست.",
-      image: VICE_SRC,
-      mobileImage: VICE_SRC,
-      ctaText: "ورود به نئون‌سیتی",
-      ctaUrl: "/products",
-      product: null,
-    },
-    {
-      id: "gc-anime-hero",
-      title: "آرنای خرید گیمرهای حرفه‌ای",
-      subtitle: "ریگ ARGB رویایی‌ات را همین‌جا بچین — از کیبورد مکانیکال MUSE تا مانیتور منحنی ۱۶۵ هرتز.",
-      image: ANIME_HERO_SRC,
-      mobileImage: ANIME_HERO_SRC,
-      ctaText: "ورود به آرنا",
-      ctaUrl: "/products",
-      product: null,
-    },
-    ...data.slides,
-  ];
-  const total = slides.length;
-  const [idx, setIdx] = useState(0);
-  const [paused, setPaused] = useState(false);
   const reduced = useReducedMotion();
-  const active = total > 0 ? slides[Math.min(idx, total - 1)] : null;
   const par = parallax && !reduced;
 
-  /* auto-advance 6s (paused on hover/focus) */
-  useEffect(() => {
-    if (total <= 1 || paused) return;
-    const id = window.setInterval(() => setIdx((i) => (i + 1) % total), 6000);
-    return () => window.clearInterval(id);
-  }, [total, paused]);
-
-  const go = (dir: number) => setIdx((i) => (i + dir + total) % total);
-
-  /* mouse-move parallax — layered depths (feature-gated, reduced-motion safe) */
+  /* mouse-move parallax — subtle layered depths (feature-gated, reduced-motion safe) */
   const mx = useMotionValue(0.5);
   const my = useMotionValue(0.5);
   const sx = useSpring(mx, { stiffness: 55, damping: 18 });
   const sy = useSpring(my, { stiffness: 55, damping: 18 });
-  const bgX = useTransform(sx, [0, 1], [16, -16]);
-  const bgY = useTransform(sy, [0, 1], [10, -10]);
-  const gridX = useTransform(sx, [0, 1], [10, -10]);
-  const uiX = useTransform(sx, [0, 1], [-6, 6]);
+  const sceneX = useTransform(sx, [0, 1], [-9, 9]);
+  const sceneY = useTransform(sy, [0, 1], [-6, 6]);
+  const uiX = useTransform(sx, [0, 1], [-5, 5]);
 
   const heroProduct =
-    active?.product ??
-    [...data.exclusive, ...data.featured, ...data.bestsellers].find((p) => p.inStock) ??
-    null;
+    [...data.exclusive, ...data.featured, ...data.bestsellers].find((p) => p.inStock) ?? null;
+
+  /* v5-f: this template's OWN content (Admin → ظاهر → محتوای اختصاصی قالب) —
+   * hero copy + CTA label + extra link chips override the designed defaults;
+   * every empty key keeps the v31 design (surgical data-source swap only). */
+  const tpl: TemplateContentData = data.templateContent ?? {};
+  const texts = tpl.texts ?? {};
+  const heroTitle = texts.heroTitle?.trim() || "آرنای خرید گیمرهای حرفه‌ای";
+  const heroSubtitle =
+    texts.heroSubtitle?.trim() ||
+    tpl.brand?.tagline?.trim() ||
+    "ریگ ARGB رویایی‌ات را همین‌جا بچین — کیس شیشه‌ای، فن‌های نورانی و کارت گرافیک قدرتمند؛ با قیمت رقابتی و ارسال سریع.";
+  const ctaLabel = texts.ctaLabel?.trim() || "ورود به آرنا";
+  const tplLinks = (tpl.links ?? []).filter((l) => l.label?.trim() && l.url?.trim()).slice(0, 3);
 
   return (
     <section
       className="mx-auto w-full max-w-[1360px] px-4"
-      aria-roledescription="اسلایدر"
       aria-label="هیرو فروشگاه گیمینگ"
       onPointerMove={(e) => {
         if (!par) return;
@@ -1370,173 +1816,114 @@ function CyberHero({
         mx.set((e.clientX - r.left) / r.width);
         my.set((e.clientY - r.top) / r.height);
       }}
-      onPointerEnter={() => setPaused(true)}
-      onPointerLeave={() => setPaused(false)}
-      onFocus={() => setPaused(true)}
-      onBlur={(e) => {
-        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setPaused(false);
-      }}
     >
       {/* animated RAINBOW ring wrapping the whole hero (gc-hero-shell) */}
       <div className={cn("gc-hero-shell", glow && "gc-glow-halo")}>
-        <div className="gc-hero relative h-[440px] overflow-hidden rounded-3xl sm:h-[580px] lg:h-[620px]">
-        {/* artwork layers: persistent VICE key-art base + cross-fading slides */}
-        <motion.div aria-hidden className="absolute -inset-[3%]" style={{ x: par ? bgX : 0, y: par ? bgY : 0 }}>
-          <Image
-            src={VICE_SRC}
-            alt=""
-            fill
-            sizes="(max-width: 640px) 100vw, 1360px"
-            priority
-            className="object-cover"
-          />
-          {slides.map((s, i) => (
-            <div key={s.id} className="absolute inset-0 transition-opacity duration-700" style={{ opacity: i === idx ? 1 : 0 }}>
-              {/* both synthetic art slides sit above the fold at mount → eager (LCP fix) */}
-              <SlideArt slide={s} alt={s.id === "gc-vice-hero" ? VICE_ALT : s.id === "gc-anime-hero" ? ANIME_HERO_ALT : s.title} sizes="(max-width: 640px) 100vw, 1360px" priority={i < 2} className="object-cover" />
-            </div>
-          ))}
-          <div className="gc-hero-tint absolute inset-0" />
-        </motion.div>
+        <div className="gc-hero relative overflow-hidden rounded-3xl">
+          {/* dark studio ambience — stays dark in both skins so the rig pops */}
+          <div aria-hidden className="gc-hero-bg" />
 
-        {/* MAGENTA perspective grid floor */}
-        <motion.div aria-hidden className="gc-grid-floor" style={{ x: par ? gridX : 0 }} />
+          {/* MAGENTA perspective grid floor */}
+          <div aria-hidden className="gc-grid-floor" />
 
-        {/* retro scanlines */}
-        {scan && <div aria-hidden className="gc-scanlines absolute inset-0 z-10" />}
+          {/* retro scanlines */}
+          {scan && <div aria-hidden className="gc-scanlines absolute inset-0 z-10" />}
 
-        {/* HUD frame: corner brackets + top hud bar + vertical lime tab */}
-        <Corners />
-        <span aria-hidden dir="ltr" className="gc-vice-tab">Welcome to the Arena</span>
-        <div aria-hidden className="gc-hero-hud">
-          <span className="gc-dots">
-            <i /><i /><i />
-          </span>
-          <span dir="ltr" className="font-mono text-[10px] font-bold tracking-[.2em] text-[#67E8F9]">TAJ://VICE_ARENA</span>
-          {total > 1 && (
-            <span dir="ltr" className="ms-auto font-mono text-[10px] font-bold tabular-nums text-[#8F7FC0]">
-              {String(idx + 1).padStart(2, "0")}/{String(total).padStart(2, "0")}
+          {/* HUD frame: corner brackets + top hud bar + vertical lime tab */}
+          <Corners />
+          <span aria-hidden dir="ltr" className="gc-vice-tab">Welcome to the Arena</span>
+          <div aria-hidden className="gc-hero-hud">
+            <span className="gc-dots">
+              <i /><i /><i />
             </span>
-          )}
-          <span className="gc-live-badge">
-            <i className="gc-live-dot" aria-hidden />
-            LIVE
-          </span>
-        </div>
+            <span dir="ltr" className="font-mono text-[10px] font-bold tracking-[.2em] text-[#67E8F9]">TAJ://RIG_ARENA</span>
+            <span dir="ltr" className="ms-auto font-mono text-[10px] font-bold tabular-nums text-[#8F7FC0]">
+              RGB_ONLINE
+            </span>
+            <span className="gc-live-badge">
+              <i className="gc-live-dot" aria-hidden />
+              LIVE
+            </span>
+          </div>
 
-        {/* active slide content — giant italic display headline + lime pill */}
-        <motion.div style={{ x: par ? uiX : 0 }} className="relative z-20 flex h-full flex-col justify-end p-6 pb-16 sm:p-10 sm:pb-20">
-          {active ? (
-            <motion.div key={active.id} initial={{ opacity: 0, y: 26 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+          {/* text (physical right in RTL) + code-drawn rig scene (physical left) */}
+          <div className="relative z-20 grid gap-6 p-6 pb-14 pt-12 sm:p-9 sm:pb-16 lg:grid-cols-[0.94fr_1.06fr] lg:items-center lg:gap-2 lg:p-10 xl:gap-6">
+            <motion.div style={{ x: par ? uiX : 0 }}>
               <span dir="ltr" className="gc-lime-chip mb-4">Welcome to the Arena</span>
-              <h2 className="gc-display gc-ds-hero max-w-3xl">
-                {active.title}
-              </h2>
-              {active.subtitle && (
-                <p className="mt-4 max-w-xl text-sm leading-7 text-[#C9BEE4] sm:text-base sm:leading-8">
-                  {active.subtitle}
-                </p>
-              )}
-              <div className="mt-7 flex flex-wrap items-center gap-3.5">
-                <Link href={active.ctaUrl ?? "/products"} className="gc-btn-lime">
-                  <span className="gc-btn-lime-circle" aria-hidden>
-                    <Plus className="h-5 w-5" strokeWidth={3} />
-                  </span>
-                  {active.ctaText ?? "ورود به آرنا"}
-                </Link>
-                <Link href="/products?discount=1" className="gc-btn-vice-ghost">
-                  <Flame className="h-4.5 w-4.5 text-[#67E8F9]" aria-hidden />
-                  پیشنهادهای شگفت‌انگیز
-                </Link>
-              </div>
-            </motion.div>
-          ) : (
-            <div>
-              <span dir="ltr" className="gc-lime-chip mb-4">Welcome to the Arena</span>
-              <h2 className="gc-display gc-ds-hero max-w-3xl">آرنای خرید گیمرهای حرفه‌ای</h2>
-              <p className="mt-4 max-w-xl text-sm leading-7 text-[#C9BEE4] sm:text-base sm:leading-8">
-                ریگ کامل بساز؛ از کیبورد تا کارت گرافیک — با قیمت‌های رقابتی و ارسال سریع.
-              </p>
+              <h2 className="gc-display gc-ds-hero max-w-2xl">{heroTitle}</h2>
+              <p className="gc-hero-sub">{heroSubtitle}</p>
               <div className="mt-7 flex flex-wrap items-center gap-3.5">
                 <Link href="/products" className="gc-btn-lime">
                   <span className="gc-btn-lime-circle" aria-hidden>
                     <Plus className="h-5 w-5" strokeWidth={3} />
                   </span>
-                  ورود به آرنا
+                  {ctaLabel}
                 </Link>
+                <Link href="/products?discount=1" className="gc-btn-vice-ghost">
+                  <Flame className="h-4.5 w-4.5 text-[#67E8F9]" aria-hidden />
+                  پیشنهادهای شگفت‌انگیز
+                </Link>
+                {/* v5-f: the template's own links render as extra ghost CTAs */}
+                {tplLinks.map((l) => (
+                  <Link key={`${l.label}-${l.url}`} href={l.url} className="gc-btn-vice-ghost">
+                    <Zap className="h-4.5 w-4.5 text-[#67E8F9]" aria-hidden />
+                    {l.label}
+                  </Link>
+                ))}
               </div>
+
+              {/* floating product pod — TARGET_LOCKED HUD window under the CTAs */}
+              {heroProduct && (
+                <motion.div
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4, duration: 0.5 }}
+                  className="mt-8 hidden max-w-[300px] lg:block"
+                >
+                  <div className={cn("gc-win", glow && "gc-rgb")}>
+                    <div className="gc-win-bar gc-win-bar-sm">
+                      <span className="gc-dots" aria-hidden>
+                        <i /><i /><i />
+                      </span>
+                      <span dir="ltr" className="gc-win-code gc-win-code-flush">TARGET_LOCKED</span>
+                      <span className="gc-live-badge gc-live-badge-sm">
+                        <i className="gc-live-dot gc-live-dot-sm" aria-hidden />
+                        HOT
+                      </span>
+                    </div>
+                    <Link href={`/products/${heroProduct.slug}`} className="flex items-center gap-3 p-3">
+                      <span className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-[#1A1025]/70 p-1">
+                        {heroProduct.mainImage ? (
+                          <Image src={heroProduct.mainImage} alt={heroProduct.name} fill sizes="64px" className="object-contain p-1" />
+                        ) : (
+                          <Package className="m-auto h-6 w-6 text-[#E22BFF]" aria-hidden />
+                        )}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-[12.5px] font-black text-white">{heroProduct.name}</span>
+                        <span className="mt-0.5 block text-[13px] font-black text-[#67E8F9] tabular-nums">
+                          {formatPrice(heroProduct.discountPrice ?? heroProduct.price)}
+                          <span className="text-[9px] font-medium text-[#A79BC6]"> تومان</span>
+                        </span>
+                      </span>
+                      <Zap className="h-4 w-4 shrink-0 text-[#06B6D4]" aria-hidden />
+                    </Link>
+                  </div>
+                </motion.div>
+              )}
+            </motion.div>
+
+            {/* the code-drawn ARGB rig scene — fluid % scaling box */}
+            <div className="relative mx-auto h-[320px] w-full max-w-[520px] sm:h-[400px] lg:h-[460px] xl:h-[500px]">
+              <RigScene x={par ? sceneX : 0} y={par ? sceneY : 0} />
             </div>
-          )}
-        </motion.div>
-
-        {/* floating product pod (parallax depth) */}
-        {heroProduct && (
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.4, duration: 0.5 }}
-            style={{ x: par ? uiX : 0 }}
-            className="absolute bottom-20 end-6 z-20 hidden w-64 md:block"
-          >
-            <div className={cn("gc-win", glow && "gc-rgb")}>
-              <div className="gc-win-bar gc-win-bar-sm">
-                <span className="gc-dots" aria-hidden>
-                  <i /><i /><i />
-                </span>
-                <span dir="ltr" className="gc-win-code gc-win-code-flush">TARGET_LOCKED</span>
-                <span className="gc-live-badge gc-live-badge-sm">
-                  <i className="gc-live-dot gc-live-dot-sm" aria-hidden />
-                  HOT
-                </span>
-              </div>
-              <Link href={`/products/${heroProduct.slug}`} className="flex items-center gap-3 p-3">
-                <span className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-[#1A1025]/70 p-1">
-                  {heroProduct.mainImage ? (
-                    <Image src={heroProduct.mainImage} alt={heroProduct.name} fill sizes="64px" className="object-contain p-1" />
-                  ) : (
-                    <Package className="m-auto h-6 w-6 text-[#E22BFF]" aria-hidden />
-                  )}
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[12.5px] font-black text-white">{heroProduct.name}</span>
-                  <span className="mt-0.5 block text-[13px] font-black text-[#67E8F9] tabular-nums">
-                    {formatPrice(heroProduct.discountPrice ?? heroProduct.price)}
-                    <span className="text-[9px] font-medium text-[#A79BC6]"> تومان</span>
-                  </span>
-                </span>
-                <Zap className="h-4 w-4 shrink-0 text-[#06B6D4]" aria-hidden />
-              </Link>
-            </div>
-          </motion.div>
-        )}
-
-        {/* arrows */}
-        {total > 1 && (
-          <>
-            <button type="button" onClick={() => go(-1)} className="gc-arrow start-4" aria-label="اسلاید قبلی">
-              <ChevronRight className="h-5 w-5" aria-hidden />
-            </button>
-            <button type="button" onClick={() => go(1)} className="gc-arrow end-4" aria-label="اسلاید بعدی">
-              <ChevronLeft className="h-5 w-5" aria-hidden />
-            </button>
-          </>
-        )}
-
-        {/* dots */}
-        {total > 1 && (
-          <div className="absolute bottom-4 left-1/2 z-30 flex -translate-x-1/2 items-center gap-2">
-            {slides.map((s, i) => (
-              <button
-                key={s.id}
-                type="button"
-                onClick={() => setIdx(i)}
-                aria-label={`رفتن به اسلاید ${(i + 1).toLocaleString("fa-IR")}`}
-                aria-current={i === idx}
-                className={cn("gc-dot", i === idx && "gc-dot-on")}
-              />
-            ))}
           </div>
-        )}
+
+          {/* scroll cue */}
+          <div aria-hidden className="gc-scroll-cue">
+            <span dir="ltr" className="gc-scroll-cue-txt">SCROLL</span>
+            <i className="gc-scroll-cue-bar"><b /></i>
+          </div>
         </div>
       </div>
     </section>
@@ -1918,14 +2305,41 @@ function DealZone({
  * SPOTLIGHT tiles (argb-fan SPINS, argb-keyboard hue-pulses — pure CSS),
  * then the REAL catalog gaming gear cards on their own ARGB stages. */
 function ArgbShowcase({
-  gear, timerOn, glow, dealTarget,
+  gear, timerOn, glow, dealTarget, tplShowcases,
 }: {
   gear: TemplateProduct[];
   timerOn: boolean;
   glow: boolean;
   dealTarget: string | null;
+  /** v5-f: the template's OWN showcase entries — when non-empty they replace
+   *  the designed spotlight tiles (admin image/title/link win). */
+  tplShowcases?: TemplateShowcase[];
 }) {
-  const spots: Array<{ src: string; alt: string; icon: React.ElementType; title: string; sub: string; href: string; fx: string }> = [
+  /* v31: the two GENERATED 3D headset artworks join the spotlight tiles
+   * (vice-girl/anime-hero are retired from the template's references —
+   * the files stay on disk untouched).
+   * v5-f: the template's own showcases (Admin → ظاهر → محتوای اختصاصی قالب)
+   * REPLACE the designed tiles when present. */
+  const tplSpots = (tplShowcases ?? []).filter((s) => s.image?.trim());
+  const spots: Array<{ src: string; alt: string; icon: React.ElementType; title: string; sub: string; href: string; fx: string }> = tplSpots.length > 0
+    ? tplSpots.map((s, i) => ({
+        src: s.image,
+        alt: s.title?.trim() || "کارت اختصاصی این قالب",
+        icon: Headphones,
+        title: s.title?.trim() || "پیشنهاد ویژه",
+        sub: "",
+        href: s.link?.trim() || "/products",
+        fx: i % 2 === 0 ? "gc-spot-hue" : "",
+      }))
+    : [
+    {
+      src: "/images/gaming/argb-bunny-pink.png", alt: "هد گیمینگ ARGB صورتی با گوش‌های خرگوشی و حلقه‌های نور رنگین‌کمانی",
+      icon: Headphones, title: "هد ARGB صورتی", sub: "گوش خرگوشی + حلقه‌های نور رقصان", href: "/products?q=هدفون", fx: "gc-spot-hue",
+    },
+    {
+      src: "/images/gaming/argb-tactical-black.png", alt: "هد گیمینگ تاکتیکال مشکی با نوارهای نور ARGB سبز و کهربایی",
+      icon: Headphones, title: "هد تاکتیکال مشکی", sub: "سبک رزمی، نور سبز و کهربایی", href: "/products?q=هدفون", fx: "",
+    },
     {
       src: "/images/gaming/argb-fan.png", alt: "فن ARGB گیمینگ با نور چرخان آرین‌کمانی",
       icon: Fan, title: "فن‌های ARGB", sub: "نورش واقعاً می‌چرخه — ببین", href: "/products?q=فن", fx: "gc-spot-spin",
@@ -1974,8 +2388,8 @@ function ArgbShowcase({
           </span>
         </Link>
 
-        {/* spotlight tiles — fan SPINS, keyboard pulses (pure CSS, gated) */}
-        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+        {/* spotlight tiles — headsets + fan + keyboard (pure CSS, gated) */}
+        <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {spots.map((s) => (
             <Link key={s.title} href={s.href} className={cn("gc-spot group", glow && "gc-rgb")}>
               <div className="gc-stage relative aspect-square overflow-hidden sm:aspect-[16/9]">
@@ -2002,7 +2416,7 @@ function ArgbShowcase({
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="gc-spot-title block">{s.title}</span>
-                  <span className="gc-spot-sub block">{s.sub}</span>
+                  {s.sub ? <span className="gc-spot-sub block">{s.sub}</span> : null}
                 </span>
                 <ChevronLeft className="gc-spot-arrow h-5 w-5 shrink-0" aria-hidden />
               </div>
@@ -2184,6 +2598,26 @@ export function GamingCyberTemplate({ data }: { data: HomeData }) {
     );
   });
 
+  /* v5-f: mission-board tiles — the template's OWN slides (Admin → ظاهر →
+   * محتوای اختصاصی قالب) join the boards; when the template carries its own
+   * SHOWCASES they already star in the ARGB spotlight tiles above, so the
+   * (already-swapped) showcase row steps aside to avoid the same art twice. */
+  const tplContent: TemplateContentData = data.templateContent ?? {};
+  const tplMissionTiles = (tplContent.slides ?? [])
+    .filter((s) => s.image?.trim())
+    .map((s, i) => ({
+      id: `tpl-mission-${i}`,
+      title: s.title?.trim() ?? "",
+      subtitle: s.subtitle?.trim() || null,
+      image: s.image,
+      buttonUrl: s.link?.trim() || null,
+      product: null as { slug: string } | null,
+    }));
+  const missions = [
+    ...tplMissionTiles,
+    ...((tplContent.showcases?.length ?? 0) > 0 ? [] : data.showcases.slice(0, 4)),
+  ];
+
   return (
     <div
       data-template-chrome="1"
@@ -2213,7 +2647,7 @@ export function GamingCyberTemplate({ data }: { data: HomeData }) {
           </section>
         )}
 
-        {/* ═══ HERO — VICE ARENA key-art slider ═══ */}
+        {/* ═══ HERO — VICE ARENA rig scene (code-drawn ARGB tower) ═══ */}
         <CyberHero data={data} parallax={parallaxOn} scan={scanOn} glow={glowOn} />
 
         {/* ═══ STATS TILES — dashboard shell ═══ */}
@@ -2283,7 +2717,15 @@ export function GamingCyberTemplate({ data }: { data: HomeData }) {
         )}
 
         {/* ═══ v30 · ARGB GEAR — rig banner + spinning spotlight + gear ═══ */}
-        {argbGear.length > 0 && <ArgbShowcase gear={argbGear} timerOn={timerOn} glow={glowOn} dealTarget={dealTarget} />}
+        {argbGear.length > 0 && (
+          <ArgbShowcase
+            gear={argbGear}
+            timerOn={timerOn}
+            glow={glowOn}
+            dealTarget={dealTarget}
+            tplShowcases={data.templateContent?.showcases}
+          />
+        )}
 
         {/* ═══ v30 · DEAL ZONE — GTA big-number blocks ═══ */}
         {deals.length > 0 && (
@@ -2487,13 +2929,13 @@ export function GamingCyberTemplate({ data }: { data: HomeData }) {
         {/* ═══ v30 · CONNECT — GameUp gradient banner (opens AI chat) ═══ */}
         <ConnectBand data={data} />
 
-        {/* ═══ SHOWCASES — mission boards ═══ */}
-        {data.showcases.length > 0 && (
+        {/* ═══ SHOWCASES — mission boards (global showcases + v5-f: the template's own slides) ═══ */}
+        {missions.length > 0 && (
           <section className="mx-auto w-full max-w-[1360px] px-4" aria-labelledby="gc-missions">
             <Reveal>
               <HudHead id="gc-missions" icon={Gamepad2} code="MISSION_BOARDS" title="مأموریت‌های ویژه" subtitle="پرونده‌های فروشگاه" />
               <div className="grid gap-4 md:grid-cols-2">
-                {data.showcases.slice(0, 4).map((s) => (
+                {missions.map((s) => (
                   <Link
                     key={s.id}
                     href={s.buttonUrl ?? (s.product ? `/products/${s.product.slug}` : "/products")}

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -15,6 +16,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Bell,
   CreditCard,
@@ -202,6 +204,216 @@ function useOpenTickets() {
     staleTime: 15_000,
   });
   return data?.count ?? 0;
+}
+
+/* ── v31 · ADMIN NOTIFICATION BELL (Task 5-b) ──────────────────────────
+   The topbar bell is now a Popover: it lists the logged-in admin's OWN
+   notifications (/api/notifications/read, polled every 2 min) with an
+   unread dot + Persian time-ago; clicking one marks it read and navigates
+   to notification.link. The legacy ticket/message counters move into the
+   popover footer (same pages as before) and the bell carries a numeric
+   unread badge (or the old red dot when only tickets/messages are new).
+   Deliberately surgical: only the bell cluster of the topbar changes. */
+
+interface AdminNotification {
+  id: string;
+  title: string;
+  message: string;
+  type: string;
+  isRead: boolean;
+  link: string | null;
+  createdAt: string;
+}
+
+/** Persian relative time — «۳ دقیقه پیش» / «۲ روز پیش» / date fallback */
+function faTimeAgo(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const sec = Math.floor((Date.now() - d.getTime()) / 1000);
+  if (sec < 60) return "همین حالا";
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min.toLocaleString("fa-IR")} دقیقه پیش`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr.toLocaleString("fa-IR")} ساعت پیش`;
+  const day = Math.floor(hr / 24);
+  if (day < 7) return `${day.toLocaleString("fa-IR")} روز پیش`;
+  return d.toLocaleDateString("fa-IR");
+}
+
+const NOTIF_TYPE_ICON: Record<string, typeof Bell> = {
+  SYSTEM: RefreshCw,
+  ORDER: ShoppingBag,
+  PAYMENT: CreditCard,
+};
+
+/** the logged-in admin's own notifications (polls every 2 min, silent) */
+function useAdminNotifications(): AdminNotification[] {
+  const { data } = useQuery({
+    queryKey: ["admin", "notifications"],
+    queryFn: () => apiFetch<{ notifications: AdminNotification[] }>("/api/notifications/read"),
+    refetchInterval: 120_000,
+    staleTime: 30_000,
+    retry: false,
+  });
+  return data?.notifications ?? [];
+}
+
+function NotificationBell() {
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const notifications = useAdminNotifications();
+  const unreadNotifs = useMemo(
+    () => notifications.filter((n) => !n.isRead).length,
+    [notifications]
+  );
+  const unreadMsgs = useUnreadMessages();
+  const openTickets = useOpenTickets();
+
+  const refresh = () => {
+    void queryClient.invalidateQueries({ queryKey: ["admin", "notifications"] });
+  };
+
+  const openNotification = async (n: AdminNotification) => {
+    setOpen(false);
+    if (!n.isRead) {
+      try {
+        await apiFetch("/api/notifications/read", {
+          method: "POST",
+          body: JSON.stringify({ id: n.id }),
+        });
+        refresh();
+      } catch {
+        /* marking read failed — still navigate */
+      }
+    }
+    if (n.link) router.push(n.link);
+  };
+
+  const markAllRead = async () => {
+    try {
+      await apiFetch("/api/notifications/read", { method: "POST", body: JSON.stringify({}) });
+      refresh();
+    } catch {
+      /* silent */
+    }
+  };
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          aria-label="اعلان‌ها و پیام‌ها"
+          title="اعلان‌ها و پیام‌ها"
+          className={cn(
+            "relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full border bg-card text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          )}
+        >
+          <Bell className="h-[18px] w-[18px]" strokeWidth={1.75} />
+          {unreadNotifs > 0 ? (
+            <span className="absolute -end-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full bg-red-500 px-1 text-[9px] font-bold leading-none text-white tabular-nums ring-2 ring-card">
+              {unreadNotifs > 99 ? "۹۹+" : unreadNotifs.toLocaleString("fa-IR")}
+            </span>
+          ) : unreadMsgs + openTickets > 0 ? (
+            <span aria-hidden className="absolute -end-0.5 -top-0.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-card" />
+          ) : null}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="end" dir="rtl" className="w-80 rounded-xl p-0">
+        {/* header — count + mark-all-read */}
+        <div className="flex items-center justify-between gap-2 border-b px-3 py-2">
+          <p className="flex items-center gap-2 text-xs font-bold">
+            اعلان‌ها
+            {unreadNotifs > 0 && (
+              <Badge variant="destructive" className="h-5 px-1.5 text-[10px] tabular-nums">
+                {unreadNotifs.toLocaleString("fa-IR")}
+              </Badge>
+            )}
+          </p>
+          {unreadNotifs > 0 && (
+            <button
+              type="button"
+              onClick={() => void markAllRead()}
+              className="rounded text-[11px] font-medium text-primary hover:underline"
+            >
+              خواندن همه
+            </button>
+          )}
+        </div>
+
+        {/* the list — unread dot + title + message + time-ago; click = read + navigate */}
+        <div className="max-h-72 overflow-y-auto">
+          {notifications.length === 0 ? (
+            <p className="px-3 py-6 text-center text-xs text-muted-foreground">
+              اعلان جدیدی ندارید
+            </p>
+          ) : (
+            notifications.slice(0, 12).map((n) => {
+              const Icon = NOTIF_TYPE_ICON[n.type] ?? Bell;
+              return (
+                <button
+                  key={n.id}
+                  type="button"
+                  onClick={() => void openNotification(n)}
+                  className="flex w-full items-start gap-2.5 border-b border-border/60 px-3 py-2.5 text-right transition-colors last:border-0 hover:bg-muted/60"
+                >
+                  <span className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-muted text-muted-foreground">
+                    <Icon className="h-3.5 w-3.5" strokeWidth={1.75} />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-center gap-1.5">
+                      {!n.isRead && (
+                        <span aria-hidden className="h-1.5 w-1.5 shrink-0 rounded-full bg-red-500" />
+                      )}
+                      <span className={cn("truncate text-xs font-bold", !n.isRead && "text-foreground")}>
+                        {n.title}
+                      </span>
+                    </span>
+                    <span className="mt-0.5 line-clamp-2 block text-[11px] leading-5 text-muted-foreground">
+                      {n.message}
+                    </span>
+                    <span className="mt-1 block text-[10px] text-muted-foreground/80">
+                      {faTimeAgo(n.createdAt)}
+                    </span>
+                  </span>
+                </button>
+              );
+            })
+          )}
+        </div>
+
+        {/* footer — the legacy ticket/message counters stay one click away */}
+        <div className="grid grid-cols-2 gap-1 border-t p-1.5">
+          <Link
+            href="/admin/messages"
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            <MessagesSquare className="h-3.5 w-3.5 shrink-0" strokeWidth={1.75} />
+            {unreadMsgs > 0 ? (
+              <span className="text-foreground">{unreadMsgs.toLocaleString("fa-IR")} پیام خوانده‌نشده</span>
+            ) : (
+              <span>پیام‌های مشتریان</span>
+            )}
+          </Link>
+          <Link
+            href="/admin/tickets"
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            <TicketCheck className="h-3.5 w-3.5 shrink-0" strokeWidth={1.75} />
+            {openTickets > 0 ? (
+              <span className="text-foreground">{openTickets.toLocaleString("fa-IR")} تیکت باز</span>
+            ) : (
+              <span>تیکت‌های پشتیبانی</span>
+            )}
+          </Link>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
 }
 
 function isItemActive(pathname: string, item: NavItem): boolean {
@@ -473,8 +685,6 @@ export function AdminShell({ user, children }: { user: AdminShellUser; children:
   const [mobileOpen, setMobileOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const unread = useUnreadMessages();
-  const openTickets = useOpenTickets();
 
   /* v29.2: sidebar sections this account may see (permission-filtered).
    * ADMIN/SUPER_ADMIN see everything; staff managers see only their
@@ -525,6 +735,36 @@ export function AdminShell({ user, children }: { user: AdminShellUser; children:
   useEffect(() => {
     setMobileOpen(false);
   }, [pathname]);
+
+  /* v31 · AUTO UPDATE POLL (Task 5-b) — calls /api/admin/update/poll once
+   * ~20s after mount and then every 10 minutes while any admin page is
+   * open. The endpoint itself throttles the real GitHub fetch to one per
+   * 10 minutes and creates the admin notifications server-side, so this
+   * fire-and-forget call merely WARMS that check; when it reports
+   * hasUpdate the bell's notification list is refetched immediately.
+   * Silent failures — polling must never block or disturb the UI. */
+  useEffect(() => {
+    let cancelled = false;
+    const poll = async () => {
+      try {
+        const res = await fetch("/api/admin/update/poll");
+        const json = (await res.json().catch(() => null)) as
+          | { ok?: boolean; hasUpdate?: boolean }
+          | null;
+        if (cancelled || !json?.ok || !json.hasUpdate) return;
+        void queryClient.invalidateQueries({ queryKey: ["admin", "notifications"] });
+      } catch {
+        /* silent */
+      }
+    };
+    const early = setTimeout(() => void poll(), 20_000);
+    const interval = setInterval(() => void poll(), 10 * 60_000);
+    return () => {
+      cancelled = true;
+      clearTimeout(early);
+      clearInterval(interval);
+    };
+  }, [queryClient]);
 
   /* v26: REAL data refresh — the old router.refresh() only re-rendered
    *  server components and never re-ran the TanStack Query hooks every
@@ -635,13 +875,10 @@ export function AdminShell({ user, children }: { user: AdminShellUser; children:
             >
               <RefreshCw className={cn("h-[18px] w-[18px]", refreshing && "animate-spin")} strokeWidth={1.75} />
             </TopIconButton>
-            <TopIconButton
-              href="/admin/messages"
-              label="اعلان‌ها و پیام‌ها"
-              dot={unread + openTickets > 0}
-            >
-              <Bell className="h-[18px] w-[18px]" strokeWidth={1.75} />
-            </TopIconButton>
+            {/* v31: the bell now opens the admin's own notifications Popover
+                (ticket/message counters live in its footer — see the
+                NotificationBell component above) */}
+            <NotificationBell />
             <AdminThemeModeToggle />
             {/* v27.1: admin appearance is JUST light/dark now — the v17/v23
                 multi-theme palette picker was removed per the new design */}

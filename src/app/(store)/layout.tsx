@@ -3,11 +3,12 @@ import { Header } from "@/components/store/header";
 import Footer from "@/components/store/footer";
 import { ChatWidget } from "@/components/store/chat-widget";
 import { ScrollToTop } from "@/components/store/scroll-to-top";
+import { BrandingProvider } from "@/components/providers/branding-provider";
 import { ChromeHeaderGate, ChromeFooterGate } from "@/components/store/chrome-gate";
 import { MaintenanceScreen } from "@/components/store/maintenance-screen";
 import { getInstallStatus } from "@/lib/installer/state";
 import { getAdminUser } from "@/lib/auth";
-import { getStoreSettings, getThemeSafe } from "@/lib/settings";
+import { getStoreSettings, getThemeSafe, getBrandingSafe, FALLBACK_BRANDING, type Branding } from "@/lib/settings";
 import { getChromeData } from "@/lib/templates/home-data";
 import { templateUsesAiLogo } from "@/lib/maintenance";
 import { TEMPLATE_PALETTES } from "@/components/store/templates/chrome/config";
@@ -39,6 +40,9 @@ export default async function StoreLayout({ children }: { children: React.ReactN
   /* v29: the admin-uploaded AI-widget logo — only applied to templates it
    * was enabled for (default: every template once uploaded). */
   let aiLogoForTemplate: string | null = null;
+  /* v5-f: store-wide branding (name/logos) — re-wrapped below with the
+   * ACTIVE template's own brand when its per-template content sets one. */
+  let branding: Branding = FALLBACK_BRANDING;
   try {
     const settings = await getStoreSettings();
     activeTemplate = settings.activeTemplate || "modern-tech";
@@ -48,6 +52,7 @@ export default async function StoreLayout({ children }: { children: React.ReactN
     // v26fix: the admin-configured default mode (light/dark/system) — the
     // visitor's own toggle still wins client-side via next-themes
     themeColorMode = (await getThemeSafe()).colorMode;
+    branding = await getBrandingSafe();
     // v29: AI widget logo
     const rawLogo = (settings as { aiWidgetLogo?: string | null }).aiWidgetLogo;
     if (rawLogo?.trim() && templateUsesAiLogo((settings as { templateAiLogos?: string | null }).templateAiLogos, activeTemplate)) {
@@ -91,11 +96,28 @@ export default async function StoreLayout({ children }: { children: React.ReactN
 
   const gateProps = chromeData ? { templateId: activeTemplate, data: chromeData } : null;
 
+  /* v5-f · per-template BRAND — getChromeData already applied the ACTIVE
+   * template's own name/logo to chromeData.store (Admin → ظاهر → محتوای
+   * اختصاصی قالب → برند). Re-wrap the branding context with those values so
+   * the SHARED header/footer + every store page follow the same brand the
+   * bespoke template chrome shows; without a template brand the values are
+   * identical to the global ones (byte-identical render). /admin lives
+   * outside this layout and keeps the global brand. */
+  const storeBranding: Branding = chromeData
+    ? {
+        ...branding,
+        storeName: chromeData.store.storeName.trim() || branding.storeName,
+        logo: chromeData.store.logo ?? branding.logo,
+        footerLogo: chromeData.store.footerLogo ?? branding.footerLogo,
+      }
+    : branding;
+
   return (
-    <div
-      className="store-shell min-h-screen flex flex-col"
-      data-chrome-template={activeTemplate}
-    >
+    <BrandingProvider branding={storeBranding}>
+      <div
+        className="store-shell min-h-screen flex flex-col"
+        data-chrome-template={activeTemplate}
+      >
       {canvasCss && (
         <style
           data-template-canvas={activeTemplate}
@@ -128,6 +150,7 @@ export default async function StoreLayout({ children }: { children: React.ReactN
         templateId={activeTemplate}
         aiLogo={aiLogoForTemplate}
       />
-    </div>
+      </div>
+    </BrandingProvider>
   );
 }

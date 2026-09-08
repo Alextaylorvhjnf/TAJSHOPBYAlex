@@ -2,6 +2,7 @@ import { getStoreSettings } from "@/lib/settings";
 import { getAdminUser } from "@/lib/auth";
 import { getHomeData } from "@/lib/templates/home-data";
 import { TEMPLATE_IDS } from "@/lib/templates/registry";
+import { getTemplateContentData, applyTemplateContentToData } from "@/lib/templates/content";
 import { TemplateRenderer } from "@/components/store/templates/renderer";
 
 // the storefront is fully data-driven (template + settings) — never cache at build
@@ -23,5 +24,12 @@ export default async function HomePage({
     if (admin) activeId = requested;
   }
 
-  return <TemplateRenderer id={activeId} data={data} />;
+  // v5-f: the resolved template's OWN content (slides/showcases/texts/
+  // links/brand) activates for this request — template-specific values win,
+  // empty fields fall back to the global entities. The preview override
+  // above is honored: the PREVIEWED template's content is fetched.
+  const templateContent = await getTemplateContentData(activeId);
+  const enriched = applyTemplateContentToData(data, templateContent);
+
+  return <TemplateRenderer id={activeId} data={enriched} />;
 }
