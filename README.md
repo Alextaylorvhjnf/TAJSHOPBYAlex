@@ -82,7 +82,7 @@ sudo bash -c 'unzip -oq "Taj Electronics Main V13 VC.zip" && bash install.sh'
 
 > **آدرس نصب: `http://SERVER_IP:3000/install`** — در مرورگر باز کنید و مدیر کل را بسازید.
 
-- SHA-256 بستهٔ `Taj Electronics Main V13 VC.zip` برای راستی‌آزمایی: `02cd4e008b352bab19f377ab4338cb7132b6962c10ba619f5de3f5eb220653a4`
+- SHA-256 بستهٔ `Taj Electronics Main V13 VC.zip` برای راستی‌آزمایی: `REPLACE_WITH_ZIP_SHA256`
 - مسیر جایگزین (سرور خام): `sudo ./setup.sh` (نصب Docker + Compose + Node 22 + Bun + OpenSSL) و سپس `sudo ./install.sh`
 - به‌روزرسانی‌های بعدی مستقیم از پنل (تنظیمات ← به‌روزرسانی اسکریپت) یا `./update.sh` — راهنما: [`UPDATE-GUIDE.md`](./UPDATE-GUIDE.md)
 

@@ -295,17 +295,24 @@ function MaintenancePreviewDialog({
   );
 }
 
-/* ═══════════════ v30 · «حالت تعمیر» — dedicated maintenance section ═══════════════ */
+/* ═══════════════ v31 (10-b) · «حالت تعمیر» — dedicated maintenance section ═══════════════ */
+
+/** v31 (10-b): the mini-browser preview viewport height (h-[26rem] = 416px) */
+const MAINT_CARD_PREVIEW_H = 416;
 
 /**
- * v30 · BIG live template card («انتخاب قالب» section) — renders the REAL
- * repair-page template at its natural 1280px logical width, scaled (CSS
- * transform: scale) into a fixed h-64 mini browser viewport. The templates
- * are min-h-screen pages, so their natural height equals the browser
- * viewport; scaling by 256/innerHeight fits the viewport exactly (each
- * template centers its content, so any horizontal overhang clips
- * symmetrically and invisibly). Selecting a card writes maintenanceTemplate;
- * «پیش‌نمایش زنده» opens the full-size MaintenancePreviewDialog.
+ * v31 (10-b) · BIG live template card («قالب صفحهٔ تعمیر» section) — renders
+ * the REAL repair-page template at its natural 1280px logical width, scaled
+ * (CSS transform: scale) into a tall 416px mini browser viewport. The
+ * template's real height is MEASURED with a ResizeObserver and the scale is
+ * fitted to it (clamped [0.30, 0.55] for legibility), so the whole page —
+ * logo تا یادداشت پایین — is always fully visible and readable; the old
+ * 256px viewport assumed page height == window.innerHeight and clipped
+ * taller templates. Each template centers its content, so the horizontal
+ * overhang at 1280px logical width clips symmetrically; the centered
+ * transform-origin keeps any clamped edge-case overflow symmetric too.
+ * Selecting a card writes maintenanceTemplate; «پیش‌نمایش زنده» opens the
+ * full-size MaintenancePreviewDialog.
  */
 function MaintenanceTemplateCard({
   tpl,
@@ -320,13 +327,23 @@ function MaintenanceTemplateCard({
   onSelect: () => void;
   onPreview: () => void;
 }) {
-  /* v30: scale the full-size page into the h-64 (256px) preview area */
+  /* v31 (10-b): scale the full-size page to FIT the 416px preview area —
+   * measured, not assumed (re-measures on window resize because the pages
+   * are min-h-screen, and on live form edits that change the texts). */
+  const innerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0);
+
   useEffect(() => {
-    const measure = () => setScale(Math.max(0.14, Math.min(0.4, 256 / (window.innerHeight || 800))));
+    const el = innerRef.current;
+    if (!el) return;
+    const measure = () => {
+      const h = el.offsetHeight || window.innerHeight || 800;
+      setScale(Math.max(0.3, Math.min(0.55, MAINT_CARD_PREVIEW_H / h)));
+    };
     measure();
-    window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
   }, []);
 
   /* the exact component closed visitors see — with this form's own words */
@@ -343,38 +360,39 @@ function MaintenanceTemplateCard({
   return (
     <div
       className={cn(
-        "relative flex flex-col rounded-2xl border-2 bg-card p-3 transition-all",
-        active ? "border-primary shadow-xl shadow-primary/20 ring-1 ring-primary/40" : "border-border hover:border-primary/40 hover:shadow-lg"
+        "relative flex flex-col rounded-2xl border-2 bg-card p-3 transition-all duration-300",
+        active
+          ? "border-primary bg-gradient-to-b from-primary/[0.08] via-card to-card shadow-xl shadow-primary/20 ring-2 ring-primary/25"
+          : "border-border hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl"
       )}
     >
       {/* mini browser viewport with the REAL template rendered inside */}
       <div className="overflow-hidden rounded-xl border border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900">
-        <div className="flex h-7 items-center gap-1.5 border-b border-zinc-200 bg-zinc-100 px-2.5 dark:border-zinc-800 dark:bg-zinc-800/70" dir="ltr">
-          <span aria-hidden className="h-2 w-2 rounded-full bg-red-400/80" />
-          <span aria-hidden className="h-2 w-2 rounded-full bg-amber-400/80" />
-          <span aria-hidden className="h-2 w-2 rounded-full bg-emerald-400/80" />
-          <span dir="ltr" className="ms-1.5 flex-1 truncate rounded-md bg-white/80 px-2 py-0.5 font-mono text-[9px] text-zinc-500 dark:bg-zinc-900/70 dark:text-zinc-400">
+        <div className="flex h-8 items-center gap-1.5 border-b border-zinc-200 bg-zinc-100 px-2.5 dark:border-zinc-800 dark:bg-zinc-800/70" dir="ltr">
+          <span aria-hidden className="h-2.5 w-2.5 rounded-full bg-red-400/80" />
+          <span aria-hidden className="h-2.5 w-2.5 rounded-full bg-amber-400/80" />
+          <span aria-hidden className="h-2.5 w-2.5 rounded-full bg-emerald-400/80" />
+          <span dir="ltr" className="ms-1.5 flex-1 truncate rounded-md bg-white/80 px-2 py-0.5 font-mono text-[10px] text-zinc-500 dark:bg-zinc-900/70 dark:text-zinc-400">
             taj-electronics.ir/{tpl.nameEn}
           </span>
         </div>
-        <div className="relative h-64 w-full overflow-hidden">
-          {scale > 0 ? (
-            <div className="absolute inset-0 flex justify-center overflow-hidden">
-              <div
-                className="pointer-events-none select-none [transform-origin:top_center]"
-                style={{ width: 1280, transform: `scale(${scale})` }}
-              >
-                <RepairPage data={data} />
-              </div>
+        <div className="relative h-[26rem] w-full overflow-hidden">
+          {/* the scaled REAL page — centered, pointer-events off */}
+          <div className="absolute inset-0 flex items-center justify-center overflow-hidden">
+            <div
+              ref={innerRef}
+              className="pointer-events-none select-none transition-transform duration-300 ease-out [transform-origin:center]"
+              style={{ width: 1280, transform: `scale(${scale})` }}
+            >
+              <RepairPage data={data} />
             </div>
-          ) : (
-            <Skeleton className="h-full w-full rounded-none" />
-          )}
+          </div>
+          {scale === 0 && <Skeleton className="absolute inset-0 z-10 rounded-none" />}
         </div>
       </div>
 
       {/* Persian name, 2-line description, active badge, actions */}
-      <div className="flex flex-1 flex-col pt-3">
+      <div className="flex flex-1 flex-col pt-3.5">
         <div className="flex items-center justify-between gap-2">
           <p className="text-sm font-black">{tpl.nameFa}</p>
           {active ? (
@@ -386,14 +404,14 @@ function MaintenanceTemplateCard({
             <span dir="ltr" className="shrink-0 font-mono text-[9px] text-muted-foreground">{tpl.nameEn}</span>
           )}
         </div>
-        <p className="mt-1.5 min-h-8 text-[11px] leading-4 text-muted-foreground">{tpl.desc}</p>
-        <div className="mt-3 flex items-center gap-2">
+        <p className="mt-2 min-h-10 text-[11px] leading-5 text-muted-foreground">{tpl.desc}</p>
+        <div className="mt-auto flex items-center gap-2 pt-3">
           <Button
             type="button"
             size="sm"
             variant={active ? "outline" : "default"}
             disabled={active}
-            className="h-9 flex-1 rounded-lg text-[11px] font-black"
+            className="h-10 flex-1 rounded-lg text-[11px] font-black"
             onClick={onSelect}
             aria-label={`انتخاب قالب ${tpl.nameFa}`}
           >
@@ -404,7 +422,7 @@ function MaintenanceTemplateCard({
             type="button"
             size="sm"
             variant="outline"
-            className="h-9 flex-1 rounded-lg text-[11px] font-bold"
+            className="h-10 flex-1 rounded-lg text-[11px] font-bold"
             onClick={onPreview}
             aria-label={`پیش‌نمایش زنده قالب ${tpl.nameFa}`}
           >
@@ -423,7 +441,7 @@ function MaintenanceTemplateCard({
  *   ① وضعیت — the maintenance ON/OFF switch card (writes maintenanceMode)
  *   ② اطلاعات تماس و پیام‌ها — every editable word of the repair page +
  *      the phone/email/hours values shown on it
- *   ③ انتخاب قالب — the 4 BIG live template cards
+ *   ③ قالب صفحهٔ تعمیر — the 4 BIG live template cards
  * Saves through the same /api/admin/settings/store PUT as the other tabs.
  */
 function MaintenanceTab() {
@@ -483,7 +501,8 @@ function MaintenanceTab() {
         <Skeleton className="h-36 rounded-xl" />
         <Skeleton className="h-80 rounded-xl" />
         <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-96 rounded-2xl" />)}
+          {/* v31 (10-b): matches the new BIG template cards (~610px tall) */}
+          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-[38rem] rounded-2xl" />)}
         </div>
       </div>
     );
@@ -642,17 +661,22 @@ function MaintenanceTab() {
         </CardContent>
       </Card>
 
-      {/* ── Section 3 · انتخاب قالب — the 4 BIG live cards ── */}
+      {/* ── Section 3 · قالب صفحهٔ تعمیر — the 4 BIG live cards ── */}
       <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-sm font-bold">
-            <LayoutTemplate className="h-4 w-4 text-primary" />
-            انتخاب قالب
-          </CardTitle>
+        <CardHeader className="pb-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <CardTitle className="flex items-center gap-2.5 text-base font-black">
+              <span className="grid h-9 w-9 place-items-center rounded-xl bg-primary/10 text-primary">
+                <LayoutTemplate className="h-4 w-4" />
+              </span>
+              قالب صفحهٔ تعمیر
+            </CardTitle>
+            <span className="text-[11px] font-bold text-muted-foreground">۴ قالب آماده</span>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <GuideNote>
-            قالب ظاهر صفحه‌ای را که بازدیدکنندهٔ عادی در حالت تعمیر می‌بیند انتخاب کنید — پیش‌نمایش هر کارت، خودِ همان قالب است و با متن‌ها، لوگو و اطلاعات تماسِ همین فرم (حتی ذخیره‌نشده) به‌روز می‌شود. کارت انتخاب‌شده با کادر طلایی مشخص می‌شود.
+            قالب ظاهر صفحه‌ای را که بازدیدکنندهٔ عادی در حالت تعمیر می‌بیند انتخاب کنید — پیش‌نمایش هر کارت، خودِ همان قالب به‌صورت کامل و زنده است و با متن‌ها، لوگو و اطلاعات تماسِ همین فرم (حتی ذخیره‌نشده) به‌روز می‌شود. کارت انتخاب‌شده با کادر طلایی مشخص می‌شود.
           </GuideNote>
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
             {MAINTENANCE_TEMPLATES.map((t) => (
