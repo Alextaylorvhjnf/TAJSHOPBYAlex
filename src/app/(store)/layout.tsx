@@ -6,6 +6,7 @@ import { ScrollToTop } from "@/components/store/scroll-to-top";
 import { BrandingProvider } from "@/components/providers/branding-provider";
 import { ChromeHeaderGate, ChromeFooterGate } from "@/components/store/chrome-gate";
 import { MaintenanceScreen } from "@/components/store/maintenance-screen";
+import { ReleaseDownload } from "@/components/store/release-download";
 import { getInstallStatus } from "@/lib/installer/state";
 import { getAdminUser } from "@/lib/auth";
 import { getStoreSettings, getThemeSafe, getBrandingSafe, FALLBACK_BRANDING, type Branding } from "@/lib/settings";
@@ -150,6 +151,9 @@ export default async function StoreLayout({ children }: { children: React.ReactN
         templateId={activeTemplate}
         aiLogo={aiLogoForTemplate}
       />
+      {/* v31: one-click delivery of the released v31 build from THIS sandbox —
+       * static asset under public/downloads/ (git-ignored, dev-preview only) */}
+      <ReleaseDownload />
       </div>
     </BrandingProvider>
   );
