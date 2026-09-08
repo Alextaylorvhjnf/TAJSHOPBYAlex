@@ -263,3 +263,24 @@ Stage Summary:
 - Files: CHANGED src/app/admin/(panel)/settings/page.tsx (maintenance section only: MaintenanceTemplateCard + section-3 header + tab skeletons) and src/components/store/maintenance-templates.tsx (presentation redesign of the 4 templates + shared TrackingBlock; contract/gate/logic byte-identical). Zero changes to MaintenanceScreenData, src/lib/maintenance.ts, MaintenancePreviewDialog, or any other file.
 - Card sizing: viewport 256px → 416px (h-[26rem]); scale = clamp(416/measuredHeight, 0.30, 0.55) via ResizeObserver (measured, not assumed — templates are now FULLY visible, no bottom clipping of footer/tracking); logical width stays 1280 with symmetric horizontal crop; origin center; loading skeletons h-[38rem].
 - Lint: 0 errors (1 pre-existing layout.tsx font warning); tsc clean. Live QA in a browser was not possible in this sandbox (dev server may not be started) — recommend a quick look at /admin/settings?tab=maintenance and /maintenance-preview?template=<id> when the server is next up.
+
+---
+Task ID: 11
+Agent: main (Z.ai Code)
+Task: تکمیل دونه‌به‌دونهٔ خواسته‌های v31 + ساخت و تحویل بستهٔ نهایی (بدون پوش به گیت‌هاب)
+
+Work Log:
+- خواسته‌های کاربر (باز-ارسال پرامپت جلسهٔ قبل) دونه‌به‌دونه با کد موجود مقایسه شد: گیمینگ/مگامنو/محتوای قالب‌ها/لاگین قالب‌محور/ادمین/ریلینز-نوتز/یک‌خطی همگی از v31 موجود بودند؛ فقط ۲ مورد واقعاً جدید بود.
+- زیرعامل 10-a: جریان بکاپ کامل قبل از به‌روزرسانی — API جدید /api/admin/backup (SUPER_ADMIN، adm-zip، db+env+uploads+BACKUP-INFO.json، ۳.۲MB در ۱.۸s تست‌شده با curl و لاگین واقعی) + دیالوگ ۲ مرحله‌ای (تیک بکاپ ← چک‌لیست ۵ مرحله‌ای + پروگرس ← دانلود ZIP ← «بکاپ را دانلود کردم» ← نصب) + خط وضعیت خودکار «شما از آخرین نسخه استفاده می‌کنید» در مونت.
+- زیرعامل 10-b: کارت‌های بزرگ قالب تعمیر (416px + ResizeObserver scale 0.30-0.55) + بازطراحی کامل ۴ صفحهٔ تعمیر (HUD رادار / ادیتوریال مینیمال / شیشهٔ شفق / تایمر قهرمان) — قرارداد داده بایت‌به‌بایت حفظ شد.
+- راستی‌آزمایی مرورگر (agent-browser + VLM): خانه ۲۰۰ بدون خطا؛ ورود ادمین OK؛ تب حالت تعمیر: ۴ کارت بزرگ کامل و بدون هم‌پوشانی (VLM تأیید)؛ تب به‌روزرسانی: دکمهٔ بررسی + چیپ «آخرین نسخه (۲۶.۰.۰)» روی مونت؛ هر ۴ قالب تعمیر در /maintenance-preview اسکرین‌شات و VLM-تأیید شدند؛ کنسول پاک.
+- بستهٔ نهایی: کامیت‌های محلی 9436798 + 996e389* (بدون هیچ push) ← git archive ← ۶۹۸ فایل / ۱۹,۸۵۷,۴۶۱ بایت / SHA-256: a58966f3af58763351320b73f5c37346133d7c67f17ab8e224a941e16a71cb66
+- تحویل بدون گیت‌هاب (خواستهٔ صریح کاربر): آپلود روی litterbox.catbox.moe (۷۲ ساعت):
+  • https://litter.catbox.moe/6hyiah.zip (محتوای taj-electronics-v31.zip)
+  • https://litter.catbox.moe/8kuy6b.zip (محتوای Taj Electronics Main V13 VC.zip)
+  هر دو با دانلود ناشناس کامل + sha256 برابر راستی‌آزمایی شدند. ریپو و Release گیت‌هاب دست‌نخورده ماند (commit نرفت، push نشد).
+
+Stage Summary:
+- v31 نهایی: همهٔ خواسته‌ها اعمال/راستی‌آزمایی؛ فقط ۲ کامیت محلی (کد + docs) بدون push
+- فایل نهایی ۱۹.۹MB — a58966f3…71cb66 — قابل دانلود از litterbox تا ۷۲ ساعت
+- محدودیت sandbox (مرگ پروسه‌ها در مرز دستور) مستند شد؛ برای تست‌های زنده هر بار سرور در همان دستور بالا آمد
