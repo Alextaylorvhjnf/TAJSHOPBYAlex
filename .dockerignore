@@ -45,8 +45,14 @@ Caddyfile
 worklog.md
 agent-ctx
 
+# v34 · pre-built standalone runtime (shipped inside release zips, NEVER committed —
+# hundreds of MB of traced node_modules + engines)
+/app
+prisma-cli-dist
+
 # v30 · GitHub distribution artifacts (never part of the image build)
 updates
 backups
 update.sh.new
 README.md
+/runtime

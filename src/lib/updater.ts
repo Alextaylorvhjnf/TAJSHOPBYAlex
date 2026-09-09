@@ -79,7 +79,16 @@ const MANIFEST_MAX_BYTES = 256 * 1024; // 256KB
 const STALE_ACTIVE_MS = 15 * 60_000; // an "active" state older than 15min = crashed → allow retry
 
 /** top-level DIRECTORY prefixes an update may overwrite */
-const ALLOWED_DIRS = ["src", "public", "scripts", "prisma"] as const;
+// v34: "runtime" / "runtime-code" = the pre-built standalone runtime folders
+// that v34+ update zips carry. They are VALIDATED (so panel updates don't
+// reject the new zips) but skipped during panel-apply — only update.sh
+// (standalone branch) swaps them; the panel path never applies a compiled
+// runtime. (NOT named "app/" on purpose — that collides with the Next.js
+// app-router convention when the zip is extracted next to src/.)
+const ALLOWED_DIRS = ["src", "public", "scripts", "prisma", "runtime", "runtime-code"] as const;
+/** directories present in v34+ update zips that the PANEL updater accepts
+ * but never extracts/applies (handled exclusively by update.sh) */
+const RUNTIME_DIRS = new Set(["runtime", "runtime-code"]);
 /** exact ROOT FILES an update may overwrite (new deps live in package.json —
  * the admin is told to run `bun install` afterwards, zip scripts are NEVER run) */
 const ALLOWED_ROOT_FILES = [
@@ -541,6 +550,7 @@ async function runUpdate(params: RunParams): Promise<void> {
       if (!verdict.ok) throw new Error(`بستهٔ به‌روزرسانی رد شد — ${verdict.reason}`);
       if (!e.isDirectory) {
         const segs = e.entryName.split(/[\\/]+/).filter((s) => s.length > 0);
+        if (RUNTIME_DIRS.has(segs[0])) continue; // runtime folders — update.sh's job
         replacedFiles.push(segs.join("/"));
       }
     }
@@ -549,6 +559,11 @@ async function runUpdate(params: RunParams): Promise<void> {
     await fsp.rm(EXTRACT_DIR, { recursive: true, force: true }).catch(() => null);
     await fsp.mkdir(EXTRACT_DIR, { recursive: true });
     zip.extractAllTo(EXTRACT_DIR, true);
+    // v34: discard the pre-built runtime folders (validated above, applied
+    // only by update.sh on the server — the panel never swaps compiled code)
+    for (const d of RUNTIME_DIRS) {
+      await fsp.rm(path.join(EXTRACT_DIR, d), { recursive: true, force: true }).catch(() => null);
+    }
     await assertExtractedTreeSafe(EXTRACT_DIR); // lstat walk — symlink/escape double-check
     writeUpdateState({ percent: 55, message: `استخراج کامل شد (${replacedFiles.length.toLocaleString("fa-IR")} فایل)` }, [
       `استخراج کامل شد: ${replacedFiles.length} فایل`,
@@ -621,7 +636,7 @@ async function runUpdate(params: RunParams): Promise<void> {
       setPhase(
         "done",
         100,
-        `به‌روزرسانی ${version} نصب شد — فایل‌های عمومی و ساختار دیتابیس اعمال شد. برای اعمال کامل کدها در نصب داکری، در ترمینال سرور «./update.sh» را اجرا کنید (داده‌ها محفوظ می‌مانند)`,
+        `به‌روزرسانی ${version} نصب شد — فایل‌های عمومی و ساختار دیتابیس اعمال شد. برای اعمال کامل کدها در نصب داکری/استندالون، در ترمینال سرور «./update.sh» را اجرا کنید (داده‌ها محفوظ می‌مانند)`,
         [
           `نسخهٔ نصب‌شده: ${version}`,
           "محیط standalone/داکر: تغییرات src پس از rebuild تصویر (./update.sh روی سرور) کامل اعمال می‌شود",

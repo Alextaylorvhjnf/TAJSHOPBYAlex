@@ -1,41 +1,33 @@
 #!/usr/bin/env bash
 # ══════════════════════════════════════════════════════════════════════
-#  TAJ Electronics — GitHub auto-update script (v33 · app 28.0.0)
+#  TAJ Electronics — اسکریپت به‌روزرسانی خودکار (v34 · app 29.0.0)
 #
-#  Downloads the newest release from the store's official GitHub repo
-#  (https://github.com/Alextaylorvhjnf/TAJSHOPBYAlex) and rebuilds the
-#  Docker image from it.
+#  از آخرین نسخهٔ منتشرشده در گیت‌هاب فروشگاه (کانال رسمی) می‌گیرد و نصب می‌کند.
+#  هر دو حالت نصب را پشتیبانی می‌کند (تشخیص خودکار):
+#    • Standalone (v34+): بستهٔ به‌روزرسانی حاوی برنامهٔ از پیش ساخته‌شده است →
+#      تعویض کد + ری‌استارت سرویس systemd — بدون هیچ بیلدی روی سرور (~۱ دقیقه)
+#    • Docker (نسخه‌های قدیمی): مثل قبل build + up
 #
-#  DATA SAFETY — this script NEVER touches:
-#    • the taj_db volume      (SQLite: orders, users, products, settings)
-#    • the taj_uploads volume (uploaded images)
-#    • .env                   (secrets / payment keys)
-#  `docker compose up -d` only recreates the application container —
-#  volumes are preserved by design. The container entrypoint then runs a
-#  non-destructive `prisma db push` on every start, so schema changes
-#  sync automatically. Nothing is ever deleted.
+#  ایمنی داده‌ها — هرگز دست نمی‌زند به:
+#    • db/custom.db        (سفارش‌ها، کاربران، محصولات، تنظیمات)
+#    • public/uploads/     (تصاویر بارگذاری‌شده)
+#    • .env                (رمزها و کلیدهای درگاه)
 #
-#  Usage (on the server, inside the project folder):
-#    ./update.sh            → check GitHub and install the newest version
-#    ./update.sh --check    → only show what's available (change nothing)
-#    ./update.sh --force    → reinstall even when versions match
-#
-#  First-time bootstrap on an OLD deployment (v29.2 and older — its
-#  update.sh only rebuilt local files):
-#    cd ~/taj-electronics
-#    curl -sL -o update.sh \
-#      https://raw.githubusercontent.com/Alextaylorvhjnf/TAJSHOPBYAlex/main/updates/update.sh
-#    chmod +x update.sh && ./update.sh
+#  استفاده (داخل پوشهٔ نصب — standalone: /var/www/taj-electronics):
+#    ./update.sh            → بررسی و نصب آخرین نسخه
+#    ./update.sh --check    → فقط نمایش نسخهٔ موجود (بدون تغییر)
+#    ./update.sh --force    → نصب مجدد حتی وقتی نسخه‌ها برابرند
 # ══════════════════════════════════════════════════════════════════════
 set -euo pipefail
 
 REPO_RAW="https://raw.githubusercontent.com/Alextaylorvhjnf/TAJSHOPBYAlex/main"
 MANIFEST_URL="$REPO_RAW/updates/update-manifest.json"
+APP_DIR_DEFAULT="/var/www/taj-electronics"
 
 say()  { printf '\033[1;34m▸ %s\033[0m\n' "$*"; }
 ok()   { printf '\033[1;32m✓ %s\033[0m\n' "$*"; }
 warn() { printf '\033[1;33m! %s\033[0m\n' "$*"; }
-die()  { printf '\033[1;31m✗ ERROR: %s\033[0m\n' "$*" >&2; exit 1; }
+die()  { printf '\033[1;31m✗ خطا: %s\033[0m\n' "$*" >&2; exit 1; }
 
 CHECK_ONLY=0
 FORCE=0
@@ -48,31 +40,56 @@ for arg in "$@"; do
 done
 
 cd "$(dirname "$0")"
-[ -f docker-compose.yml ] || die "این اسکریپت باید داخل پوشهٔ پروژه اجرا شود (docker-compose.yml پیدا نشد)"
-[ -f package.json ]       || die "package.json پیدا نشد — پوشهٔ پروژه معتبر نیست"
 
-# ── 0 · self-update (best-effort: always run the newest updater logic) ──
+# ── تشخیص حالت نصب ──
+MODE="unknown"
+if [ -f "./server.js" ] || [ -f "$APP_DIR_DEFAULT/server.js" ]; then
+  MODE="standalone"
+  # اگر از جای دیگری اجرا شد، به پوشهٔ استقرار برو
+  if [ ! -f "./server.js" ] && [ -f "$APP_DIR_DEFAULT/server.js" ]; then
+    cd "$APP_DIR_DEFAULT"
+  fi
+elif [ -f "./docker-compose.yml" ] || [ -f "./package.json" ]; then
+  MODE="docker"
+fi
+[ "$MODE" = "unknown" ] && die "این اسکریپت باید داخل پوشهٔ نصب اجرا شود (server.js یا docker-compose.yml/package.json پیدا نشد)"
+
+[ "$(id -u)" -ne 0 ] && exec sudo bash "$0" "$@"
+
+if [ "$MODE" = "standalone" ]; then
+  ok "حالت نصب: Standalone (برنامهٔ از پیش ساخته‌شده + systemd) — پوشه: $(pwd)"
+else
+  ok "حالت نصب: Docker/سورس — مسیر بیلد روی سرور"
+fi
+
+# ── 0 · خود-به‌روزرسانی اسکریپت ──
 if [ "${TAJ_UPDATE_SELF:-}" != "1" ]; then
   if curl -fsSL --max-time 15 "$REPO_RAW/updates/update.sh" -o update.sh.new 2>/dev/null \
      && head -n1 update.sh.new 2>/dev/null | grep -q "bash"; then
     if [ ! -f update.sh ] || ! cmp -s update.sh update.sh.new; then
       chmod +x update.sh.new
       mv -f update.sh.new update.sh
-      ok "خودِ اسکریپت به‌روزرسانی به آخرین نسخهٔ گیت‌هاب ارتقا یافت — ادامه با نسخهٔ جدید…"
+      ok "خودِ اسکریپت به‌روزرسانی ارتقا یافت — ادامه با نسخهٔ جدید…"
       TAJ_UPDATE_SELF=1 exec bash update.sh "$@"
     fi
   fi
   rm -f update.sh.new 2>/dev/null || true
 fi
 
-# ── 1 · current version ────────────────────────────────────────────────
-CURRENT=$(grep -o '"version"[[:space:]]*:[[:space:]]*"[^"]*"' package.json | head -n1 | sed 's/.*"\([^"]*\)"$/\1/')
+# ── 1 · نسخهٔ فعلی ──
+CURRENT=""
+if [ "$MODE" = "standalone" ]; then
+  [ -f .version ] && CURRENT="$(cat .version | xargs)"
+  [ -z "$CURRENT" ] && [ -f package.json ] && CURRENT=$(grep -o '"version"[[:space:]]*:[[:space:]]*"[^"]*"' package.json | head -n1 | sed 's/.*"\([^"]*\)"$/\1/')
+else
+  CURRENT=$(grep -o '"version"[[:space:]]*:[[:space:]]*"[^"]*"' package.json 2>/dev/null | head -n1 | sed 's/.*"\([^"]*\)"$/\1/')
+fi
 [ -n "$CURRENT" ] || CURRENT="0.0.0"
 say "نسخهٔ فعلی نصب‌شده: $CURRENT"
 
-# ── 2 · fetch the manifest from GitHub ─────────────────────────────────
+# ── 2 · دریافت مانیفست ──
 say "بررسی آخرین نسخه در گیت‌هاب… ($MANIFEST_URL)"
-MANIFEST=$(curl -fsSL --max-time 20 "$MANIFEST_URL") || die "دریافت مانیفست از گیت‌هاب ناموفق بود — اتصال اینترنت سرور را بررسی کنید"
+MANIFEST=$(curl -fsSL --max-time 20 "$MANIFEST_URL") || die "دریافت مانیفست ناموفق بود — اتصال اینترنت سرور را بررسی کنید"
 
 json_field() { printf '%s' "$MANIFEST" | grep -o "\"$2\"[[:space:]]*:[[:space:]]*\"[^\"]*\"" | head -n1 | sed 's/.*"\([^"]*\)"$/\1/'; }
 LATEST=$(json_field version)
@@ -81,8 +98,8 @@ SHA256=$(json_field sha256)
 NOTES=$(json_field notes)
 MIN_APP=$(json_field minAppVersion)
 
-[ -n "$LATEST" ] || die "فیلد version در مانیفست گیت‌هاب پیدا نشد"
-say "آخرین نسخهٔ منتشرشده در گیت‌هاب: $LATEST"
+[ -n "$LATEST" ] || die "فیلد version در مانیفست پیدا نشد"
+say "آخرین نسخهٔ منتشرشده: $LATEST"
 [ -n "$NOTES" ] && printf '  یادداشت نسخه: %s\n' "$NOTES"
 
 is_newer() {
@@ -92,7 +109,6 @@ is_newer() {
 
 if [ "$FORCE" -ne 1 ] && ! is_newer "$LATEST" "$CURRENT"; then
   ok "شما در آخرین نسخه هستید ($CURRENT) — نیازی به به‌روزرسانی نیست"
-  [ "$CHECK_ONLY" -eq 1 ] || true
   exit 0
 fi
 if [ -n "$MIN_APP" ] && ! is_newer "$CURRENT" "$MIN_APP" && [ "$CURRENT" != "$MIN_APP" ]; then
@@ -102,36 +118,142 @@ if [ "$CHECK_ONLY" -eq 1 ]; then
   say "حالت --check: نسخهٔ جدید $LATEST در دسترس است — چیزی نصب/تغییر داده نشد"
   exit 0
 fi
-[ -n "$ZIP_URL" ] || die "مانیفست آدرس فایل ZIP (zipUrl) ندارد — با پشتیبان اسکریپت تماس بگیرید"
+[ -n "$ZIP_URL" ] || die "مانیفست آدرس ZIP ندارد"
 
-# ── 3 · download the update zip ────────────────────────────────────────
+# ── 3 · دانلود بسته ──
 ZIP=".taj-update-$$.zip"
-trap 'rm -f "$ZIP" 2>/dev/null || true' EXIT
-say "دانلود بستهٔ به‌روزرسانی از گیت‌هاب… ($ZIP_URL)"
-curl -fL --max-time 300 --retry 2 -o "$ZIP" "$ZIP_URL" || die "دانلود بستهٔ به‌روزرسانی ناموفق بود"
+EXTRACT=".taj-update-extracted-$$"
+trap 'rm -rf "$ZIP" "$EXTRACT" 2>/dev/null || true' EXIT
+say "دانلود بستهٔ به‌روزرسانی… ($ZIP_URL)"
+curl -fL --max-time 600 --retry 2 -o "$ZIP" "$ZIP_URL" || die "دانلود ناموفق بود"
 SIZE=$(du -h "$ZIP" | cut -f1)
 say "دانلود کامل شد ($SIZE)"
 
-# ── 4 · verify checksum (when the manifest provides one) ───────────────
+# ── 4 · چک‌سام ──
 if [ -n "$SHA256" ]; then
   if command -v sha256sum >/dev/null 2>&1; then
     ACTUAL=$(sha256sum "$ZIP" | awk '{print $1}')
   elif command -v shasum >/dev/null 2>&1; then
     ACTUAL=$(shasum -a 256 "$ZIP" | awk '{print $1}')
   else
-    warn "ابزار sha256 در دسترس نیست — چک‌سام بررسی نشد (ادامه می‌دهیم)"
+    warn "ابزار sha256 در دسترس نیست — چک‌سام بررسی نشد"
     ACTUAL="$SHA256"
   fi
-  if [ "$ACTUAL" != "$SHA256" ]; then
-    die "چک‌سام SHA-256 مطابقت ندارد — فایل دانلودی آسیب دیده است. هیچ تغییری اعمال نشد؛ دوباره تلاش کنید."
-  fi
+  [ "$ACTUAL" != "$SHA256" ] && die "چک‌سام SHA-256 مطابقت ندارد — فایل دانلودی آسیب دیده است؛ دوباره تلاش کنید."
   ok "چک‌سام SHA-256 تأیید شد ✓"
-else
-  warn "مانیفست چک‌سام ندارد — دانلود بدون تأیید ادامه می‌یابد"
 fi
 
-# ── 5 · validate + apply (CODE ONLY — data/env/uploads never touched) ──
-ALLOWED_DIRS="src public prisma scripts"
+# ── 5 · استخراج امن (اعتبارسنجی مسیرها) ──
+mkdir -p "$EXTRACT"
+if command -v python3 >/dev/null 2>&1; then
+  python3 - "$ZIP" "$EXTRACT" <<'PY'
+import sys, zipfile
+zp, out = sys.argv[1], sys.argv[2]
+z = zipfile.ZipFile(zp)
+for n in z.namelist():
+    if not n or "\0" in n:                      sys.exit(f"نام فایل نامعتبر: {n!r}")
+    if n.startswith("/") or n.startswith("\\"): sys.exit(f"مسیر مطلق ممنوع: {n}")
+    parts = [p for p in n.replace("\\", "/").split("/") if p]
+    if not parts:                                continue
+    if any(p == ".." for p in parts):            sys.exit(f"مسیر شامل .. ممنوع: {n}")
+for info in z.infolist():
+    if info.is_dir(): continue
+    if (info.external_attr >> 16) & 0o170000 == 0o120000:
+        sys.exit(f"فایل symlink در بسته ممنوع است: {info.filename}")
+    z.extract(info, out)
+PY
+elif command -v unzip >/dev/null 2>&1; then
+  while IFS= read -r entry; do
+    [ -n "$entry" ] || continue
+    case "$entry" in /*|\\*) die "مسیر مطلق ممنوع: $entry" ;; esac
+    case "$entry" in *..*)  die "مسیر شامل .. ممنوع: $entry" ;; esac
+  done < <(unzip -Z1 "$ZIP")
+  unzip -q "$ZIP" -d "$EXTRACT"
+else
+  die "python3 یا unzip باید روی سرور نصب باشد: apt install -y python3 unzip"
+fi
+ok "بسته استخراج شد"
+
+# ══════════════════════════════════════════════════════════════════════
+# ── 6 · اعمال — حالت Standalone (v34+ — بدون بیلد) ──
+# ══════════════════════════════════════════════════════════════════════
+if [ "$MODE" = "standalone" ]; then
+  HAS_FULL=0; HAS_CODE=0
+  [ -f "$EXTRACT/runtime/server.js" ] && HAS_FULL=1
+  [ -f "$EXTRACT/runtime-code/server.js" ] && HAS_CODE=1
+
+  if [ "$HAS_FULL" = "0" ] && [ "$HAS_CODE" = "0" ]; then
+    # بستهٔ فقط-سورس: روی نصب standalone اثری ندارد
+    warn "این بستهٔ به‌روزرسانی فقط کد منبع دارد و برای نصبِ از پیش ساخته‌شده قابل اعمال نیست."
+    say "برای به‌روزرسانی واقعی: بستهٔ کامل جدید (v34+) را دانلود کنید و install.sh آن را"
+    say "دوباره اجرا کنید — نصب idempotent است و داده‌ها (دیتابیس/آپلودها/.env) حفظ می‌شوند."
+    exit 0
+  fi
+
+  SRC="$EXTRACT/runtime"
+  [ "$HAS_FULL" = "1" ] || SRC="$EXTRACT/runtime-code"
+
+  say "پشتیبان‌گیری لحظه‌ای از داده‌ها…"
+  BK=".taj-update-backup-$$"
+  mkdir -p "$BK/db"
+  [ -s "db/custom.db" ] && cp "db/custom.db" "$BK/db/custom.db"
+  [ -d "public/uploads" ] && cp -a public/uploads "$BK/uploads"
+  [ -f ".env" ] && cp ".env" "$BK/.env"
+
+  say "تعویض فایل‌های برنامه (بدون بیلد — چند ثانیه)…"
+  systemctl stop taj-electronics 2>/dev/null || true
+
+  if [ "$HAS_FULL" = "1" ]; then
+    # تعویض کامل: همه‌چیز جز داده‌ها
+    find . -maxdepth 1 -mindepth 1 \
+      ! -name 'db' ! -name '.env' ! -name 'update.sh' ! -name '.taj-*' \
+      -exec rm -rf {} + 2>/dev/null || true
+    mkdir -p db public
+    cp -a "$SRC/." .
+  else
+    # تعویض کد: server.js + .next + prisma + scripts (node_modules نصب فعلی می‌ماند)
+    rm -rf .next server.js prisma scripts
+    mkdir -p public
+    cp -a "$SRC/." .
+    # public/ و prisma/ و scripts/ از بخش سورسِ همین بسته روی runtime overlay شوند
+    for d in public prisma scripts; do
+      [ -d "$EXTRACT/$d" ] && cp -a "$EXTRACT/$d/." "./$d/" 2>/dev/null || true
+    done
+  fi
+
+  # بازگردانی داده‌ها + نسخهٔ جدید
+  [ -s "$BK/db/custom.db" ] && mkdir -p db && cp "$BK/db/custom.db" db/custom.db
+  [ -d "$BK/uploads" ] && rm -rf public/uploads && cp -a "$BK/uploads" public/uploads
+  [ -f "$BK/.env" ] && cp "$BK/.env" .env
+  [ -f "$SRC/.version" ] && cp "$SRC/.version" .version
+  rm -rf "$BK"
+
+  say "ری‌استارت سرویس (اسکیما هم غیرمخرب همگام می‌شود)…"
+  systemctl restart taj-electronics
+
+  say "انتظار برای سلامت برنامه (/api/health)…"
+  HEALTHY=0
+  for _ in $(seq 1 90); do
+    if curl -fsS -o /dev/null --max-time 3 "http://127.0.0.1:3000/api/health" 2>/dev/null; then
+      HEALTHY=1; break
+    fi
+    sleep 2
+  done
+  [ "$HEALTHY" -eq 1 ] || { journalctl -u taj-electronics --no-pager -n 40 2>/dev/null || true; die "پس از به‌روزرسانی برنامه سالم برنگشت — لاگ بالا"; }
+
+  NEW_VERSION=""
+  [ -f .version ] && NEW_VERSION="$(cat .version | xargs)"
+  ok "به‌روزرسانی کامل شد — نسخهٔ جدید: ${NEW_VERSION:-$LATEST} ✓ (بدون هیچ بیلدی روی سرور)"
+  systemctl status taj-electronics --no-pager -l | head -5 || true
+  exit 0
+fi
+
+# ══════════════════════════════════════════════════════════════════════
+# ── 6 · اعمال — حالت Docker/سورس (نسخه‌های قدیمی — مثل قبل) ──
+# ══════════════════════════════════════════════════════════════════════
+ALLOWED_DIRS="src public prisma scripts runtime runtime-code"
+# v34: runtime/ + runtime-code/ (برنامهٔ از پیش ساخته‌شده) در بسته‌های جدید هستند؛
+# برای حالت Docker معنا ندارند — فقط اعتبارسنجی می‌شوند و بعد از استخراج حذف می‌شوند.
 ALLOWED_ROOTS="package.json next.config.ts tailwind.config.ts tsconfig.json postcss.config.mjs components.json eslint.config.mjs bun.lock"
 
 extract_with_python() {
@@ -165,7 +287,6 @@ PY
 }
 
 extract_with_unzip() {
-  # pre-validate every entry with the same rules
   while IFS= read -r entry; do
     [ -n "$entry" ] || continue
     case "$entry" in /*|\\*) die "مسیر مطلق ممنوع: $entry" ;; esac
@@ -192,8 +313,13 @@ else
 fi
 ok "کدهای جدید اعمال شدند (فایل‌های کاربران، دیتابیس و .env دست‌نخورده ماندند)"
 
-# keep the dependency lockfile in sync from GitHub (zips intentionally
-# don't carry it, so panel-apply stays compatible with every version)
+# v34: پوشه‌های runtime مخصوص نصب standalone بودند — در حالت Docker حذف می‌شوند
+# (داکر از سورس بیلد می‌کند و به برنامهٔ کامپایل‌شده نیاز ندارد)
+if [ -d runtime ] || [ -d runtime-code ]; then
+  rm -rf runtime runtime-code
+  say "پوشهٔ برنامهٔ آماده (runtime/) مخصوص نصب standalone بود — برای Docker نادیده گرفته شد"
+fi
+
 if curl -fsSL --max-time 20 "$REPO_RAW/bun.lock" -o bun.lock.new 2>/dev/null; then
   mv -f bun.lock.new bun.lock
   ok "bun.lock از گیت‌هاب همگام شد"
@@ -202,7 +328,7 @@ else
   warn "همگام‌سازی bun.lock ناموفق بود (بدون مشکل ادامه می‌دهیم)"
 fi
 
-# ── 6 · rebuild + restart (volumes preserved — data survives) ──────────
+# ── 7 · rebuild + restart (حالت Docker) ──
 if docker compose version >/dev/null 2>&1; then
   COMPOSE="docker compose"
 else

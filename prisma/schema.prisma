@@ -14,7 +14,11 @@ generator client {
   // detection resolves correctly; together both layers make the engine always
   // locatable. The CLI closure (scripts/prisma-cli-closure.js) copies the whole
   // generated .prisma client — engines included — into the runtime image.
-  binaryTargets = ["native", "debian-openssl-1.1.x", "debian-openssl-3.0.x"]
+  // v34: added RHEL-family (AlmaLinux/Rocky/RHEL 8+9) and Alpine targets so the
+  // pre-built standalone runtime ALSO runs on non-Debian servers (the v34
+  // installer no longer builds anything on the user's machine — engines must
+  // resolve everywhere the zip may be deployed).
+  binaryTargets = ["native", "debian-openssl-1.1.x", "debian-openssl-3.0.x", "rhel-openssl-1.1.x", "rhel-openssl-3.0.x", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {
