@@ -284,3 +284,19 @@ Stage Summary:
 - v31 نهایی: همهٔ خواسته‌ها اعمال/راستی‌آزمایی؛ فقط ۲ کامیت محلی (کد + docs) بدون push
 - فایل نهایی ۱۹.۹MB — a58966f3…71cb66 — قابل دانلود از litterbox تا ۷۲ ساعت
 - محدودیت sandbox (مرگ پروسه‌ها در مرز دستور) مستند شد؛ برای تست‌های زنده هر بار سرور در همان دستور بالا آمد
+
+---
+Task ID: 12
+Agent: main (Z.ai Code)
+Task: تحویل مجدد فایل نهایی v31 — جلسهٔ قبل موقع تحویل کرش کرد و فایل هرگز به چت کاربر نرسیده بود (کاربر فقط v29/v29.1/v29.2/v30 را در تسک داشت).
+
+Work Log:
+- راستی‌آزمایی کامل بستهٔ موجود: هر ۴ کپی zip (download/ + public/downloads/) هم‌hash با نسخهٔ نهایی a58966f3af58763351320b73f5c37346133d7c67f17ab8e224a941e16a71cb66 (۱۹,۸۵۷,۴۶۱ بایت)؛ `unzip -t` بدون خطا؛ اسپات‌چک محتوا (api/admin/backup/route.ts، maintenance-templates.tsx، chrome/mega-menus.tsx، auth/auth-shell.tsx) تأیید؛ کامیت خودکار آخر (d6efbf2) فقط worklog را تغییر داده بود → zip دقیقاً کد نهایی است.
+- لینک‌های litterbox جلسهٔ قبل (6hyiah / 8kuy6b) هنوز زنده بودند: 206 روی range → دانلود کامل ۶hyiah → sha256 = a58966f3… (تطابق کامل).
+- catbox.moe دائمی در این IP رد شد («Invalid uploader» حتی با UA مرورگر)؛ 0x0.st هم پاسخ نداد → رها شدند.
+- دو آینهٔ تازه ساخته و راستی‌آزمایی شدند: litterbox تازهٔ ۷۲ ساعته https://litter.catbox.moe/j3p1vb.zip (دانلود کامل + sha256 = a58966f3…) و gofile https://gofile.io/d/hBIFTCGX (md5 برابر 329b91dd1f99f5654e58cf727a2d3c55 + صفحهٔ دانلود 200).
+- هر دو فایل download/ بازنویسی شدند (inode/mtime تازه، ۲۳:۵۹ UTC) تا در پایان همین نوبت به‌عنوان فایل تسک پیوست شوند.
+
+Stage Summary:
+- تحویل v31 نهایی (a58966f3…) از ۳ کانال: پیوست فایل تسک (download/) + litterbox (تازه + قدیمی) + gofile.
+- هیچ تغییری در سورس/گیت/Release گیت‌هاب انجام نشد (git status clean، بدون push)؛ Release عمومی v31 همچنان بیلد قدیمی‌تر (02cd4e00…) و دست‌نخورده باقی ماند.
