@@ -38,6 +38,7 @@ import {
   Rocket, Boxes, Gem, Truck, ShieldCheck, Headphones as Support, CreditCard,
 } from "lucide-react";
 import type { HomeData, TemplateProduct } from "@/lib/templates/types";
+import { RAIL_URLS } from "@/lib/templates/slide-targets";
 import { useCart } from "@/hooks/use-store";
 import { formatPrice, toFaDigits } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -496,7 +497,7 @@ export function MobileFirstPwaTemplate({ data }: { data: HomeData }) {
         {bestsellers.length > 0 && (
           <section aria-labelledby="pr-best" className="mx-auto w-full max-w-7xl px-4 pb-14">
             <RevealOnScroll>
-              <PrHead id="pr-best" kicker="TOP CHART" title="پرفروش‌های این هفته" icon={TrendingUp} href="/products?sort=bestseller" />
+              <PrHead id="pr-best" kicker="TOP CHART" title="پرفروش‌های این هفته" icon={TrendingUp} href={RAIL_URLS.bestsellers} />
             </RevealOnScroll>
             <RevealOnScroll variant="zoom">
               <div className="pr-card flex flex-col divide-y pr-divide rounded-3xl">

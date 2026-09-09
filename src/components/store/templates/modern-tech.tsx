@@ -21,6 +21,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import type { HomeData, TemplateProduct } from "@/lib/templates/types";
+import { RAIL_URLS } from "@/lib/templates/slide-targets";
 import { formatPrice, toFaDigits } from "@/lib/format";
 import { useCart } from "@/hooks/use-store";
 import { StoryViewer } from "../story-viewer";
@@ -1214,7 +1215,7 @@ export function ModernTechTemplate({ data }: { data: HomeData }) {
               title="محصولات ویژه"
               sub="انتخاب کارشناسان تاج برای بهترین تجربه"
               icon={Star}
-              href="/products"
+              href={RAIL_URLS.featured}
             />
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
               {featured.map((p) => (

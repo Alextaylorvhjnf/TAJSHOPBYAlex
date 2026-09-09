@@ -50,6 +50,8 @@ model User {
   c2cPayments    CardToCardPayment[]
   tickets        SupportTicket[]
   ticketMessages SupportTicketMessage[]
+  // v33: linked Telegram bot subscribers (login by phone+password in-bot)
+  telegramSubscribers TelegramSubscriber[] @relation("TelegramSubscriberUser")
 
   // v29: one-time recovery phrase (login without password from the admin
   // login «فراموشی رمز» flow). Only its SHA-256 hash is stored — the plain
@@ -842,6 +844,80 @@ model AdminLog {
 
   @@index([adminId])
   @@index([createdAt])
+}
+
+// ─────────────────────────── v33 · Telegram Bot ───────────────────────────
+// Storefront Telegram bot — a full mini-shop inside Telegram (catalog, search,
+// AI consultant, compare, cart, checkout with ZarinPal / card-to-card, order
+// tracking, support tickets) plus an admin console for the shop owner
+// (orders, statuses, notes, c2c receipt approvals, ticket replies, broadcast).
+//
+// IMPORTANT FOR IRANIAN SERVERS: Telegram API (api.telegram.org) is filtered
+// in Iran — the bot only works when the shop is hosted OUTSIDE Iran
+// (Türkiye / Germany / UK are recommended). The friendly notice lives in
+// Settings → «ربات تلگرامی» and in the bot's welcome/help messages.
+//
+// Architecture (NO existing file is touched): the Next.js instrumentation
+// hook (src/instrumentation.ts) starts a long-polling loop
+// (src/lib/telegram/poller.ts) that calls the Telegram Bot API getUpdates and
+// dispatches every update to src/lib/telegram/* handlers — all inside the
+// same server process, sharing the Prisma client, settings, AI engine and
+// ZarinPal integration. Outbound notifications (order status changes, c2c
+// receipt approvals, ticket replies, new products) are emitted by a DB
+// snapshot-watcher (src/lib/telegram/watcher.ts), so the storefront/admin
+// routes stay 100% untouched.
+model TelegramBotSettings {
+  id          String    @id @default("main")
+  // Bot token from @BotFather (123456:ABC-…)
+  botToken    String?
+  // the shop owner's chat id(s) — the admin console (orders, tickets, …)
+  // opens for these chats. Multiple ids allowed, comma-separated.
+  adminChatId String?
+  enabled     Boolean   @default(false)
+  // welcome text shown on /start (null = designed default)
+  welcomeText String?
+  // polling cursor — the last processed update_id (Telegram offset)
+  lastUpdateId Int      @default(0)
+  // connection diagnostics surfaced in Settings → ربات تلگرامی
+  // OK | ERROR | OFF
+  connectionStatus String @default("OFF")
+  connectionError   String?
+  lastOkAt     DateTime?
+  lastErrorAt  DateTime?
+  botUsername  String? // cached getMe result for the admin UI
+  updatedAt    DateTime @updatedAt
+}
+
+// A Telegram user who started the bot (chat = the 1:1 DM with the bot).
+model TelegramSubscriber {
+  id            String   @id @default(cuid())
+  // Telegram chat id (signed 64-bit; the user's DM id)
+  chatId        String   @unique
+  // OPTIONAL link to the shop account (login by phone+password in-bot)
+  userId        String?
+  user          User?    @relation("TelegramSubscriberUser", fields: [userId], references: [id], onDelete: SetNull)
+  // Telegram profile snapshot
+  firstName     String?
+  lastName      String?
+  username      String?
+  // conversation state machine: "" | "ai" | "search" | "co:name" | …
+  state         String   @default("")
+  // JSON payload for the state (checkout form data, compare base, …)
+  stateData     String?
+  // JSON cart: [{ productId, qty, color }]
+  cart          String?
+  // subscribe to "new product" broadcasts (toggleable per subscriber)
+  notifyNewProducts Boolean @default(true)
+  // soft-block abusive chats
+  isBlocked     Boolean  @default(false)
+  // v33: chat ids listed in TelegramBotSettings.adminChatId are admin chats
+  // (they get the management console in addition to the shop).
+  lastSeenAt    DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId])
+  @@index([notifyNewProducts])
 }
 
 // ─────────────────────────── Installer ───────────────────────────

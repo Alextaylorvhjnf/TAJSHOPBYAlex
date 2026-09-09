@@ -14,6 +14,7 @@ import { db } from "@/lib/db";
 import { serializeProduct, productInclude, type ProductDTO } from "@/lib/product";
 import { getStoreSettings, parseTickerMessages, resolveTemplateFeatures, parseTemplateChrome, getTemplateFooterContent, parseStoreChrome } from "@/lib/settings";
 import { applyTemplateBrandToStore, getTemplateContentData } from "@/lib/templates/content";
+import { smartSliderUrl } from "./slide-targets";
 import type {
   HomeData,
   TemplateProduct,
@@ -308,7 +309,17 @@ export async function getHomeData(): Promise<HomeData> {
     // v23: the phone-specific artwork — templates render it on <sm screens
     mobileImage: s.mobileImage ?? null,
     ctaText: s.buttonText,
-    ctaUrl: s.buttonUrl,
+    // v33 (2-d): SMART slider target — a bare "/products" buttonUrl is
+    // resolved from the button text + title + badge into a FILTERED list
+    // («مشاهدهٔ گوشی‌ها» → ?category=mobile, «ورود به منطقهٔ گیمینگ» →
+    // ?q=گیمینگ) while an admin's specific URL passes through untouched.
+    // Sliders with NO CTA signal at all (neither buttonText nor buttonUrl)
+    // keep their null ctaUrl so templates keep linking the slide artwork to
+    // its related product instead of the generic product list.
+    ctaUrl:
+      s.buttonText || s.buttonUrl
+        ? smartSliderUrl({ buttonUrl: s.buttonUrl, text: s.buttonText, title: s.title, badge: s.badge })
+        : s.buttonUrl,
     product: s.product,
   }));
 
@@ -360,7 +371,13 @@ export async function getHomeData(): Promise<HomeData> {
     title: s.title,
     subtitle: s.subtitle,
     image: s.image,
-    buttonUrl: s.buttonUrl,
+    // v33 (2-d): same neutral smart treatment for showcase buttons — bare
+    // "/products" resolves from buttonText/title/badge, specific URLs pass.
+    // No CTA signal → keep the raw null so a linked product still wins.
+    buttonUrl:
+      s.buttonText || s.buttonUrl
+        ? smartSliderUrl({ buttonUrl: s.buttonUrl, text: s.buttonText, title: s.title, badge: s.badge })
+        : s.buttonUrl,
     product: s.product,
   }));
 

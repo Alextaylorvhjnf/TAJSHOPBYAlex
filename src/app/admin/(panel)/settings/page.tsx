@@ -81,6 +81,9 @@ import { RepairPage, type MaintenanceScreenData } from "@/components/store/maint
 import { resolveMaintenanceContent } from "@/lib/maintenance";
 /* v29.2: Update Script tab panel (self-contained component from the updater) */
 import { UpdatePanel } from "@/components/admin/update-panel";
+/* v33 (2-c): Telegram store-bot tab panel (token/chat-id/enable + connection
+ * test via /api/admin/settings/telegram(-test)) */
+import { TelegramBotTab } from "./telegram-bot-tab";
 import { formatPrice } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import {
@@ -3229,7 +3232,7 @@ function TemplateFooterLinksEditor({
  * history.replaceState (no navigation, no re-render churn).
  * v29.2: added the «به‌روزرسانی» tab — the Update Script panel (the
  * owner's «یه دونه هم گزینه اضافه کنیم به اسم Update Script»). */
-const SETTINGS_TABS = ["store", "maintenance", "branding", "appearance", "footer", "payment", "ai", "smtp", "update"] as const;
+const SETTINGS_TABS = ["store", "maintenance", "branding", "appearance", "footer", "payment", "ai", "smtp", "telegram", "update"] as const;
 type SettingsTabId = (typeof SETTINGS_TABS)[number];
 
 function useSettingsTab(): [SettingsTabId, (v: string) => void] {
@@ -3273,6 +3276,9 @@ export default function AdminSettingsPage() {
           <TabsTrigger value="payment" className="rounded-lg">درگاه‌های پرداخت</TabsTrigger>
           <TabsTrigger value="ai" className="rounded-lg">هوش مصنوعی</TabsTrigger>
           <TabsTrigger value="smtp" className="rounded-lg">ایمیل و SMTP</TabsTrigger>
+          {/* v33 (2-c): Telegram store bot — token, admin chat ids, welcome text,
+              enable + connection test + live status. */}
+          <TabsTrigger value="telegram" className="rounded-lg">ربات تلگرامی</TabsTrigger>
           <TabsTrigger value="update" className="rounded-lg">به‌روزرسانی اسکریپت</TabsTrigger>
         </TabsList>
         <TabsContent value="store" className="mt-4"><StoreTab /></TabsContent>
@@ -3283,6 +3289,7 @@ export default function AdminSettingsPage() {
         <TabsContent value="payment" className="mt-4"><PaymentTab /></TabsContent>
         <TabsContent value="ai" className="mt-4"><AITab /></TabsContent>
         <TabsContent value="smtp" className="mt-4"><SMTPTab /></TabsContent>
+        <TabsContent value="telegram" className="mt-4"><TelegramBotTab /></TabsContent>
         {/* v29.2: Update Script — check for a new version, download + apply
             it (code-only; data/db/uploads never touched). Self-contained
             panel from @/components/admin/update-panel. */}

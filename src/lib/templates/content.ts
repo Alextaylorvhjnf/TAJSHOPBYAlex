@@ -16,6 +16,9 @@
 
 import { z } from "zod";
 import type { HomeData, TemplateStore } from "./types";
+// v33 (2-d): pure helper — template-content slides/showcases with a bare
+// "/products" link get the same smart keyword treatment as global sliders.
+import { smartSliderUrl } from "./slide-targets";
 
 // ─────────────────────────── content types ───────────────────────────
 
@@ -553,7 +556,11 @@ function toHomeSlide(s: TemplateSlide, i: number): HomeSlide {
     image: s.image,
     mobileImage: null,
     ctaText: null,
-    ctaUrl: s.link?.trim() || null,
+    // v33 (2-d): smart slider target — a specific admin link passes through,
+    // a bare "/products" (or a missing link) is keyword-resolved from the
+    // title/subtitle so the CTA lands on a FILTERED product list. These
+    // template slides never carry a linked product, so no fallback is lost.
+    ctaUrl: smartSliderUrl({ buttonUrl: s.link?.trim() || null, title: s.title, badge: s.subtitle }),
     product: null,
     /* v32: countdown + video ride along so hero templates can render them */
     ...(s.videoUrl?.trim() ? { videoUrl: s.videoUrl.trim() } : {}),
@@ -573,7 +580,9 @@ function toHomeShowcase(s: TemplateShowcase, i: number): HomeShowcase {
     title: s.title?.trim() || "",
     subtitle: null,
     image: s.image,
-    buttonUrl: s.link?.trim() || null,
+    // v33 (2-d): smart target — specific link passes, bare "/products"
+    // resolves from the showcase title.
+    buttonUrl: smartSliderUrl({ buttonUrl: s.link?.trim() || null, title: s.title }),
     product: null,
   };
 }

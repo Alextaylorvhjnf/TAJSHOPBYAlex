@@ -31,6 +31,7 @@ import {
   BadgeCheck, Sparkles, Diamond, Megaphone, ArrowLeft, ShieldCheck, Timer,
 } from "lucide-react";
 import type { HomeData, TemplateProduct, TemplateSlide, TemplateStore } from "@/lib/templates/types";
+import { RAIL_URLS } from "@/lib/templates/slide-targets";
 import { useCart } from "@/hooks/use-store";
 import { formatPrice, toFaDigits } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -683,7 +684,7 @@ export function LuxuryElectronicsTemplate({ data }: { data: HomeData }) {
       {data.featured.length > 0 && (
         <section className="mx-auto w-full max-w-[1440px] px-4 pt-16" aria-labelledby="le-featured">
           <Reveal>
-            <LuxHeader id="le-featured" eyebrow="La Vitrine" title="گزیده ویترین" subtitle="انتخاب سرآشپز" href="/products" />
+            <LuxHeader id="le-featured" eyebrow="La Vitrine" title="گزیده ویترین" subtitle="انتخاب سرآشپز" href={RAIL_URLS.featured} />
             <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
               {data.featured.slice(0, 8).map((p) => <LuxCard key={p.id} product={p} />)}
             </div>
@@ -793,7 +794,7 @@ export function LuxuryElectronicsTemplate({ data }: { data: HomeData }) {
       {data.newest.length > 0 && (
         <section className="mx-auto w-full max-w-[1440px] px-4 pt-16" aria-labelledby="le-newest">
           <Reveal>
-            <LuxHeader id="le-newest" eyebrow="Les Nouveautés" title="تازه‌رسیده‌ها" subtitle="جدیدترین‌های سالن" href="/products" />
+            <LuxHeader id="le-newest" eyebrow="Les Nouveautés" title="تازه‌رسیده‌ها" subtitle="جدیدترین‌های سالن" href={RAIL_URLS.newest} />
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
               {data.newest.slice(0, 8).map((p) => (
                 <Link key={p.id} href={`/products/${p.slug}`} className="le-card le-glass group flex flex-col overflow-hidden rounded-[1.4rem]">

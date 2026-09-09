@@ -1,8 +1,8 @@
 {
-  "version": "27.0.0",
-  "releasedAt": "2026-09-09T04:56:21.494Z",
-  "notes": "v32: پنل مدیریت حرفه‌ای با ۴ تم رنگی و نمودارها، به‌روزرسانی بدون تنظیمات متصل به گیت‌هاب + اعلان خودکار، محتوای اختصاصی قالب‌ها با پیش‌فرض‌های پرشده + شمارش معکوس/GIF/ویدئو، حالت تعمیر ۲.۰، گیمینگ حرفه‌ای، پرمیوم ریسپانسیو، هدر بیلدر + افکت‌های هاور، مگامنوی جمع‌وجور، ۱۰۰ محصول با تصویر منطبق + بنرهای جدید",
-  "zipUrl": "https://raw.githubusercontent.com/Alextaylorvhjnf/TAJSHOPBYAlex/main/updates/taj-electronics-update-27.0.0.zip",
-  "sha256": "07a6a36829d04cf4e5b304bbfe0af32f5778ef23969dfea1ecc55c7d60d71614",
+  "version": "28.0.0",
+  "releasedAt": "2026-09-09T06:20:44.457Z",
+  "notes": "v33 (28.0.0): ربات تلگرام فروشگاهی کامل (فروشگاه + AI + پرداخت + تیکت + پنل مدیریت ادمین داخل تلگرام) + فیلتر واقعی اسلایدرها و دکمه‌های «مشاهده همه» در همه قالب‌ها",
+  "zipUrl": "https://raw.githubusercontent.com/Alextaylorvhjnf/TAJSHOPBYAlex/main/updates/taj-electronics-update-28.0.0.zip",
+  "sha256": "ef70d19d3e54a500d5bce420b8e21d9b21f27f67d130c25685633196110fe339",
   "minAppVersion": "24.0.0"
 }

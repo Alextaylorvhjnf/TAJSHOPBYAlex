@@ -29,6 +29,7 @@ import {
   Sparkles, Rocket, Crown,
 } from "lucide-react";
 import type { HomeData, TemplateProduct } from "@/lib/templates/types";
+import { RAIL_URLS } from "@/lib/templates/slide-targets";
 import { useCart } from "@/hooks/use-store";
 import { formatPrice, toFaDigits } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -424,7 +425,7 @@ export function SuperstoreGridTemplate({ data }: { data: HomeData }) {
             <div className="mx-auto max-w-7xl">
               <RevealOnScroll variant="start">
                 <div id="sg-aisle2">
-                  <AisleHead icon={Crown} kicker="قفسهٔ پرفروش‌ها" title="چرخ‌های همیشه‌پرچرخ سوپر" href="/products?sort=bestseller" n={nextAisle()} />
+                  <AisleHead icon={Crown} kicker="قفسهٔ پرفروش‌ها" title="چرخ‌های همیشه‌پرچرخ سوپر" href={RAIL_URLS.bestsellers} n={nextAisle()} />
                 </div>
               </RevealOnScroll>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">

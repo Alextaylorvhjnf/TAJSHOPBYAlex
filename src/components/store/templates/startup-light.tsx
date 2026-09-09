@@ -30,6 +30,7 @@ import {
   ShieldCheck, Truck, CreditCard, Headset, Rocket, ArrowLeft, Megaphone,
 } from "lucide-react";
 import type { HomeData, TemplateProduct } from "@/lib/templates/types";
+import { RAIL_URLS } from "@/lib/templates/slide-targets";
 import { useCart } from "@/hooks/use-store";
 import { formatPrice, toFaDigits } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -535,7 +536,7 @@ export function StartupLightTemplate({ data }: { data: HomeData }) {
           <section className="relative px-4 py-10" aria-labelledby="sl-best">
             <div className="mx-auto max-w-7xl">
               <Reveal>
-                <SoftHead kicker="پرفروش‌ها" title="انتخاب مشتری‌های ما" href="/products?sort=bestseller" icon={TrendingUp} />
+                <SoftHead kicker="پرفروش‌ها" title="انتخاب مشتری‌های ما" href={RAIL_URLS.bestsellers} icon={TrendingUp} />
                 <div className="grid gap-3 md:grid-cols-2">
                   {bestsellers.map((p, i) => (
                     <Link
