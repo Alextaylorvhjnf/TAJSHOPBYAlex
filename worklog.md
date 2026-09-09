@@ -525,3 +525,21 @@ Work Log:
 Stage Summary:
 - Files: NEW src/lib/templates/slide-targets.ts + scripts/fix-slider-links-v33.mjs + scripts/tmp/test-slide-targets.mjs; CHANGED src/app/(store)/products/page.tsx, src/lib/templates/home-data.ts, src/lib/templates/content.ts, src/components/store/hero-slider.tsx, and 9 template files (startup-light, mobile-first-pwa, superstore-grid, christmas, autumn, yalda-night, modern-tech, luxury-electronics, social-commerce) + both sqlite DBs (slider rows).
 - Every slider/showcase CTA now lands on a FILTERED list (smart keyword resolution at render time + the seeded rows fixed at the source in BOTH DBs so fresh installs get it too), every homepage rail «مشاهده همه» maps to its own kind (?featured=1 / ?sort=newest / ?sort=bestselling / ?discount=1 / ?special=1), the products page understands all of them (with Persian headings + metadata), and the ?sort=bestseller typo from the shipped template is aliased AND fixed at the source. Admin's explicit slider links always win; product-linked buttonless slides keep their product fallback.
+
+---
+Task ID: 16
+Agent: main (Z.ai Code)
+Task: v33 (28.0.0) — ربات تلگرام فروشگاهی کامل + فیلتر واقعی اسلایدرها/«مشاهده همه» + بسته‌بندی و تحویل
+
+Work Log:
+- Prisma: مدل‌های جدید TelegramBotSettings + TelegramSubscriber (+relation روی User) → db push + generate (غیرمخرب).
+- Task 2-c (subagent): تب «ربات تلگرامی» در Settings (فروشگاه/درگاه‌ها pattern) + api/admin/settings/telegram (GET ماسک توکن، PUT با اعتبارسنجی) + telegram-test (getMe + sendMessage به ادمین‌ها + دیاگnostics؛ پیام مؤدبانه فیلترینگ ایران/سرور ترکیه-آلمان-انگلیس).
+- Task 2-d (subagent): slide-targets.ts (resolver هوشمند متن دکمه→URL فیلتردار با ۲۴ قاعده + نرمال‌سازی فارسی)؛ products/page: ?featured=1/?special=1 + عنوان‌ها + alias bestseller؛ home-data/content/hero-slider از resolver رد شدند؛ ۱۲ rail href در ۹ قالب اصلاح؛ scripts/fix-slider-links-v33.mjs روی هر دو DB اجرا شد («گوشی‌ها»→?category=mobile, «لپ‌تاپ‌ها»→laptop, «گیمینگ»→?q=گیمینگ).
+- Task 2-b (main — هسته ربات، ~2600 خط): src/lib/telegram/{api,types,common,views,flows,ai-chat,tickets-bot,admin,watcher,poller} + src/instrumentation.ts. Polling درون‌پروسه‌ای (getUpdates ۲۵s) + watcher اطلاع‌رسانی snapshot-based هر ۱۲s (وضعیت سفارش/تایید زرین‌پال/رسید c2c/پاسخ تیکت/محصول جدید) — هیچ فایل قدیمی تغییر نکرد. فلوی کامل: کاتالوگ/جستجو/AI (runAIChat سایت)/مقایسه/سبد/checkout ۷ قدمی/زرین‌پال (دکمهٔ StartPay + callback سایت)/کارت‌به‌کارت (عکس رسید→ذخیره sharp→CardToCardPayment→تایید ادمین با markOrderPaid)/پیگیری/تیکت/اتصال حساب (bcrypt)/پنل ادمین (آمار، سفارش‌ها+وضعیت+یادداشت، رسیدها، تیکت‌ها، broadcast).
+- تست: ۴۵/۴۵ سبز (۲۲ فلوی پایه + ۲۳ رسید/زرین‌پال/لینک/تیکت) با fetch ماک‌شده؛ AI state-flow هم اوکی. داده‌های تست پاک شدند.
+- QA مرورگر: صفحهٔ اصلی بدون خطا، اسلایدر «لپ‌تاپ‌ها»→?category=laptop، /products?category|discount|special|featured همه رندر درست (عنوان «محصولات تخفیف‌دار» به heading اضافه شد)، تب ربات تلگرامی (فیلدها، ذخیرهٔ welcomeText از API، ماسک توکن، دکمه‌ها)، ۳۹۰px بدون اسکرول افقی، فوتر صحیح.
+- انتشار: bump ۲۷→۲۸.۰.۰ (package.json/update.sh/release-update.mjs/README) + RELEASE-NOTES-v33.md + ورودی changelog README؛ release-update.mjs --no-push → کامیت cccb05d + updates/taj-electronics-update-28.0.0.zip + مانیفست (sha256 ef70d19d…)؛ git archive → بستهٔ کامل ۸۴۰ فایل / ۱۱۸,۰۷۶,۰۹۳ بایت / SHA-256 aee9aebf…c1f8.
+- تحویل: download/ + public/downloads/ (taj-electronics-v33.zip + «Taj Electronics Main V13 VC.zip» هر دو v33، فایل‌های v32 حذف شدند) + RELEASE-NOTES؛ litterbox ۷۲h ×۲: https://litter.catbox.moe/8sjiv1.zip (hash تطبیق کامل) و https://litter.catbox.moe/yvyr42.zip. gofile/file.io/bashupload/0x0 این بار پاسخ ندادند (فقط لینک‌های litterbox + پیوست تسک).
+
+Stage Summary:
+- v33 نهایی: ربات تلگرام کامل (فروشگاه+AI+پرداخت+تیکت+پنل ادمین) بدون تغییر در فایل‌های قدیمی؛ فیلتر اسلایدر/rail در ۲۳ قالب + هر دو DB؛ ۴۵ تست سبز + QA مرورگر سبز؛ بستهٔ ۱۱۸MB آماده از پیوست تسک/لینک‌ها؛ گیت کامیت شد بدون push (کاربر خودش push می‌کند).
