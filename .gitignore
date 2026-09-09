@@ -87,3 +87,8 @@ backups/
 
 # runtime-delivered download files (served by dev/preview, never committed)
 public/downloads/
+
+# v34.1: the AI connection-test API route lives at src/app/api/ai/test —
+# re-include it (the broad `test` ignore pattern above would hide it)
+!src/app/api/ai/test/
+!src/app/api/ai/test/route.ts
