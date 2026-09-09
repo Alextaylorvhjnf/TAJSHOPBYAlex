@@ -664,8 +664,7 @@ export function UpdatePanel() {
               {checkResult.runtime === "standalone" && (
                 <p className="flex items-start gap-1.5 rounded-lg bg-primary/5 p-2.5 text-[11px] leading-5 text-primary">
                   <Wrench className="mt-0.5 h-4 w-4 shrink-0" />
-                  نصب داکری (standalone) شناسایی شد: دکمهٔ نصب، فایل‌های عمومی (public) و ساختار دیتابیس را داخل کانتینر اعمال می‌کند؛ برای اعمال کامل کدهای برنامه (src) همین فایل ZIP از گیت‌هاب را با اسکریپت{" "}
-                  <span dir="ltr" className="font-mono">./update.sh</span> روی سرور نصب کنید — حجم‌های دیتا در هر دو مسیر دست‌نخورده می‌مانند.
+                  نصب استندالون (برنامهٔ از پیش ساخته‌شده) شناسایی شد: دکمهٔ نصب علاوه بر کد منبع، برنامهٔ کامپایل‌شده را نیز کامل تعویض می‌کند (بدون نیاز به بیلد یا اجرای دستور اضافه) — دیتابیس، آپلودها و .env دست‌نخورده می‌مانند.
                 </p>
               )}
 

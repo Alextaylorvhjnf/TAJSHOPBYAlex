@@ -50,15 +50,36 @@ export const GITHUB_MANIFEST_URL =
   "https://raw.githubusercontent.com/Alextaylorvhjnf/TAJSHOPBYAlex/main/updates/update-manifest.json";
 
 /**
+ * TRUE when the running process serves a PREBUILT standalone runtime —
+ * server.js + .next at the app root (the v34 "full package" install at
+ * /var/www/taj-electronics, or the production Docker image where /app
+ * carries the standalone output). Such installs run COMPILED code: a
+ * src-only panel apply can never change what is actually served.
+ *
+ * Guarded to production on purpose: a dev workspace (this repo!) also has
+ * server.js + .next at the root, but .next there belongs to `next dev` —
+ * swapping it under a running Turbopack dev server would corrupt it.
+ */
+function hasPrebuiltRuntime(): boolean {
+  if (process.env.NODE_ENV !== "production") return false;
+  try {
+    return existsSync(path.join(APP_ROOT, "server.js")) && existsSync(path.join(APP_ROOT, ".next"));
+  } catch {
+    return false;
+  }
+}
+
+/**
  * TRUE when the app runs from a prebuilt standalone output (the production
- * Docker image: /app has server.js but NO src/ folder). Used to give the
- * admin an honest hint: panel apply still delivers public/ + prisma schema,
- * but full src changes need ./update.sh on the server host (which rebuilds
- * the image from the same GitHub zip — data volumes are preserved).
+ * Docker image: /app has server.js but NO src/ folder, or a v34+ flattened
+ * install with server.js + .next). v34.2: the panel updater now swaps the
+ * prebuilt runtime itself when the zip carries runtime-code/, so this label
+ * only steers the panel's informational hint — it no longer limits what the
+ * install button can apply.
  */
 export function isStandaloneRuntime(): boolean {
   try {
-    return !existsSync(path.join(APP_ROOT, "src"));
+    return hasPrebuiltRuntime() || !existsSync(path.join(APP_ROOT, "src"));
   } catch {
     return false;
   }
@@ -423,8 +444,22 @@ async function copyTree(src: string, dest: string): Promise<number> {
       count += await copyTree(s, d);
     } else if (e.isFile()) {
       await fsp.mkdir(path.dirname(d), { recursive: true });
-      await fsp.copyFile(s, d); // overwrites
-      count++;
+      /* v34.2 · write-then-rename (ATOMIC): copyFile truncates the
+       * destination FIRST — if the running process has that file open or
+       * mmap'd (the prisma query engine .node binary IS), a live DB query
+       * in that window dies with SIGBUS and crashes the server mid-update
+       * (the panel's own status polling triggers it!). Renaming a fresh
+       * temp file over the destination swaps the inode atomically: the
+       * running process keeps the old inode, the next boot opens the new. */
+      const tmp = `${d}.taj-tmp-${process.pid}-${count}`;
+      try {
+        await fsp.copyFile(s, tmp);
+        await fsp.rename(tmp, d);
+        count++;
+      } catch (err) {
+        await fsp.rm(tmp, { force: true }).catch(() => null);
+        throw err; // propagate — the apply is transactional per-file
+      }
     }
     /* symlinks were rejected before extraction — ignore anything else */
   }
@@ -559,11 +594,9 @@ async function runUpdate(params: RunParams): Promise<void> {
     await fsp.rm(EXTRACT_DIR, { recursive: true, force: true }).catch(() => null);
     await fsp.mkdir(EXTRACT_DIR, { recursive: true });
     zip.extractAllTo(EXTRACT_DIR, true);
-    // v34: discard the pre-built runtime folders (validated above, applied
-    // only by update.sh on the server — the panel never swaps compiled code)
-    for (const d of RUNTIME_DIRS) {
-      await fsp.rm(path.join(EXTRACT_DIR, d), { recursive: true, force: true }).catch(() => null);
-    }
+    // v34.2: runtime-code/ STAYS in the extract now — when the install runs a
+    // prebuilt runtime, step 5.5 swaps the compiled app from it (mirrors
+    // update.sh's standalone branch). Source-only installs never see it.
     await assertExtractedTreeSafe(EXTRACT_DIR); // lstat walk — symlink/escape double-check
     writeUpdateState({ percent: 55, message: `استخراج کامل شد (${replacedFiles.length.toLocaleString("fa-IR")} فایل)` }, [
       `استخراج کامل شد: ${replacedFiles.length} فایل`,
@@ -596,6 +629,7 @@ async function runUpdate(params: RunParams): Promise<void> {
     let applied = 0;
     const topItems = await fsp.readdir(EXTRACT_DIR, { withFileTypes: true });
     for (const item of topItems) {
+      if (RUNTIME_DIRS.has(item.name)) continue; // handled by step 5.5 (prebuilt installs)
       const verdict = validateEntryPath(item.isDirectory() ? `${item.name}/` : item.name, 0);
       if (!verdict.ok) throw new Error(`بستهٔ به‌روزرسانی رد شد — ${verdict.reason}`);
       const src = path.join(EXTRACT_DIR, item.name);
@@ -607,8 +641,95 @@ async function runUpdate(params: RunParams): Promise<void> {
         await fsp.copyFile(src, dest);
       }
     }
-    writeUpdateState({ percent: 90, message: `فایل‌ها اعمال شدند (${applied.toLocaleString("fa-IR")} فایل)` }, [
-      `${applied} فایل روی کد فعلی اعمال شد`,
+
+    /* 5.5 ─ v34.2 · swap the PREBUILT runtime (the real 404 fix) ────
+     * Root cause of the owner-reported /api/ai/test 404 on app 29.0.1:
+     * the panel applied the SOURCE of 29.0.1 but the install runs the
+     * COMPILED .next — the running app never changed, so every new API
+     * route 404'd. When this install serves a prebuilt runtime (server.js +
+     * .next, production) and the zip carries runtime-code/ (the prebuilt
+     * app + the prisma client closure with multi-platform engines), we now
+     * swap the compiled app too — same file set and same data protections
+     * as update.sh's standalone branch, zero build on the server:
+     *   • .next/          → staged beside the live one, then two renames
+     *                       (atomic on the same fs; downtime ≈ milliseconds)
+     *   • server.js, .version, update.sh, bun.lock, db-seed/  → copied
+     *   • node_modules/{.bin, .prisma/client, @prisma/client} → MERGED
+     *                       (the prisma client closure; engines for every
+     *                       Linux target ship inside the zip)
+     *   • db/, public/uploads/, .env, prisma/, scripts/, src/  → NEVER
+     *                       touched here (src/prisma/scripts/public were
+     *                       already applied by step 5; data is untouchable)
+     * The old .next is kept in the backup dir (rename, not copy → free).
+     */
+    let runtimeSwapped = false;
+    let runtimeFiles = 0;
+    const rcDir = path.join(EXTRACT_DIR, "runtime-code");
+    if (hasPrebuiltRuntime() && existsSync(path.join(rcDir, "server.js"))) {
+      setPhase("applying", 82, "تعویض برنامهٔ کامپایل‌شده (بدون بیلد)…", [
+        "نصب استندالون (برنامهٔ از پیش ساخته‌شده) شناسایی شد — تعویض کد کامپایل‌شده",
+      ]);
+
+      /* back up the small runtime files that are about to be replaced */
+      for (const rel of ["server.js", ".version", "update.sh", "bun.lock"]) {
+        const current = path.join(APP_ROOT, rel);
+        try {
+          await fsp.access(current);
+          await fsp.mkdir(path.dirname(path.join(backupDir, rel)), { recursive: true });
+          await fsp.copyFile(current, path.join(backupDir, rel));
+        } catch {
+          /* new file — nothing to back up */
+        }
+      }
+
+      /* 1 · stage the new .next BESIDE the live one (same filesystem) */
+      const staging = path.join(APP_ROOT, ".next-staging");
+      await fsp.rm(staging, { recursive: true, force: true }).catch(() => null);
+      runtimeFiles += await copyTree(path.join(rcDir, ".next"), staging);
+
+      /* 2 · live .next → backup dir (instant rename; keeps a rollback copy) */
+      const backupNext = path.join(backupDir, ".next");
+      await fsp.rm(backupNext, { recursive: true, force: true }).catch(() => null);
+      await fsp.rename(path.join(APP_ROOT, ".next"), backupNext);
+
+      /* 3 · staged → live (rename; copy fallback if the fs disagrees) */
+      try {
+        await fsp.rename(staging, path.join(APP_ROOT, ".next"));
+      } catch {
+        runtimeFiles += await copyTree(staging, path.join(APP_ROOT, ".next"));
+        await fsp.rm(staging, { recursive: true, force: true }).catch(() => null);
+      }
+
+      /* 4 · the rest of the prebuilt app (small files + client closure) */
+      for (const name of ["server.js", ".version", "update.sh", "bun.lock", "db-seed"]) {
+        const from = path.join(rcDir, name);
+        if (!existsSync(from)) continue;
+        const st = await fsp.stat(from);
+        const to = path.join(APP_ROOT, name);
+        if (st.isDirectory()) {
+          runtimeFiles += await copyTree(from, to);
+        } else {
+          await fsp.mkdir(path.dirname(to), { recursive: true });
+          await fsp.copyFile(from, to);
+          runtimeFiles++;
+        }
+      }
+      const rcNodeModules = path.join(rcDir, "node_modules");
+      if (existsSync(rcNodeModules)) {
+        // MERGE into the existing node_modules (never delete what's there)
+        for (const sub of await fsp.readdir(rcNodeModules, { withFileTypes: true })) {
+          runtimeFiles += await copyTree(path.join(rcNodeModules, sub.name), path.join(APP_ROOT, "node_modules", sub.name));
+        }
+      }
+
+      runtimeSwapped = true;
+      writeUpdateState({ percent: 88, message: `برنامهٔ کامپایل‌شده تعویض شد (${runtimeFiles.toLocaleString("fa-IR")} فایل)` }, [
+        `.next + فایل‌های اجرایی تعویض شد (${runtimeFiles} فایل) — بدون بیلد روی سرور`,
+      ]);
+    }
+
+    writeUpdateState({ percent: 90, message: `فایل‌ها اعمال شدند (${(applied + runtimeFiles).toLocaleString("fa-IR")} فایل)` }, [
+      `${applied} فایل کد منبع${runtimeSwapped ? ` + ${runtimeFiles} فایل برنامهٔ کامپایل‌شده` : ""} روی کد فعلی اعمال شد`,
     ]);
 
     /* 6 ── migrate (additive prisma db push — data never dropped) ── */
@@ -626,13 +747,24 @@ async function runUpdate(params: RunParams): Promise<void> {
     } catch {
       /* marker best-effort */
     }
-    const standalone = isStandaloneRuntime();
-    if (standalone) {
-      // Docker / standalone build: public/ assets + prisma/ schema + db push
-      // are applied inside the container, but compiled server code only
-      // changes after a rebuild — tell the admin exactly that (update.sh on
-      // the server host performs the same GitHub download + rebuild, data
-      // volumes are preserved).
+    if (runtimeSwapped) {
+      // v34.2: the compiled app itself was swapped — the restart below boots
+      // the NEW runtime. No ./update.sh needed; data was never touched.
+      setPhase(
+        "done",
+        100,
+        `به‌روزرسانی ${version} کامل نصب شد — برنامهٔ کامپایل‌شده نیز تعویض شد و فروشگاه در حال راه‌اندازی مجدد است`,
+        [
+          `نسخهٔ نصب‌شده: ${version}`,
+          "کد کامپایل‌شده (.next) تعویض شد — قابلیت‌های جدید پس از ری‌استارت فعال می‌شوند",
+          `پشتیبان کد قبلی: db/${BACKUP_PREFIX}${stamp}`,
+        ]
+      );
+    } else if (isStandaloneRuntime()) {
+      // Prebuilt install but the zip had no runtime-code/ (source-only
+      // package): public/ + prisma schema + db push applied; compiled server
+      // code needs ./update.sh on the server host — tell the admin exactly
+      // that (data volumes are preserved).
       setPhase(
         "done",
         100,
@@ -681,6 +813,8 @@ async function runUpdate(params: RunParams): Promise<void> {
     applying = false;
     // temp cleanup (the download zip is kept on error for inspection)
     await fsp.rm(EXTRACT_DIR, { recursive: true, force: true }).catch(() => null);
+    // a half-staged runtime swap never leaves junk behind
+    await fsp.rm(path.join(APP_ROOT, ".next-staging"), { recursive: true, force: true }).catch(() => null);
     if (readUpdateState().phase !== "error") {
       await fsp.rm(DOWNLOAD_FILE, { force: true }).catch(() => null);
     }

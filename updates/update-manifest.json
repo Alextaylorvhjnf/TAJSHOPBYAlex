@@ -1,8 +1,8 @@
 {
-  "version": "29.0.1",
-  "releasedAt": "2026-09-09T17:20:00.000Z",
-  "notes": "نسخهٔ ۲۹.۰.۱ (v34.1): رفع خطای ۴۰۳ تست اتصال هوش مصنوعی (مسیر /api/ai/test + تشخیص دقیق خطاهای 403/429/timeout)، رفع کامل خطای ویزارد و دیتابیس هنگام نصب (شیم اصلاح‌شدهٔ prisma + خودترمیمی DATABASE_URL + کلاینت قابل‌بازنشانی)، پایداری سرور و رفع خطای duplicate column، و افزودن دکمهٔ «خرید از ربات تلگرامی» در فوتر همهٔ قالب‌ها + فیلد «لینک ربات تلگرام» در تنظیمات پنل — داده‌های کاربران (دیتابیس، آپلودها، .env) کاملاً محفوظ",
-  "zipUrl": "https://raw.githubusercontent.com/Alextaylorvhjnf/TAJSHOPBYAlex/main/updates/taj-electronics-update-29.0.1.zip",
-  "sha256": "f931da6ac296298c026919f10978a103f27a725a9e963e5d449fb8d67cd640e8",
+  "version": "29.0.2",
+  "releasedAt": "2026-09-09T19:19:32.000Z",
+  "notes": "نسخهٔ ۲۹.۰.۲ (v34.2): رفع قطعی خطای 404 «تست اتصال» هوش مصنوعی — از این نسخه، دکمهٔ نصب پنل برنامهٔ کامپایل‌شده (runtime) و کلاینت Prisma را هم کامل تعویض می‌کند (بدون بیلد). نکته: برای این اولین ارتقا، یک‌بار «bash update.sh» را در پوشهٔ نصب سرور اجرا کنید تا runtime جدید فعال شود؛ بعد از آن همهٔ به‌روزرسانی‌ها از خود پنل کامل اعمال می‌شوند. داده‌ها (دیتابیس/آپلودها/.env) محفوظ می‌مانند.",
+  "zipUrl": "https://raw.githubusercontent.com/Alextaylorvhjnf/TAJSHOPBYAlex/main/updates/taj-electronics-update-29.0.2.zip",
+  "sha256": "14d4c16ad727b88bce00e8af875df107823800bbb9420150693a8fdefd662405",
   "minAppVersion": "24.0.0"
 }
