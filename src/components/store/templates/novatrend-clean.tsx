@@ -26,7 +26,7 @@ import { formatPrice, toFaDigits } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { Reveal } from "../reveal";
 import { StoriesRow, type StoryItem } from "../stories-row";
-import { SlideArt } from "./slide-image";
+import { SlideCountdown, SlideHeroMedia, SLIDE_MEDIA_CSS } from "./slide-media";
 import { TemplateHeader } from "./chrome/header";
 import { TemplateFooter } from "./chrome/footer";
 import { TEMPLATE_CHROME } from "./chrome/config";
@@ -288,7 +288,7 @@ export function NovatrendCleanTemplate({ data }: { data: HomeData }) {
 
   return (
     <div data-template-chrome="1" data-tpl="novatrend-clean" className="isolate w-full bg-white text-[#1A1A1A]">
-      <style>{NOVATREND_CSS}</style>
+      <style>{NOVATREND_CSS + SLIDE_MEDIA_CSS}</style>
       <TemplateHeader data={data} cfg={chrome.header} />
 
       <div className="relative mx-auto w-full max-w-[1280px]">
@@ -353,7 +353,13 @@ export function NovatrendCleanTemplate({ data }: { data: HomeData }) {
                 ) : heroSlide ? (
                   <Link href={heroSlide.ctaUrl ?? "/products"} aria-label={heroSlide.title} className="tv-bob absolute inset-4 z-[2]">
                     <span className="relative block h-full overflow-hidden rounded-[2.5rem] shadow-2xl">
-                      <SlideArt slide={heroSlide} alt={heroSlide.title} fill priority sizes="(max-width: 1024px) 80vw, 34vw" className="object-cover" />
+                      {/* v32: per-slide hero video + countdown chip */}
+                      <SlideHeroMedia slide={heroSlide} alt={heroSlide.title} fill priority sizes="(max-width: 1024px) 80vw, 34vw" className="object-cover" />
+                      {heroSlide.countdownEnabled && heroSlide.countdownTarget ? (
+                        <span className="absolute inset-x-3 bottom-3 z-[2] flex justify-center">
+                          <SlideCountdown target={heroSlide.countdownTarget} label={heroSlide.countdownLabel} />
+                        </span>
+                      ) : null}
                     </span>
                   </Link>
                 ) : (
@@ -442,7 +448,12 @@ export function NovatrendCleanTemplate({ data }: { data: HomeData }) {
               {extraSlides.map((s) => (
                 <Link key={s.id} href={s.ctaUrl ?? "/products"} className="group relative block overflow-hidden rounded-[2.5rem]">
                   <span className="relative block aspect-[16/7] bg-gray-50">
-                    <SlideArt slide={s} alt={s.title} fill sizes="(max-width: 640px) 92vw, 46vw" className="object-cover transition-transform duration-700 group-hover:scale-105" />
+                    <SlideHeroMedia slide={s} alt={s.title} fill sizes="(max-width: 640px) 92vw, 46vw" className="object-cover transition-transform duration-700 group-hover:scale-105" />
+                    {s.countdownEnabled && s.countdownTarget ? (
+                      <span className="absolute bottom-4 end-4 z-[2]">
+                        <SlideCountdown target={s.countdownTarget} label={s.countdownLabel} />
+                      </span>
+                    ) : null}
                   </span>
                   <span className="absolute bottom-4 start-4 flex items-center gap-2 rounded-full bg-white/90 px-4 py-2.5 backdrop-blur">
                     <span className="max-w-[10rem] truncate text-[11.5px] font-black text-[#1A1A1A]">{s.title}</span>

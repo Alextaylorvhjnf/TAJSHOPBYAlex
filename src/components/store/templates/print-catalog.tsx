@@ -29,6 +29,9 @@ import { SlideArt } from "./slide-image";
 import { TemplateHeader } from "./chrome/header";
 import { TemplateFooter } from "./chrome/footer";
 import { TEMPLATE_CHROME } from "./chrome/config";
+/* v32 (14-a): shared scroll-animation system — page-flip cover, staggered
+ * sheet entries, parallax foil ribbon, charging holo seals */
+import { RevealOnScroll, FlipOnScroll, ParallaxBand, GlowOnScroll, sfxStagger, SCROLL_FX_CSS } from "./scroll-fx";
 
 /* ONE scoped style block — every rule prefixed hc- (holo catalog) */
 const HOLO_CSS = `
@@ -188,6 +191,18 @@ html.dark [data-tpl="print-catalog"] .hc-story-wrap{
   --muted-foreground:#A8A296;--primary:#6D5AE0;--border:#34312B;
 }
 `;
+
+/* ═══ v32 (14-a) · scroll-fx plumbing for this template ═══
+   ParallaxBand foil ribbons (translate3d on scroll, reduced-motion safe). */
+const PC_FX_CSS = `
+[data-tpl="print-catalog"] .hc-ribbon{
+  position:absolute; top:-10%; height:120%; width:64px; inset-inline-start:3%;
+  z-index:-1; pointer-events:none; border-radius:999px; filter:blur(1px);
+  background:linear-gradient(180deg, transparent 0%, rgba(124,92,255,.16) 25%, rgba(233,140,42,.15) 55%, rgba(124,92,255,.08) 82%, transparent 100%);
+}
+[data-tpl="print-catalog"] .hc-ribbon-b{ inset-inline-start:auto; inset-inline-end:5%; width:44px; }
+`;
+
 
 /* ── add-to-cart — POST /api/cart/items + cart-updated event ─────── */
 function useHoloAdd() {
@@ -362,21 +377,25 @@ export function PrintCatalogTemplate({ data }: { data: HomeData }) {
 
   return (
     <div data-template-chrome="1" data-tpl="print-catalog" className="isolate w-full bg-[#F7F5F0] text-[#201E1B]">
-      <style>{HOLO_CSS}</style>
+      <style>{HOLO_CSS + PC_FX_CSS + SCROLL_FX_CSS}</style>
       <TemplateHeader data={data} cfg={chrome.header} />
       {/* blend the light chrome into the paper */}
       <div aria-hidden className="h-8 bg-gradient-to-b from-background to-transparent" />
 
       <main className="hc-gridbg mx-auto w-full max-w-6xl">
-        {/* ═══ MASTHEAD — the catalog cover strip ═══ */}
-        <section className="px-4 py-10" aria-labelledby="pc-mast">
-          <Reveal>
+        {/* ═══ MASTHEAD — the catalog cover strip (drops in from above) ═══ */}
+        <section className="relative px-4 py-10" aria-labelledby="pc-mast">
+          {/* drifting holo-foil ribbon — top-to-bottom on scroll (v32 14-a) */}
+          <ParallaxBand className="hc-ribbon" speed={0.14} range={120} />
+          <RevealOnScroll variant="down">
             <div className="hc-sheet relative p-6 md:p-10">
               <div className="flex flex-wrap items-center justify-between gap-4">
-                <span className="hc-seal inline-flex items-center gap-1.5 px-3.5 py-1.5 text-[10.5px] font-black tracking-[0.14em]">
-                  <Sparkle className="h-3.5 w-3.5" aria-hidden />
-                  نسخهٔ هولوگرافیک
-                </span>
+                <GlowOnScroll color="#7C5CFF" size={22} dim={false} className="inline-flex">
+                  <span className="hc-seal inline-flex items-center gap-1.5 px-3.5 py-1.5 text-[10.5px] font-black tracking-[0.14em]">
+                    <Sparkle className="h-3.5 w-3.5 sfx-lamp" aria-hidden />
+                    نسخهٔ هولوگرافیک
+                  </span>
+                </GlowOnScroll>
                 <p className="hc-code text-[10.5px] uppercase text-[#6B675F]">
                   CAT · {store.storeNameEn} · {toFaDigits(counts.products.toLocaleString("fa-IR"))} ITEMS
                 </p>
@@ -407,22 +426,19 @@ export function PrintCatalogTemplate({ data }: { data: HomeData }) {
               </dl>
               <div className="hc-holo-rule mt-8" aria-hidden />
             </div>
-          </Reveal>
+          </RevealOnScroll>
         </section>
 
-        {/* ═══ HERO — the cover sheet + sample pages ═══ */}
+        {/* ═══ HERO — the cover sheet + sample pages (the cover TURNS IN
+            like a catalog page — FlipOnScroll, v32 14-a) ═══ */}
         {heroSlide && (
           <section className="px-4 py-8" aria-labelledby="pc-hero">
-            <Reveal>
+            <RevealOnScroll>
               <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-                {/* main cover sheet in a holo frame */}
-                <motion.div
-                  initial={reduced ? false : { opacity: 0, y: 22 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
-                  className="lg:col-span-2"
-                >
-                  <div className="hc-holo-frame">
+                {/* main cover sheet in a holo frame — page flip */}
+                <div className="lg:col-span-2">
+                  <FlipOnScroll degrees={54} origin="start">
+                    <div className="hc-holo-frame">
                     <div className="hc-sheet relative">
                       <Link
                         href={heroSlide.ctaUrl ?? (heroSlide.product ? `/products/${heroSlide.product.slug}` : "/products")}
@@ -457,17 +473,18 @@ export function PrintCatalogTemplate({ data }: { data: HomeData }) {
                         </Link>
                       </div>
                     </div>
-                  </div>
-                </motion.div>
+                    </div>
+                  </FlipOnScroll>
+                </div>
 
                 {/* sample pages — secondary slides */}
                 <div className="grid grid-rows-2 gap-6">
                   {sideSlides.map((s, i) => (
+                    <RevealOnScroll key={s.id} variant="end" delay={sfxStagger(i, 110)} className={cn("hidden", i === 0 ? "lg:block" : "lg:block")}>
                     <Link
-                      key={s.id}
                       href={s.ctaUrl ?? (s.product ? `/products/${s.product.slug}` : "/products")}
                       aria-label={s.title}
-                      className={cn("hc-sheet hc-sheet-hover group relative block overflow-hidden", i === 0 ? "hidden lg:block" : "hidden lg:block")}
+                      className="hc-sheet hc-sheet-hover group relative block overflow-hidden"
                     >
                       <span className="relative block h-[190px] overflow-hidden bg-[#F7F5F0]">
                         <SlideArt
@@ -485,6 +502,7 @@ export function PrintCatalogTemplate({ data }: { data: HomeData }) {
                         <span className="min-w-0 flex-1 truncate text-[12px] font-black">{s.title}</span>
                       </span>
                     </Link>
+                    </RevealOnScroll>
                   ))}
                   {sideSlides.length === 0 && (
                     <div className="hidden hc-sheet grid place-items-center p-8 text-center lg:grid">
@@ -496,7 +514,7 @@ export function PrintCatalogTemplate({ data }: { data: HomeData }) {
                   )}
                 </div>
               </div>
-            </Reveal>
+            </RevealOnScroll>
           </section>
         )}
 
@@ -513,7 +531,7 @@ export function PrintCatalogTemplate({ data }: { data: HomeData }) {
         {/* ═══ CATEGORIES — table of contents with dotted leaders ═══ */}
         {data.categories.length > 0 && (
           <section className="px-4 py-12" aria-labelledby="pc-toc">
-            <Reveal>
+            <RevealOnScroll variant="zoom">
               <CatalogHeader icon={FileText} code="SEC-01 · INDEX" title="فهرست مطالب" href="/products" />
               <div className="hc-sheet p-5 md:p-8">
                 <ul className="grid grid-cols-1 md:grid-cols-2">
@@ -534,46 +552,56 @@ export function PrintCatalogTemplate({ data }: { data: HomeData }) {
                   ))}
                 </ul>
               </div>
-            </Reveal>
+            </RevealOnScroll>
           </section>
         )}
 
-        {/* ═══ FEATURED — editorial picks with code numbers ═══ */}
+        {/* ═══ FEATURED — editorial picks with code numbers (staggered
+            tilt entries, v32 14-a) ═══ */}
         {data.featured.length > 0 && (
           <section className="px-4 py-12" aria-labelledby="pc-featured">
-            <Reveal>
+            <RevealOnScroll variant="start">
               <CatalogHeader icon={Star} code="SEC-02 · EDITOR'S LIST" title="برگزیدهٔ تحریریه" href="/products?sort=rating" />
+            </RevealOnScroll>
               <div className="grid grid-cols-1 gap-7 sm:grid-cols-2 lg:grid-cols-3">
                 {data.featured.slice(0, 6).map((p, i) => (
-                  <CatalogCard key={p.id} product={p} code={`F-${toFaDigits(String(i + 1).padStart(2, "0"))}`} variant="special" />
+                  <RevealOnScroll key={p.id} variant="tilt" delay={sfxStagger(i, 90, 6)}>
+                    <CatalogCard product={p} code={`F-${toFaDigits(String(i + 1).padStart(2, "0"))}`} variant="special" />
+                  </RevealOnScroll>
                 ))}
               </div>
-            </Reveal>
           </section>
         )}
 
-        {/* ═══ DISCOUNTED — the sale page ═══ */}
+        {/* ═══ DISCOUNTED — the sale page (seals charge up on view) ═══ */}
         {data.discounted.length > 0 && (
           <section className="px-4 py-12" aria-labelledby="pc-deals">
-            <Reveal>
+            <RevealOnScroll variant="start">
               <CatalogHeader icon={Tag} code="SEC-03 · SALE LIST" title="صفحهٔ تخفیف‌ها" href="/products?discount=1" />
+            </RevealOnScroll>
+              <GlowOnScroll color="#E8590C" size={40} dim={false}>
               <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-4">
                 {data.discounted.slice(0, 8).map((p, i) => (
-                  <CatalogCard key={p.id} product={p} code={`D-${toFaDigits(String(i + 1).padStart(2, "0"))}`} variant="deal" />
+                  <RevealOnScroll key={p.id} variant="tilt" delay={sfxStagger(i, 70)}>
+                    <CatalogCard product={p} code={`D-${toFaDigits(String(i + 1).padStart(2, "0"))}`} variant="deal" />
+                  </RevealOnScroll>
                 ))}
               </div>
-            </Reveal>
+              </GlowOnScroll>
           </section>
         )}
 
-        {/* ═══ EXCLUSIVE — holo-framed vault ═══ */}
+        {/* ═══ EXCLUSIVE — holo-framed vault (vault pages TURN IN,
+            alternating spines — FlipOnScroll, v32 14-a) ═══ */}
         {data.exclusive.length > 0 && (
           <section className="px-4 py-12" aria-labelledby="pc-exclusive">
-            <Reveal>
+            <RevealOnScroll variant="start">
               <CatalogHeader icon={Sparkle} code="SEC-04 · VAULT" title="کالاهای انحصاری" />
+            </RevealOnScroll>
               <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
                 {data.exclusive.slice(0, 2).map((p, xi) => (
-                  <article key={p.id} className="hc-holo-frame">
+                  <FlipOnScroll key={p.id} degrees={56} origin={xi % 2 === 0 ? "start" : "end"} delay={sfxStagger(xi, 140, 2)}>
+                  <article className="hc-holo-frame">
                     <div className="hc-sheet group relative grid grid-cols-1 sm:grid-cols-[180px_1fr]">
                       <Link
                         href={`/products/${p.slug}`}
@@ -618,50 +646,55 @@ export function PrintCatalogTemplate({ data }: { data: HomeData }) {
                       </div>
                     </div>
                   </article>
+                  </FlipOnScroll>
                 ))}
               </div>
-            </Reveal>
           </section>
         )}
 
         {/* ═══ BESTSELLERS — index table with codes ═══ */}
         {data.bestsellers.length > 0 && (
           <section className="px-4 py-12" aria-labelledby="pc-best">
-            <Reveal>
+            <RevealOnScroll variant="zoom">
               <CatalogHeader icon={Hash} code="SEC-05 · TOP INDEX" title="نمایهٔ پرفروش‌ها" href="/products?sort=bestselling" />
               <ol className="hc-sheet hc-scroll mx-auto max-h-96 overflow-y-auto p-3 pe-2 sm:p-5">
                 {data.bestsellers.slice(0, 8).map((p, i) => (
                   <IndexRow key={p.id} product={p} code={`BS-${toFaDigits(String(i + 1).padStart(2, "0"))}`} />
                 ))}
               </ol>
-            </Reveal>
+            </RevealOnScroll>
           </section>
         )}
 
         {/* ═══ NEWEST — fresh arrivals sheet grid ═══ */}
         {data.newest.length > 0 && (
           <section className="px-4 py-12" aria-labelledby="pc-newest">
-            <Reveal>
+            <RevealOnScroll variant="start">
               <CatalogHeader icon={Layers} code="SEC-06 · NEW STOCK" title="تازه‌های انبار" href="/products?sort=newest" />
+            </RevealOnScroll>
               <div className="hc-rail -mx-4 flex snap-x snap-mandatory gap-6 overflow-x-auto px-4 pb-2 lg:mx-0 lg:grid lg:snap-none lg:grid-cols-4 lg:overflow-visible lg:px-0">
                 {data.newest.slice(0, 8).map((p, i) => (
                   <div key={p.id} className="w-[230px] shrink-0 snap-start sm:w-[260px] lg:w-auto">
-                    <CatalogCard product={p} code={`NW-${toFaDigits(String(i + 1).padStart(2, "0"))}`} />
+                    <RevealOnScroll variant="tilt" delay={sfxStagger(i, 70)}>
+                      <CatalogCard product={p} code={`NW-${toFaDigits(String(i + 1).padStart(2, "0"))}`} />
+                    </RevealOnScroll>
                   </div>
                 ))}
               </div>
-            </Reveal>
           </section>
         )}
 
-        {/* ═══ SHOWCASES — floating sheets ═══ */}
+        {/* ═══ SHOWCASES — floating sheets (parallax foil ribbon behind) ═══ */}
         {data.showcases.length > 0 && (
-          <section className="px-4 py-14" aria-label="ویترین‌های ویژه">
-            <Reveal>
+          <section className="relative overflow-hidden px-4 py-14" aria-label="ویترین‌های ویژه">
+            <ParallaxBand className="hc-ribbon hc-ribbon-b" speed={0.12} range={100} />
+            <RevealOnScroll variant="zoom">
               <CatalogHeader icon={BookOpen} code="SEC-07 · BROADSHEET" title="برگه‌های تبلیغاتی" />
-              <div className="grid grid-cols-1 gap-10 lg:grid-cols-2 lg:gap-12">
+            </RevealOnScroll>
+              <div className="relative grid grid-cols-1 gap-10 lg:grid-cols-2 lg:gap-12">
                 {data.showcases.slice(0, 2).map((s, i) => (
-                  <article key={s.id} className={cn(i === 0 ? "hc-float" : "hc-float-2")}>
+                  <RevealOnScroll key={s.id} variant={i === 0 ? "start" : "end"} delay={sfxStagger(i, 120, 2)}>
+                  <article className={cn(i === 0 ? "hc-float" : "hc-float-2")}>
                     <div className="hc-sheet hc-sheet-hover group relative">
                       <Link
                         href={s.buttonUrl ?? (s.product ? `/products/${s.product.slug}` : "/products")}
@@ -702,16 +735,16 @@ export function PrintCatalogTemplate({ data }: { data: HomeData }) {
                       </div>
                     </div>
                   </article>
+                  </RevealOnScroll>
                 ))}
               </div>
-            </Reveal>
           </section>
         )}
 
         {/* ═══ FAQ — questionnaire sheet ═══ */}
         {data.faq.length > 0 && (
           <section className="px-4 py-12" aria-labelledby="pc-faq">
-            <Reveal>
+            <RevealOnScroll variant="zoom">
               <CatalogHeader icon={FileText} code="SEC-08 · Q&A" title="پرسش‌نامه" />
               <div className="hc-sheet mx-auto max-w-3xl p-5 md:p-8">
                 {data.faq.map((f, i) => (
@@ -728,29 +761,31 @@ export function PrintCatalogTemplate({ data }: { data: HomeData }) {
                 ))}
                 <div className="hc-holo-rule mt-6" aria-hidden />
               </div>
-            </Reveal>
+            </RevealOnScroll>
           </section>
         )}
 
         {/* ═══ BRANDS — credit line ═══ */}
         {data.brands.length > 0 && (
           <section className="mt-8 border-t border-[#DDD8CC] px-4 py-12" aria-label="برندهای همکار">
-            <Reveal>
+            <RevealOnScroll variant="fade">
               <p className="mb-6 text-center text-[10.5px] font-bold uppercase tracking-[0.28em] text-[#6B675F]">اعتبار و امضا</p>
               <ul className="flex flex-wrap items-center justify-center gap-x-8 gap-y-4">
                 {data.brands.map((b, i) => (
-                  <li key={b.id} className="flex items-center gap-8">
-                    {i > 0 && <span aria-hidden className="h-1.5 w-1.5 rotate-45 bg-[#201E1B]/30" />}
-                    <Link
-                      href={`/products?brand=${b.slug}`}
-                      className="text-[13px] font-black tracking-[0.12em] text-[#201E1B]/70 transition-colors hover:text-[#6D5AE0]"
-                    >
-                      {b.name}
-                    </Link>
+                  <li key={b.id}>
+                    <RevealOnScroll variant="fade" delay={sfxStagger(i, 50, 10)} className="flex items-center gap-8">
+                      {i > 0 && <span aria-hidden className="h-1.5 w-1.5 rotate-45 bg-[#201E1B]/30" />}
+                      <Link
+                        href={`/products?brand=${b.slug}`}
+                        className="text-[13px] font-black tracking-[0.12em] text-[#201E1B]/70 transition-colors hover:text-[#6D5AE0]"
+                      >
+                        {b.name}
+                      </Link>
+                    </RevealOnScroll>
                   </li>
                 ))}
               </ul>
-            </Reveal>
+            </RevealOnScroll>
           </section>
         )}
 

@@ -6,6 +6,10 @@ import { AdminThemeSync } from "@/components/admin/admin-theme";
 // the (panel) group) gets its keyframes + theme vars. Same module →
 // bundled once.
 import "./(panel)/admin-v20.css";
+// v32 (Task 13-b): the redesigned panel skin (4 accent themes + shell
+// restyles) — also loaded on /admin/login so the whole /admin tree and
+// the no-flash boot script below share one cascade.
+import "./(panel)/admin-v32.css";
 
 // dynamic rendering: the install gate must be evaluated per request, never baked at build
 export const dynamic = "force-dynamic";
@@ -18,7 +22,7 @@ export const dynamic = "force-dynamic";
  * the user leaves /admin routes, guaranteeing the storefront never
  * inherits admin theme tokens.
  */
-const ADMIN_THEME_BOOT = `(function(){try{var t=localStorage.getItem("taj-admin-theme");if(t==="excel-dark"){t="saas-dark";}else if(t!=="finnova"&&t!=="saas-dark"){t="finnova";}document.documentElement.setAttribute("data-admin-theme",t);}catch(e){document.documentElement.setAttribute("data-admin-theme","finnova");}})();`;
+const ADMIN_THEME_BOOT = `(function(){try{var t=localStorage.getItem("taj-admin-theme");if(t==="excel-dark"){t="saas-dark";}else if(t!=="finnova"&&t!=="saas-dark"){t="finnova";}document.documentElement.setAttribute("data-admin-theme",t);var a=localStorage.getItem("taj-admin-accent");if(a!=="purple"&&a!=="pink"&&a!=="charcoal"&&a!=="red"){a="purple";}document.documentElement.setAttribute("data-admin-accent",a);}catch(e){document.documentElement.setAttribute("data-admin-theme","finnova");document.documentElement.setAttribute("data-admin-accent","purple");}})();`;
 
 /**
  * Pass-through guard for ALL /admin routes (login + panel).

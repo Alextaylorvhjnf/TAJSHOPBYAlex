@@ -44,6 +44,9 @@ const V29_COLUMN_PATCHES: Record<string, string[]> = {
     '"aiWidgetLogo" TEXT',
     '"templateAiLogos" TEXT',
     '"updateManifestUrl" TEXT',
+    // v32 (14-b): store-wide chrome look options (header skin / nav order /
+    // actions placement / product hover effect) — JSON, null = defaults
+    '"storeChrome" TEXT',
   ],
 }
 

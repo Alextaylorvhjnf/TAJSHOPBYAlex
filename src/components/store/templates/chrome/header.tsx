@@ -22,37 +22,42 @@ import {
   Truck, ShieldCheck, Headphones, Star, Zap, ChevronLeft,
 } from "lucide-react";
 import type { ChromeAccent, ChromePalette } from "./bits";
-import type { HomeData, ChromeHeaderOverride } from "@/lib/templates/types";
+import type { HomeData, ChromeHeaderOverride, StoreChromeData } from "@/lib/templates/types";
 import { cn } from "@/lib/utils";
 import {
   ACCENT_CLASSES, chromeSurface, isDarkColor, resolveChromePalette, themeChromeStyle, pickEnum, CHROME_ACCENTS, CHROME_LOGOS, CHROME_ROWS,
   type ChromeTint,
-  ChromeLogo, ChromeSearch, ChromeAccount, ChromeCart, ChromeThemeToggle, ChromeTicker,
-  ChromeCategoryRow, ChromeTextNav, ChromeHeaderNav, resolveTickerMessages, type TickerMessage,
+  ChromeLogo, ChromeSearch, ChromeTicker,
+  ChromeCategoryRow, ChromeTextNav, ChromeHeaderNav, ChromeActions, ChromeActionsTheme, resolveTickerMessages, type TickerMessage,
 } from "./bits";
 import type { HeaderCfg } from "./config";
 
 /* v24: merge the admin's per-template header overrides (Admin → ظاهر) onto
  * the designed config — unknown enum values are ignored, booleans default
  * to the template's own choice. The Alaruz credit is footer-only and is
- * NOT part of this system (permanent by design). */
-function mergeHeaderCfg(cfg: HeaderCfg, ov?: ChromeHeaderOverride): HeaderCfg {
-  if (!ov) return cfg;
-  return {
-    ...cfg,
-    accent: pickEnum(CHROME_ACCENTS, ov.accent, cfg.accent) ?? cfg.accent,
-    logo: pickEnum(CHROME_LOGOS, ov.logo, cfg.logo),
-    categoryRow: pickEnum(CHROME_ROWS, ov.categoryRow, cfg.categoryRow),
-    sticky: ov.sticky ?? cfg.sticky,
-    ticker: ov.ticker ?? cfg.ticker,
-    /* v25: the categories mega-menu button defaults ON for every template
-     * (the admin can still hide just the dropdown trigger). */
-    megaMenu: ov.megaMenu ?? cfg.megaMenu ?? true,
-    showSearch: ov.showSearch ?? cfg.showSearch,
-    showAccount: ov.showAccount ?? cfg.showAccount,
-    showCart: ov.showCart ?? cfg.showCart,
-    showThemeToggle: ov.showThemeToggle ?? cfg.showThemeToggle,
-  };
+ * NOT part of this system (permanent by design).
+ * v32 (14-b): the STORE-WIDE actions placement (data.store.storeChrome)
+ * rides along — "split" moves the dark/light key to the row start. */
+function mergeHeaderCfg(cfg: HeaderCfg, ov?: ChromeHeaderOverride, sc?: StoreChromeData): HeaderCfg {
+  const merged: HeaderCfg = !ov
+    ? { ...cfg }
+    : {
+        ...cfg,
+        accent: pickEnum(CHROME_ACCENTS, ov.accent, cfg.accent) ?? cfg.accent,
+        logo: pickEnum(CHROME_LOGOS, ov.logo, cfg.logo),
+        categoryRow: pickEnum(CHROME_ROWS, ov.categoryRow, cfg.categoryRow),
+        sticky: ov.sticky ?? cfg.sticky,
+        ticker: ov.ticker ?? cfg.ticker,
+        /* v25: the categories mega-menu button defaults ON for every template
+         * (the admin can still hide just the dropdown trigger). */
+        megaMenu: ov.megaMenu ?? cfg.megaMenu ?? true,
+        showSearch: ov.showSearch ?? cfg.showSearch,
+        showAccount: ov.showAccount ?? cfg.showAccount,
+        showCart: ov.showCart ?? cfg.showCart,
+        showThemeToggle: ov.showThemeToggle ?? cfg.showThemeToggle,
+      };
+  merged.actionsMode = sc?.actionsMode === "split" ? "split" : undefined;
+  return merged;
 }
 
 /* v25: the shared primary nav lives in ChromeHeaderNav (bits.tsx) — the
@@ -92,7 +97,11 @@ export function TemplateHeader({ data, cfg }: { data: HomeData; cfg: HeaderCfg }
   // v24: this template's admin overrides (keyed by cfg.id, attached in
   // chrome/config.ts at module load) — colors, accent, layout toggles
   const ov = cfg.id ? data.store.chromeOverridesMap?.[cfg.id]?.header : undefined;
-  const eff = mergeHeaderCfg(cfg, ov);
+  // v32 (14-b): store-wide chrome look options (skin / actions placement —
+  // the nav ORDER is read directly by ChromeHeaderNav from the same object)
+  const sc: StoreChromeData | undefined = data.store.storeChrome;
+  const skin = sc?.skin && sc.skin !== "classic" ? sc.skin : undefined;
+  const eff = mergeHeaderCfg(cfg, ov, sc);
   const a = getAccent(eff.accent);
   const store = data.store;
   const { siteDark, onDark: modeOnDark, tint: modeTint } = useChromeMode(eff);
@@ -121,19 +130,28 @@ export function TemplateHeader({ data, cfg }: { data: HomeData; cfg: HeaderCfg }
   // v22: admin-controlled marquee speed (Settings → فروشگاه) — overrides every
   // template's own designed default when set (>= 6 seconds).
   const tickerDur = store.tickerSpeed && store.tickerSpeed >= 6 ? store.tickerSpeed : eff.tickerSpeed;
-  const shared = { data, cfg: eff, a, onDark, tint, siteDark, announcement, ticker, tickerDur, chromeStyle };
+  const shared = { data, cfg: eff, a, onDark, tint, siteDark, skin, announcement, ticker, tickerDur, chromeStyle };
 
-  switch (eff.variant) {
-    case 2: return <HeaderFloat {...shared} />;
-    case 3: return <HeaderSplit {...shared} />;
-    case 4: return <HeaderSide {...shared} />;
-    case 5: return <HeaderCenter {...shared} />;
-    case 6: return <HeaderApp {...shared} />;
-    case 7: return <HeaderTicket {...shared} />;
-    case 8: return <HeaderMega {...shared} />;
-    case 1:
-    default: return <HeaderBar {...shared} />;
-  }
+  return (
+    <>
+      {/* v32 (14-b): the header SKIN — one scoped CSS layer over the existing
+       * structure (no CSS at all for the «کلاسیک» default). */}
+      <ChromeSkinStyle skin={skin} />
+      {(() => {
+        switch (eff.variant) {
+          case 2: return <HeaderFloat {...shared} />;
+          case 3: return <HeaderSplit {...shared} />;
+          case 4: return <HeaderSide {...shared} />;
+          case 5: return <HeaderCenter {...shared} />;
+          case 6: return <HeaderApp {...shared} />;
+          case 7: return <HeaderTicket {...shared} />;
+          case 8: return <HeaderMega {...shared} />;
+          case 1:
+          default: return <HeaderBar {...shared} />;
+        }
+      })()}
+    </>
+  );
 }
 
 type VariantProps = {
@@ -143,6 +161,8 @@ type VariantProps = {
   onDark: boolean;
   tint: ChromeTint;
   siteDark: boolean;
+  /** v32 (14-b): the store-wide header skin (undefined = کلاسیک). */
+  skin?: string;
   announcement: string | null;
   /** v20: marquee message list for the ticker strip */
   ticker: TickerMessage[];
@@ -152,11 +172,119 @@ type VariantProps = {
   chromeStyle?: CSSProperties;
 };
 
+/* ═══ v32 (14-b): header SKINS — one scoped CSS layer ═════════════════
+ * Layered ON TOP of the existing header structure — never a fork of the
+ * 8 variants × skins: the header root carries data-chrome-skin, the painted
+ * bar element carries data-chrome-surface, the primary nav carries
+ * data-chrome-nav (set in bits.tsx). «کلاسیک» ships NO CSS at all — the
+ * storefront renders byte-identical until the admin picks another skin.
+ * Effects are pure background/border/box-shadow layers so they COMPOSE with
+ * each variant's own surface colors (incl. admin/inline palette styles) and
+ * never touch layout/sticky positioning. prefers-reduced-motion kills the
+ * liquid-glass sweep. */
+const HEADER_SKIN_CSS = `
+/* ── کریستالی — faceted glass, prismatic hairline, refraction glints ── */
+[data-chrome-skin="crystalline"] [data-chrome-surface],
+[data-chrome-skin="crystalline"][data-chrome-surface] {
+  backdrop-filter: blur(16px) saturate(1.5) brightness(1.05);
+  -webkit-backdrop-filter: blur(16px) saturate(1.5) brightness(1.05);
+  background-image:
+    linear-gradient(90deg, #7dd3fc 0%, #c4b5fd 25%, #fda4af 50%, #fcd34d 75%, #7dd3fc 100%),
+    linear-gradient(112deg, transparent 0%, transparent 52%, rgba(255,255,255,0.05) 52.5%, rgba(255,255,255,0.14) 58%, transparent 58.5%),
+    linear-gradient(248deg, transparent 0%, transparent 66%, rgba(255,255,255,0.04) 66.5%, rgba(255,255,255,0.10) 71%, transparent 71.5%),
+    linear-gradient(100deg, rgba(125,211,252,0.10) 0%, transparent 28%, transparent 72%, rgba(196,181,253,0.12) 100%);
+  background-size: 100% 2px, 100% 100%, 100% 100%, 100% 100%;
+  background-position: 0 100%, 0 0, 0 0, 0 0;
+  background-repeat: no-repeat;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.20),
+    inset 0 -1px 0 rgba(255,255,255,0.08),
+    0 10px 30px -18px rgba(125,211,252,0.55),
+    0 4px 14px -10px rgba(196,181,253,0.55);
+}
+[data-chrome-skin="crystalline"] [data-chrome-nav] nav a,
+[data-chrome-skin="crystalline"] [data-chrome-nav] nav > span > button {
+  background-image: linear-gradient(180deg, rgba(255,255,255,0.14), rgba(255,255,255,0.02));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.18), inset 0 0 0 1px rgba(255,255,255,0.06);
+}
+/* ── لیکوئید گلس — heavy blur, translucent fill, pill nav, specular sweep ── */
+[data-chrome-skin="liquid-glass"] [data-chrome-surface],
+[data-chrome-skin="liquid-glass"][data-chrome-surface] {
+  backdrop-filter: blur(26px) saturate(1.65);
+  -webkit-backdrop-filter: blur(26px) saturate(1.65);
+  background-image:
+    linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.16) 47%, rgba(255,255,255,0.32) 50%, rgba(255,255,255,0.16) 53%, transparent 60%),
+    radial-gradient(130% 160% at 82% -30%, rgba(255,255,255,0.14) 0%, transparent 55%);
+  background-size: 240% 100%, 100% 100%;
+  background-position: 140% 0, 0 0;
+  background-repeat: no-repeat;
+  animation: taj-skin-sweep 7s ease-in-out infinite;
+  box-shadow: 0 12px 36px -14px rgb(2 6 23 / 0.35), inset 0 1px 0 rgb(255 255 255 / 0.25), inset 0 -1px 0 rgb(255 255 255 / 0.08);
+  border-color: rgb(255 255 255 / 0.22);
+}
+@keyframes taj-skin-sweep {
+  0% { background-position: 140% 0, 0 0; }
+  60% { background-position: -40% 0, 0 0; }
+  100% { background-position: -40% 0, 0 0; }
+}
+/* floating pill navigation */
+[data-chrome-skin="liquid-glass"] [data-chrome-nav] nav a,
+[data-chrome-skin="liquid-glass"] [data-chrome-nav] nav > span > button {
+  border-radius: 999px;
+  background-color: color-mix(in oklab, currentColor 8%, transparent);
+  margin-inline: 1px;
+  transition: background-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
+}
+[data-chrome-skin="liquid-glass"] [data-chrome-nav] nav a:hover,
+[data-chrome-skin="liquid-glass"] [data-chrome-nav] nav > span > button:hover {
+  background-color: color-mix(in oklab, currentColor 16%, transparent);
+  box-shadow: 0 4px 14px -6px rgb(2 6 23 / 0.35), inset 0 1px 0 rgb(255 255 255 / 0.25);
+  transform: translateY(-1px);
+}
+/* ── مینیمال — flat surface, hairline, square text-only nav ── */
+[data-chrome-skin="minimal"] [data-chrome-surface],
+[data-chrome-skin="minimal"][data-chrome-surface] {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background-image: none;
+  box-shadow: none;
+  border-color: color-mix(in oklab, currentColor 16%, transparent);
+}
+[data-chrome-skin="minimal"] [data-chrome-nav] nav a,
+[data-chrome-skin="minimal"] [data-chrome-nav] nav > span > button {
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+[data-chrome-skin="minimal"] [data-chrome-nav] nav a:hover,
+[data-chrome-skin="minimal"] [data-chrome-nav] nav > span > button:hover {
+  background: transparent;
+  box-shadow: inset 0 -2px 0 0 color-mix(in oklab, currentColor 55%, transparent);
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-chrome-skin="liquid-glass"] [data-chrome-surface],
+  [data-chrome-skin="liquid-glass"][data-chrome-surface] {
+    animation: none;
+  }
+}
+`;
+
+/** v32 (14-b): renders the header-skin CSS ONCE per chrome header (rendered
+ * by TemplateHeader AND the shared storefront header — identical content,
+ * deduped key). No-op for the «کلاسیک» default. Also used by the admin
+ * «هدر و فوتر» live previews (scoped attributes keep it collision-free). */
+export function ChromeSkinStyle({ skin }: { skin?: string }) {
+  if (!skin || skin === "classic") return null;
+  return <style data-chrome-skin-style={skin} dangerouslySetInnerHTML={{ __html: HEADER_SKIN_CSS }} />;
+}
+
 /* ═══ H1 · BAR — classic announcement + main row + category strip ═══ */
-function HeaderBar({ data, cfg, a, onDark, tint, announcement, ticker, tickerDur, chromeStyle }: VariantProps) {
+function HeaderBar({ data, cfg, a, onDark, tint, skin, announcement, ticker, tickerDur, chromeStyle }: VariantProps) {
   return (
     <header
       data-chrome-header=""
+      data-chrome-skin={skin}
+      data-chrome-surface=""
       style={chromeStyle}
       className={cn(
         "w-full border-b",
@@ -172,12 +300,12 @@ function HeaderBar({ data, cfg, a, onDark, tint, announcement, ticker, tickerDur
           <Link href="/" aria-label={`صفحه اصلی ${data.store.storeName}`} className="shrink-0">
             <ChromeLogo store={data.store} mark={data.store.logo ?? undefined} style={cfg.logo ?? "square"} a={a} onDark={onDark} />
           </Link>
+          {/* v32 (14-b): split mode — the dark/light key beside the logo */}
+          <ChromeActionsTheme a={a} onDark={onDark} cfg={cfg} />
           <ChromeHeaderNav data={data} a={a} onDark={onDark} showCategories={cfg.megaMenu !== false} menuStyle={cfg.menuStyle} className="hidden min-[560px]:flex" />
           <div className="ms-auto flex items-center gap-2">
             {cfg.showSearch !== false && <ChromeSearch mode="pill" a={a} onDark={onDark} className="hidden md:flex" />}
-            {cfg.showThemeToggle !== false && <ChromeThemeToggle a={a} onDark={onDark} />}
-            {cfg.showAccount !== false && <ChromeAccount a={a} onDark={onDark} />}
-            {cfg.showCart !== false && <ChromeCart a={a} onDark={onDark} cartStyle={cfg.cartStyle} />}
+            <ChromeActions a={a} onDark={onDark} cfg={cfg} />
           </div>
         </div>
         {cfg.categoryRow === "photos" && (
@@ -196,15 +324,16 @@ function HeaderBar({ data, cfg, a, onDark, tint, announcement, ticker, tickerDur
 }
 
 /* ═══ H2 · FLOAT — floating rounded pill over the hero ══════════════ */
-function HeaderFloat({ data, cfg, a, onDark, tint, announcement, ticker, tickerDur, chromeStyle }: VariantProps) {
+function HeaderFloat({ data, cfg, a, onDark, tint, skin, announcement, ticker, tickerDur, chromeStyle }: VariantProps) {
   return (
-    <header data-chrome-header="" className={cn("w-full px-4 pt-4 md:pt-6", cfg.sticky && "sticky top-0 z-40")}>
+    <header data-chrome-header="" data-chrome-skin={skin} className={cn("w-full px-4 pt-4 md:pt-6", cfg.sticky && "sticky top-0 z-40")}>
       {cfg.ticker && ticker.length > 0 && (
         <div className="mx-auto mb-3 max-w-7xl">
           <ChromeTicker messages={ticker} a={a} dur={tickerDur} className="rounded-full" />
         </div>
       )}
       <div
+        data-chrome-surface=""
         style={chromeStyle}
         className={cn(
           "mx-auto flex max-w-7xl items-center gap-2 rounded-2xl border p-2 shadow-xl md:gap-3 md:rounded-3xl md:p-2.5",
@@ -215,12 +344,12 @@ function HeaderFloat({ data, cfg, a, onDark, tint, announcement, ticker, tickerD
         <Link href="/" aria-label={`صفحه اصلی ${data.store.storeName}`} className="shrink-0">
           <ChromeLogo store={data.store} mark={data.store.logo ?? undefined} style={cfg.logo ?? "square"} a={a} onDark={onDark} compact />
         </Link>
+        {/* v32 (14-b): split mode — the dark/light key beside the logo */}
+        <ChromeActionsTheme a={a} onDark={onDark} cfg={cfg} />
         <ChromeHeaderNav data={data} a={a} onDark={onDark} showCategories={cfg.megaMenu !== false} menuStyle={cfg.menuStyle} className="hidden min-[560px]:flex lg:flex" />
         <div className="ms-auto flex items-center gap-2">
           {cfg.showSearch !== false && <ChromeSearch mode="pill" a={a} onDark={onDark} className="hidden sm:flex" />}
-          {cfg.showThemeToggle !== false && <ChromeThemeToggle a={a} onDark={onDark} />}
-          {cfg.showAccount !== false && <ChromeAccount a={a} onDark={onDark} />}
-          {cfg.showCart !== false && <ChromeCart a={a} onDark={onDark} cartStyle={cfg.cartStyle} />}
+          <ChromeActions a={a} onDark={onDark} cfg={cfg} />
         </div>
       </div>
       {cfg.categoryRow !== "none" && (
@@ -237,9 +366,9 @@ function HeaderFloat({ data, cfg, a, onDark, tint, announcement, ticker, tickerD
 }
 
 /* ═══ H3 · SPLIT — editorial double-deck masthead ═══════════════════ */
-function HeaderSplit({ data, cfg, a, onDark, tint, announcement, ticker, tickerDur, chromeStyle }: VariantProps) {
+function HeaderSplit({ data, cfg, a, onDark, tint, skin, announcement, ticker, tickerDur, chromeStyle }: VariantProps) {
   return (
-    <header data-chrome-header="" style={chromeStyle} className={cn("w-full border-b-2", chromeSurface(tint))}>
+    <header data-chrome-header="" data-chrome-skin={skin} data-chrome-surface="" style={chromeStyle} className={cn("w-full border-b-2", chromeSurface(tint))}>
       {cfg.ticker && ticker.length > 0 && (
         <ChromeTicker messages={ticker} a={a} onDark={onDark} dur={tickerDur} />
       )}
@@ -268,15 +397,15 @@ function HeaderSplit({ data, cfg, a, onDark, tint, announcement, ticker, tickerD
           <Link href="/" aria-label={`صفحه اصلی ${data.store.storeName}`} className="shrink-0">
             <ChromeLogo store={data.store} mark={data.store.logo ?? undefined} style={cfg.logo ?? "wordmark"} a={a} onDark={onDark} />
           </Link>
+          {/* v32 (14-b): split mode — the dark/light key beside the logo */}
+          <ChromeActionsTheme a={a} onDark={onDark} cfg={cfg} />
           {cfg.showSearch !== false && (
             <div className="order-3 w-full md:order-none md:flex-1">
               <ChromeSearch mode="wide" a={a} onDark={onDark} />
             </div>
           )}
           <div className="ms-auto flex items-center gap-2 md:ms-0">
-            {cfg.showThemeToggle !== false && <ChromeThemeToggle a={a} onDark={onDark} />}
-            {cfg.showAccount !== false && <ChromeAccount a={a} onDark={onDark} />}
-            {cfg.showCart !== false && <ChromeCart a={a} onDark={onDark} cartStyle={cfg.cartStyle} />}
+            <ChromeActions a={a} onDark={onDark} cfg={cfg} />
           </div>
         </div>
         {/* category deck — v25: the five header buttons + categories mega */}
@@ -289,9 +418,9 @@ function HeaderSplit({ data, cfg, a, onDark, tint, announcement, ticker, tickerD
 }
 
 /* ═══ H4 · SIDE — asymmetric with accent edge bar ═══════════════════ */
-function HeaderSide({ data, cfg, a, onDark, tint, announcement, ticker, tickerDur, chromeStyle }: VariantProps) {
+function HeaderSide({ data, cfg, a, onDark, tint, skin, announcement, ticker, tickerDur, chromeStyle }: VariantProps) {
   return (
-    <header data-chrome-header="" style={chromeStyle} className={cn("relative w-full border-b", chromeSurface(tint), cfg.sticky && "sticky top-0 z-40")}>
+    <header data-chrome-header="" data-chrome-skin={skin} data-chrome-surface="" style={chromeStyle} className={cn("relative w-full border-b", chromeSurface(tint), cfg.sticky && "sticky top-0 z-40")}>
       <span aria-hidden className={cn("absolute inset-y-0 start-0 w-1.5", a.edge)} />
       {cfg.ticker && ticker.length > 0 && (
         <ChromeTicker messages={ticker} a={a} onDark={onDark} dur={tickerDur} />
@@ -301,13 +430,13 @@ function HeaderSide({ data, cfg, a, onDark, tint, announcement, ticker, tickerDu
           <Link href="/" aria-label={`صفحه اصلی ${data.store.storeName}`} className="shrink-0">
             <ChromeLogo store={data.store} mark={data.store.logo ?? undefined} style={cfg.logo ?? "square"} a={a} onDark={onDark} />
           </Link>
+          {/* v32 (14-b): split mode — the dark/light key beside the logo */}
+          <ChromeActionsTheme a={a} onDark={onDark} cfg={cfg} />
           {/* v25: the five header buttons + categories mega (all sizes) */}
           <ChromeHeaderNav data={data} a={a} onDark={onDark} showCategories={cfg.megaMenu !== false} menuStyle={cfg.menuStyle} className="hidden min-[560px]:flex" />
           <div className="ms-auto flex items-center gap-2">
             {cfg.showSearch !== false && <ChromeSearch mode="icon" a={a} onDark={onDark} />}
-            {cfg.showThemeToggle !== false && <ChromeThemeToggle a={a} onDark={onDark} />}
-            {cfg.showAccount !== false && <ChromeAccount a={a} onDark={onDark} />}
-            {cfg.showCart !== false && <ChromeCart a={a} onDark={onDark} cartStyle={cfg.cartStyle} />}
+            <ChromeActions a={a} onDark={onDark} cfg={cfg} />
           </div>
         </div>
       </div>
@@ -316,9 +445,9 @@ function HeaderSide({ data, cfg, a, onDark, tint, announcement, ticker, tickerDu
 }
 
 /* ═══ H5 · CENTER — stacked centered logo + nav + search ════════════ */
-function HeaderCenter({ data, cfg, a, onDark, tint, announcement, ticker, tickerDur, chromeStyle }: VariantProps) {
+function HeaderCenter({ data, cfg, a, onDark, tint, skin, announcement, ticker, tickerDur, chromeStyle }: VariantProps) {
   return (
-    <header data-chrome-header="" style={chromeStyle} className={cn("w-full border-b", chromeSurface(tint))}>
+    <header data-chrome-header="" data-chrome-skin={skin} data-chrome-surface="" style={chromeStyle} className={cn("w-full border-b", chromeSurface(tint))}>
       {cfg.ticker && ticker.length > 0 && (
         <ChromeTicker messages={ticker} a={a} onDark={onDark} dur={tickerDur} />
       )}
@@ -326,6 +455,9 @@ function HeaderCenter({ data, cfg, a, onDark, tint, announcement, ticker, ticker
         <Link href="/" aria-label={`صفحه اصلی ${data.store.storeName}`}>
           <ChromeLogo store={data.store} mark={data.store.logo ?? undefined} style={cfg.logo ?? "wordmark"} a={a} onDark={onDark} />
         </Link>
+        {/* v32 (14-b): split mode — the dark/light key above the nav (this
+            variant centers everything; the key stays visually separated) */}
+        <ChromeActionsTheme a={a} onDark={onDark} cfg={cfg} />
         <p className={cn("max-w-md text-center text-[11.5px] leading-6", onDark ? "text-background/60" : "text-muted-foreground")}>
           {announcement ?? "فروشگاه تخصصی کالای دیجیتال با ضمانت اصالت و ارسال سریع"}
         </p>
@@ -336,9 +468,7 @@ function HeaderCenter({ data, cfg, a, onDark, tint, announcement, ticker, ticker
               <ChromeSearch mode="pill" a={a} onDark={onDark} />
             </div>
           )}
-          {cfg.showAccount !== false && <ChromeAccount a={a} onDark={onDark} />}
-          {cfg.showThemeToggle !== false && <ChromeThemeToggle a={a} onDark={onDark} />}
-          {cfg.showCart !== false && <ChromeCart a={a} onDark={onDark} cartStyle={cfg.cartStyle} />}
+          <ChromeActions a={a} onDark={onDark} cfg={cfg} />
         </div>
       </div>
       <div className={cn("border-t", onDark ? "border-white/10" : "border-border")}>
@@ -351,14 +481,16 @@ function HeaderCenter({ data, cfg, a, onDark, tint, announcement, ticker, ticker
 }
 
 /* ═══ H6 · APP — app-like top bar + scrollable photo tabs ═══════════ */
-function HeaderApp({ data, cfg, a, onDark, tint, announcement, ticker, tickerDur, chromeStyle }: VariantProps) {
+function HeaderApp({ data, cfg, a, onDark, tint, skin, announcement, ticker, tickerDur, chromeStyle }: VariantProps) {
   return (
-    <header data-chrome-header="" style={chromeStyle} className={cn("w-full border-b", chromeSurface(tint), "sticky top-0 z-40")}>
+    <header data-chrome-header="" data-chrome-skin={skin} data-chrome-surface="" style={chromeStyle} className={cn("w-full border-b", chromeSurface(tint), "sticky top-0 z-40")}>
       <div className="mx-auto max-w-7xl px-4">
         <div className="flex h-14 items-center gap-3 md:h-16">
           <Link href="/" aria-label={`صفحه اصلی ${data.store.storeName}`} className="flex shrink-0 items-center gap-2.5">
             <ChromeLogo store={data.store} mark={data.store.logo ?? undefined} style={cfg.logo ?? "round"} a={a} onDark={onDark} compact />
           </Link>
+          {/* v32 (14-b): split mode — the dark/light key beside the logo */}
+          <ChromeActionsTheme a={a} onDark={onDark} cfg={cfg} />
           <span className={cn("hidden items-center gap-1.5 text-[10px] font-black sm:flex", onDark ? "text-background/60" : "text-muted-foreground")}>
             <span className={cn("h-1.5 w-1.5 rounded-full taj-breathe", a.dot)} aria-hidden />
             پشتیبانی آنلاین
@@ -367,9 +499,7 @@ function HeaderApp({ data, cfg, a, onDark, tint, announcement, ticker, tickerDur
           <ChromeHeaderNav data={data} a={a} onDark={onDark} showCategories={cfg.megaMenu !== false} menuStyle={cfg.menuStyle} className="hidden min-[560px]:flex" />
           <div className="ms-auto flex items-center gap-2">
             {cfg.showSearch !== false && <ChromeSearch mode="icon" a={a} onDark={onDark} />}
-            {cfg.showThemeToggle !== false && <ChromeThemeToggle a={a} onDark={onDark} />}
-            {cfg.showAccount !== false && <ChromeAccount a={a} onDark={onDark} />}
-            {cfg.showCart !== false && <ChromeCart a={a} onDark={onDark} cartStyle={cfg.cartStyle} />}
+            <ChromeActions a={a} onDark={onDark} cfg={cfg} />
           </div>
         </div>
       </div>
@@ -393,10 +523,10 @@ function HeaderApp({ data, cfg, a, onDark, tint, announcement, ticker, tickerDur
 }
 
 /* ═══ H7 · TICKET — perforated ticket-stub with dashed zones ════════ */
-function HeaderTicket({ data, cfg, a, onDark, tint, announcement, ticker, tickerDur, chromeStyle }: VariantProps) {
+function HeaderTicket({ data, cfg, a, onDark, tint, skin, announcement, ticker, tickerDur, chromeStyle }: VariantProps) {
   return (
-    <header data-chrome-header="" className="w-full px-4 pt-5">
-      <div style={chromeStyle} className={cn("relative mx-auto max-w-7xl rounded-2xl border-2 border-dashed p-2 shadow-lg", chromeSurface(tint), a && a.border)}>
+    <header data-chrome-header="" data-chrome-skin={skin} className="w-full px-4 pt-5">
+      <div data-chrome-surface="" style={chromeStyle} className={cn("relative mx-auto max-w-7xl rounded-2xl border-2 border-dashed p-2 shadow-lg", chromeSurface(tint), a && a.border)}>
         {/* side notches — punch holes at the perforation line */}
         <span aria-hidden className={cn("absolute -start-2.5 top-1/2 hidden h-5 w-5 -translate-y-1/2 rounded-full border-2 border-dashed md:block", onDark ? "bg-background border-white/20" : "bg-background border-border")} style={{ background: "var(--background)" }} />
         <div className="flex flex-col items-stretch gap-2 md:flex-row md:gap-0">
@@ -406,6 +536,8 @@ function HeaderTicket({ data, cfg, a, onDark, tint, announcement, ticker, ticker
           </Link>
           {/* zone 2 · v25: the five header buttons + categories mega */}
           <div className={cn("flex min-w-0 flex-1 items-center px-3 py-1.5 md:pe-6 md:border-e md:border-dashed", onDark ? "border-white/15" : "border-border")}>
+            {/* v32 (14-b): split mode — the dark/light key at the zone start */}
+            <ChromeActionsTheme a={a} onDark={onDark} cfg={cfg} />
             <ChromeHeaderNav data={data} a={a} onDark={onDark} showCategories={cfg.megaMenu !== false} menuStyle={cfg.menuStyle} />
           </div>
           {/* zone 3 · search + actions */}
@@ -417,9 +549,7 @@ function HeaderTicket({ data, cfg, a, onDark, tint, announcement, ticker, ticker
             )}
             <div className="flex items-center gap-2 sm:ms-auto">
               {cfg.showSearch !== false && <ChromeSearch mode="icon" a={a} onDark={onDark} className="sm:hidden" />}
-              {cfg.showThemeToggle !== false && <ChromeThemeToggle a={a} onDark={onDark} />}
-              {cfg.showAccount !== false && <ChromeAccount a={a} onDark={onDark} />}
-              {cfg.showCart !== false && <ChromeCart a={a} onDark={onDark} cartStyle={cfg.cartStyle} />}
+              <ChromeActions a={a} onDark={onDark} cfg={cfg} />
             </div>
           </div>
         </div>
@@ -434,9 +564,9 @@ function HeaderTicket({ data, cfg, a, onDark, tint, announcement, ticker, ticker
 }
 
 /* ═══ H8 · MEGA — dense superstore: ticker + hotline + photo strip ══ */
-function HeaderMega({ data, cfg, a, onDark, tint, announcement, ticker, tickerDur, chromeStyle }: VariantProps) {
+function HeaderMega({ data, cfg, a, onDark, tint, skin, announcement, ticker, tickerDur, chromeStyle }: VariantProps) {
   return (
-    <header data-chrome-header="" style={chromeStyle} className={cn("w-full border-b", chromeSurface(tint), cfg.sticky && "sticky top-0 z-40")}>
+    <header data-chrome-header="" data-chrome-skin={skin} data-chrome-surface="" style={chromeStyle} className={cn("w-full border-b", chromeSurface(tint), cfg.sticky && "sticky top-0 z-40")}>
       {cfg.ticker && ticker.length > 0 && (
         <ChromeTicker messages={ticker} a={a} onDark={onDark} dur={tickerDur} />
       )}
@@ -445,6 +575,8 @@ function HeaderMega({ data, cfg, a, onDark, tint, announcement, ticker, tickerDu
           <Link href="/" aria-label={`صفحه اصلی ${data.store.storeName}`} className="shrink-0">
             <ChromeLogo store={data.store} mark={data.store.logo ?? undefined} style={cfg.logo ?? "square"} a={a} onDark={onDark} />
           </Link>
+          {/* v32 (14-b): split mode — the dark/light key beside the logo */}
+          <ChromeActionsTheme a={a} onDark={onDark} cfg={cfg} />
           {cfg.showSearch !== false && <ChromeSearch mode="wide" a={a} onDark={onDark} className="hidden sm:flex" />}
           {data.store.phone && (
             <div className={cn("hidden shrink-0 flex-col items-end leading-5 xl:flex", onDark ? "text-background/60" : "text-muted-foreground")}>
@@ -455,9 +587,7 @@ function HeaderMega({ data, cfg, a, onDark, tint, announcement, ticker, tickerDu
             </div>
           )}
           <div className="ms-auto flex items-center gap-2 sm:ms-0">
-            {cfg.showThemeToggle !== false && <ChromeThemeToggle a={a} onDark={onDark} />}
-            {cfg.showAccount !== false && <ChromeAccount a={a} onDark={onDark} />}
-            {cfg.showCart !== false && <ChromeCart a={a} onDark={onDark} cartStyle={cfg.cartStyle} />}
+            <ChromeActions a={a} onDark={onDark} cfg={cfg} />
           </div>
         </div>
         {/* mobile search row */}

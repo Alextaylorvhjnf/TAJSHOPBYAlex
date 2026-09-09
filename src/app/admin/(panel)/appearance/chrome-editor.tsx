@@ -14,9 +14,26 @@
  * The Alaruz Design credit is permanent and NOT editable (locked notice).
  */
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -38,9 +55,11 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Eye,
+  GripVertical,
   Loader2,
   Lock,
   MoonStar,
+  MousePointerClick,
   Paintbrush,
   PanelTop,
   Palette,
@@ -49,15 +68,25 @@ import {
   Search,
   ShoppingCart,
   SlidersHorizontal,
+  Sparkles,
   UserRound,
 } from "lucide-react";
 import { apiFetch } from "@/components/admin/api-client";
-import { TEMPLATE_CHROME, TEMPLATE_PALETTES } from "@/components/store/templates/chrome/config";
+import { ChromeSkinStyle } from "@/components/store/templates/chrome/header";
+import {
+  STORE_ACTIONS_MODES,
+  STORE_HEADER_SKINS,
+  STORE_HOVER_FX,
+  STORE_NAV_ITEMS,
+  TEMPLATE_CHROME,
+  TEMPLATE_PALETTES,
+} from "@/components/store/templates/chrome/config";
 import type { TemplateDef } from "@/lib/templates/registry";
 import type {
   ChromeFooterOverride,
   ChromeHeaderOverride,
   ChromeOverrides,
+  StoreChromeData,
 } from "@/lib/templates/types";
 import { cn } from "@/lib/utils";
 
@@ -244,6 +273,302 @@ function mergeFooter(templateId: string, ov?: ChromeFooterOverride): FooterState
 /** same loose color test the backend sanitizer applies */
 const COLOR_RE = /^#?[0-9a-zA-Z(),.%\s_-]{3,32}$/;
 
+/* ══ v32 (14-b): STORE-WIDE look options — form state + previews ══════
+ * Header SKIN + nav item ORDER + actions placement + product hover
+ * effect. These are STORE-level (saved to StoreSettings.storeChrome via
+ * the same PUT /api/admin/templates call the per-template chrome uses) —
+ * they apply to the shared storefront header AND every template chrome
+ * header, whatever template is active. */
+
+type StoreLookState = {
+  skin: string;
+  navOrder: string[];
+  actionsMode: string;
+  productHover: string;
+};
+
+/** normalize a saved (possibly partial) nav order: known keys in their
+ * stored order first, the remaining defaults after — the admin list always
+ * shows exactly the 5 items. */
+function normalizeNavOrder(order?: string[]): string[] {
+  const base = STORE_NAV_ITEMS.map((i) => i.value);
+  if (!order || order.length === 0) return base;
+  const known = order.filter((k) => base.includes(k));
+  const rest = base.filter((k) => !known.includes(k));
+  return known.length > 0 ? [...known, ...rest] : base;
+}
+
+/** saved store-wide chrome merged with the designed defaults */
+function mergeStoreLook(saved?: StoreChromeData): StoreLookState {
+  return {
+    skin: saved?.skin ?? "classic",
+    navOrder: normalizeNavOrder(saved?.navOrder),
+    actionsMode: saved?.actionsMode ?? "grouped",
+    productHover: saved?.productHover ?? "none",
+  };
+}
+
+const navLabel = (v: string) => STORE_NAV_ITEMS.find((i) => i.value === v)?.label ?? v;
+
+/** decorative inline artwork for the hover previews (headphone glyph) */
+const PREVIEW_PRODUCT_IMG =
+  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'%3E%3Crect width='120' height='120' fill='%23f1f5f9'/%3E%3Cpath d='M30 72v-14a30 30 0 0 1 60 0v14' fill='none' stroke='%23334155' stroke-width='7' stroke-linecap='round'/%3E%3Crect x='22' y='68' width='16' height='26' rx='8' fill='%23334155'/%3E%3Crect x='82' y='68' width='16' height='26' rx='8' fill='%23334155'/%3E%3C/svg%3E";
+
+/* ── live previews (REAL CSS — they react on hover) ─────────────────── */
+
+/** mini header strip painted with the REAL skin CSS (the dialog injects the
+ *  storefront skin stylesheet, so the facets / pills / hairline are exactly
+ *  what the storefront will render). Nav items are href-less <a> elements —
+ *  non-interactive, but they match the storefront pill selectors. */
+function SkinPreviewStrip({ skin, dark }: { skin?: string; dark: string }) {
+  return (
+    <div dir="rtl" data-chrome-skin={skin && skin !== "classic" ? skin : undefined} className="overflow-hidden rounded-lg">
+      <div
+        data-chrome-surface=""
+        className="flex items-center justify-between gap-2 border-b"
+        style={{ backgroundColor: dark, color: "#E8EDF5" }}
+      >
+        <span className="px-2.5 text-[11px] font-black tracking-tight">تاج</span>
+        <div data-chrome-nav="" className="flex min-w-0 flex-1 items-center justify-center py-1.5">
+          <nav className="flex items-center gap-0.5">
+            <a className="flex h-8 items-center rounded-xl px-2.5 text-[10.5px] font-bold">خانه</a>
+            <a className="flex h-8 items-center rounded-xl px-2.5 text-[10.5px] font-bold">فروشگاه</a>
+            <a className="flex h-8 items-center rounded-xl px-2.5 text-[10.5px] font-bold">دسته‌بندی‌ها</a>
+          </nav>
+        </div>
+        <div className="flex items-center gap-2 px-2.5 text-current">
+          <MoonStar className="h-3.5 w-3.5" aria-hidden />
+          <ShoppingCart className="h-3.5 w-3.5" aria-hidden />
+          <UserRound className="h-3.5 w-3.5" aria-hidden />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** skin option card — the strip is a REAL preview (hover the pills!) */
+function SkinOptionCard({
+  option,
+  selected,
+  dark,
+  onSelect,
+}: {
+  option: { value: string; label: string; desc: string };
+  selected: boolean;
+  dark: string;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      aria-pressed={selected}
+      className={cn(
+        "flex flex-col gap-2 rounded-xl border p-2.5 text-start transition-colors",
+        selected ? "border-primary/60 ring-1 ring-primary/40" : "hover:border-primary/40"
+      )}
+    >
+      <SkinPreviewStrip skin={option.value} dark={dark} />
+      <span className="flex items-center justify-between gap-1.5">
+        <span className="text-xs font-black">{option.label}</span>
+        {selected && (
+          <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[9px] font-black text-primary">انتخاب شده</span>
+        )}
+      </span>
+      <span className="text-[10px] leading-4 text-muted-foreground">{option.desc}</span>
+    </button>
+  );
+}
+
+/** actions placement option — mini row preview (RTL) */
+function ActionsModeCard({
+  option,
+  selected,
+  onSelect,
+}: {
+  option: { value: string; label: string; desc: string };
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  const split = option.value === "split";
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      aria-pressed={selected}
+      className={cn(
+        "flex flex-1 flex-col gap-2 rounded-xl border p-3 text-start transition-colors",
+        selected ? "border-primary/60 ring-1 ring-primary/40" : "hover:border-primary/40"
+      )}
+    >
+      <span dir="rtl" className="flex items-center justify-between gap-2 rounded-lg border bg-muted/40 px-2.5 py-2">
+        <span className="flex items-center gap-1.5">
+          <span className="text-[11px] font-black">تاج</span>
+          {split && <MoonStar className="h-3.5 w-3.5 text-primary" aria-hidden />}
+        </span>
+        <span className="flex items-center gap-1.5 text-muted-foreground">
+          {!split && <MoonStar className="h-3.5 w-3.5" aria-hidden />}
+          <ShoppingCart className="h-3.5 w-3.5" aria-hidden />
+          <UserRound className="h-3.5 w-3.5" aria-hidden />
+        </span>
+      </span>
+      <span className="text-xs font-black">{option.label}</span>
+      <span className="text-[10px] leading-4 text-muted-foreground">{option.desc}</span>
+    </button>
+  );
+}
+
+/** ONE live mini product card — the REAL storefront CSS (globals.css
+ *  [data-hover-fx] block) animates the image on hover. */
+function HoverFxPreviewCard({ fx }: { fx: string }) {
+  return (
+    <div
+      dir="rtl"
+      data-hover-fx={fx && fx !== "none" ? fx : undefined}
+      className="[&_[data-product-card]]:w-full"
+    >
+      <article
+        data-product-card=""
+        className="group card-hover relative flex w-full flex-col overflow-hidden rounded-xl border bg-card"
+      >
+        <div className="zoom-media relative block aspect-[4/3] overflow-hidden bg-muted/40">
+          {/* inline SVG data-URI preview artwork (no network, no next/image) */}
+          <img src={PREVIEW_PRODUCT_IMG} alt="" className="h-full w-full object-contain p-2.5" />
+        </div>
+        <div className="p-2.5">
+          <p className="truncate text-[11px] font-bold leading-5">هدفون بی‌سیم تاج مدل Pro</p>
+          <p className="text-[11px] font-extrabold tabular-nums text-primary">۲,۴۵۰,۰۰۰ تومان</p>
+        </div>
+      </article>
+    </div>
+  );
+}
+
+/** hover option card — hover the mini card to SEE the effect live */
+function HoverFxOptionCard({
+  option,
+  selected,
+  onSelect,
+}: {
+  option: { value: string; label: string; desc: string };
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex flex-col gap-2.5 rounded-xl border p-3 transition-colors",
+        selected ? "border-primary/60 ring-1 ring-primary/40" : "hover:border-primary/40"
+      )}
+    >
+      <HoverFxPreviewCard fx={option.value} />
+      <button
+        type="button"
+        onClick={onSelect}
+        aria-pressed={selected}
+        className="flex min-h-11 items-center justify-between gap-2 rounded-lg border border-dashed px-3 text-start transition-colors hover:border-primary/50"
+      >
+        <span className="text-xs font-black">{option.label}</span>
+        {selected ? (
+          <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[9px] font-black text-primary">فعال</span>
+        ) : (
+          <span className="text-[10px] font-bold text-muted-foreground">انتخاب</span>
+        )}
+      </button>
+      <p className="text-[10px] leading-4 text-muted-foreground">{option.desc}</p>
+    </div>
+  );
+}
+
+/* ── dnd-kit sortable nav row (44px touch target, keyboard accessible) ── */
+
+function SortableNavRow({ id, index }: { id: string; index: number }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  return (
+    <li
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className={cn(
+        "flex min-h-11 items-center gap-1.5 rounded-lg border bg-card px-1.5 py-1",
+        isDragging && "z-10 shadow-lg ring-1 ring-primary/40"
+      )}
+    >
+      <button
+        type="button"
+        className="grid h-11 w-11 shrink-0 cursor-grab touch-none place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground active:cursor-grabbing"
+        aria-label={`جابه‌جایی ${navLabel(id)}`}
+        {...attributes}
+        {...listeners}
+      >
+        <GripVertical className="h-4 w-4" aria-hidden />
+      </button>
+      <span className="flex-1 text-xs font-bold">{navLabel(id)}</span>
+      <span className="pe-1 text-[10px] font-black tabular-nums text-muted-foreground">
+        {(index + 1).toLocaleString("fa-IR")}
+      </span>
+    </li>
+  );
+}
+
+/** the drag-and-drop nav ORDER editor (items snap vertically) */
+function NavOrderEditor({
+  order,
+  onChange,
+  onReset,
+  scopeId,
+}: {
+  order: string[];
+  onChange: (next: string[]) => void;
+  onReset: () => void;
+  scopeId: string;
+}) {
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+  const onDragEnd = (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (over && active.id !== over.id) {
+      const from = order.indexOf(String(active.id));
+      const to = order.indexOf(String(over.id));
+      if (from >= 0 && to >= 0) onChange(arrayMove(order, from, to));
+    }
+  };
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between gap-2">
+        <p className="flex items-center gap-1.5 text-[11px] font-extrabold text-muted-foreground">
+          <GripVertical className="h-3.5 w-3.5 text-primary" />
+          ترتیب دکمه‌های منوی اصلی
+        </p>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="h-8 rounded-lg text-[11px] font-bold"
+          onClick={onReset}
+          aria-label={`بازنشانی ترتیب منو (${scopeId})`}
+        >
+          <RotateCcw className="h-3.5 w-3.5" />
+          ترتیب پیش‌فرض
+        </Button>
+      </div>
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+        <SortableContext items={order} strategy={verticalListSortingStrategy}>
+          <ul className="space-y-1.5" aria-label="چیدمان منوی اصلی — با کشیدن جابه‌جا کنید">
+            {order.map((k, i) => (
+              <SortableNavRow key={k} id={k} index={i} />
+            ))}
+          </ul>
+        </SortableContext>
+      </DndContext>
+      <p className="text-[10px] leading-4 text-muted-foreground">
+        دسته‌ها را بکشید و رها کنید (یا با کلید Tab + جهت‌ها جابه‌جا کنید) — خانه اول باشد یا فروشگاه، با سلیقهٔ خودتان.
+      </p>
+    </div>
+  );
+}
+
 /* ── tiny labeled primitives (page style) ───────────────────────────── */
 
 function ColorRow({
@@ -390,28 +715,47 @@ function SelectRow({
 
 /* ── live mini previews (instant color feedback) ─────────────────────── */
 
-function LiveHeaderStrip({ header }: { header: HeaderState }) {
+/** v32 (14-b): the header strip preview now reflects the store-wide look
+ *  too — the REAL skin CSS (via the dialog's injected stylesheet), the
+ *  admin-ordered nav labels and the actions placement. */
+function LiveHeaderStrip({ header, look }: { header: HeaderState; look: StoreLookState }) {
+  const skin = look.skin !== "classic" ? look.skin : undefined;
+  const split = look.actionsMode === "split";
   return (
-    <div
-      dir="rtl"
-      className="flex items-center justify-between gap-3 overflow-hidden rounded-lg px-4 py-2.5 shadow-sm transition-colors"
-      style={{ backgroundColor: header.bg, color: header.fg }}
-    >
-      <span className="text-xs font-black tracking-tight">لوگو</span>
-      <div className="flex items-center gap-3.5 text-[11px] font-bold">
-        <span>خانه</span>
-        <span>محصولات</span>
-        {header.showSearch && <Search className="h-3.5 w-3.5" aria-hidden="true" />}
-        {header.showAccount && <UserRound className="h-3.5 w-3.5" aria-hidden="true" />}
-        {header.showCart && (
-          <span className="relative inline-grid place-items-center rounded-md border border-current p-1">
-            <ShoppingCart className="h-3.5 w-3.5" aria-hidden="true" />
-            <span className="absolute -top-1.5 -start-1.5 rounded-full bg-rose-500 px-1 text-[9px] font-black leading-4 text-white">
-              ۲
+    <div dir="rtl" data-chrome-skin={skin} className="overflow-hidden rounded-lg shadow-sm">
+      <div
+        data-chrome-surface=""
+        className="flex items-center justify-between gap-3 border-b px-4 py-2.5 transition-colors"
+        style={{ backgroundColor: header.bg, color: header.fg }}
+      >
+        <span className="flex items-center gap-2.5 text-xs font-black tracking-tight">
+          لوگو
+          {/* v32 (14-b): «مجزا» — the dark/light key at the row start */}
+          {split && header.showThemeToggle && <MoonStar className="h-3.5 w-3.5" aria-hidden="true" />}
+        </span>
+        <div data-chrome-nav="" className="flex min-w-0 flex-1 items-center justify-center">
+          <nav className="no-scrollbar flex items-center gap-0.5 overflow-x-auto text-[11px] font-bold">
+            {/* the admin-ordered primary nav labels */}
+            {look.navOrder.map((k) => (
+              <a key={k} className="flex h-8 shrink-0 items-center rounded-xl px-2.5">
+                {navLabel(k)}
+              </a>
+            ))}
+          </nav>
+        </div>
+        <div className="flex shrink-0 items-center gap-2.5">
+          {header.showSearch && <Search className="h-3.5 w-3.5" aria-hidden="true" />}
+          {!split && header.showThemeToggle && <MoonStar className="h-3.5 w-3.5" aria-hidden="true" />}
+          {header.showAccount && <UserRound className="h-3.5 w-3.5" aria-hidden="true" />}
+          {header.showCart && (
+            <span className="relative inline-grid place-items-center rounded-md border border-current p-1">
+              <ShoppingCart className="h-3.5 w-3.5" aria-hidden="true" />
+              <span className="absolute -top-1.5 -start-1.5 rounded-full bg-rose-500 px-1 text-[9px] font-black leading-4 text-white">
+                ۲
+              </span>
             </span>
-          </span>
-        )}
-        {header.showThemeToggle && <MoonStar className="h-3.5 w-3.5" aria-hidden="true" />}
+          )}
+        </div>
       </div>
     </div>
   );
@@ -457,10 +801,14 @@ function LiveFooterStrip({ footer }: { footer: FooterState }) {
 function ChromeEditorForm({
   template,
   saved,
+  savedStoreChrome,
   onClose,
 }: {
   template: TemplateDef;
   saved?: ChromeOverrides;
+  /** v32 (14-b): the STORE-WIDE chrome look options (shared by every
+   *  template's dialog — same value whichever card you opened it from). */
+  savedStoreChrome?: StoreChromeData;
   onClose: () => void;
 }) {
   const queryClient = useQueryClient();
@@ -472,11 +820,28 @@ function ChromeEditorForm({
   const [footer, setFooter] = useState<FooterState>(() =>
     mergeFooter(template.id, saved?.footer)
   );
+  /* v32 (14-b): store-wide look — skin / nav order / actions / hover fx.
+   * `snapshot` = the last SAVED state (updated on save success) so the dirty
+   * indicator is pure render state — no refs. */
+  const [look, setLook] = useState<StoreLookState>(() => mergeStoreLook(savedStoreChrome));
+  const [snapshot, setSnapshot] = useState(() => ({
+    look: mergeStoreLook(savedStoreChrome),
+    header: mergeHeader(template.id, saved?.header),
+    footer: mergeFooter(template.id, saved?.footer),
+  }));
 
   const setH = <K extends keyof HeaderState>(k: K, v: HeaderState[K]) =>
     setHeader((s) => ({ ...s, [k]: v }));
   const setF = <K extends keyof FooterState>(k: K, v: FooterState[K]) =>
     setFooter((s) => ({ ...s, [k]: v }));
+  const setLookKey = <K extends keyof StoreLookState>(k: K, v: StoreLookState[K]) =>
+    setLook((s) => ({ ...s, [k]: v }));
+
+  /** v32 (14-b): dirty indicator — anything unsaved? */
+  const dirty =
+    JSON.stringify(look) !== JSON.stringify(snapshot.look) ||
+    JSON.stringify(header) !== JSON.stringify(snapshot.header) ||
+    JSON.stringify(footer) !== JSON.stringify(snapshot.footer);
 
   /** validate hand-typed colors client-side (mirrors backend sanitizer) */
   const validateColors = (): boolean => {
@@ -528,10 +893,20 @@ function ChromeEditorForm({
               round: footer.round,
             },
           },
+          /* v32 (14-b): the store-wide chrome look rides the SAME save call —
+           * header skin / nav item order / actions placement / product hover
+           * effect (validated server-side by parseStoreChrome). */
+          storeChrome: {
+            skin: look.skin,
+            navOrder: look.navOrder,
+            actionsMode: look.actionsMode,
+            productHover: look.productHover,
+          },
         }),
       }),
     onSuccess: () => {
       toast.success(`هدر و فوتر قالب ${template.nameFa} ذخیره شد`);
+      setSnapshot({ look: { ...look }, header: { ...header }, footer: { ...footer } });
       queryClient.invalidateQueries({ queryKey: ["admin", "templates"] });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "ذخیره ناموفق بود"),
@@ -558,6 +933,11 @@ function ChromeEditorForm({
 
   return (
     <div className="space-y-4">
+      {/* v32 (14-b): inject the storefront skin stylesheet while the dialog is
+          open — every skin preview card (and the live header strip) renders
+          with the REAL CSS. A non-«کلاسیک» marker value injects the full sheet
+          (all skins live in one stylesheet, scoped by data-chrome-skin). */}
+      <ChromeSkinStyle skin={look.skin !== "classic" ? look.skin : "_all-skins"} />
       <Tabs defaultValue="header">
         <TabsList className="h-auto w-full justify-start rounded-lg">
           <TabsTrigger value="header" className="flex-1 text-xs font-bold">
@@ -565,6 +945,9 @@ function ChromeEditorForm({
           </TabsTrigger>
           <TabsTrigger value="footer" className="flex-1 text-xs font-bold">
             فوتر
+          </TabsTrigger>
+          <TabsTrigger value="hover" className="flex-1 text-xs font-bold">
+            هاور محصولات
           </TabsTrigger>
         </TabsList>
 
@@ -618,6 +1001,59 @@ function ChromeEditorForm({
               <SwitchRow id={`${scope}-h-account`} label="حساب کاربری" checked={header.showAccount} onChange={(v) => setH("showAccount", v)} />
               <SwitchRow id={`${scope}-h-cart`} label="سبد خرید" checked={header.showCart} onChange={(v) => setH("showCart", v)} />
               <SwitchRow id={`${scope}-h-theme`} label="تغییر تم روشن/تاریک" checked={header.showThemeToggle} onChange={(v) => setH("showThemeToggle", v)} />
+            </div>
+          </div>
+
+          {/* ── v32 (14-b): پوسته هدر — store-wide skin, LIVE previews ── */}
+          <div className="space-y-2 rounded-xl border p-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="flex items-center gap-1.5 text-[11px] font-extrabold text-muted-foreground">
+                <Sparkles className="h-3.5 w-3.5 text-primary" />
+                پوسته هدر (برای کل فروشگاه)
+              </p>
+              <span className="rounded-full bg-muted px-2 py-0.5 text-[9px] font-bold text-muted-foreground">
+                روی همه قالب‌ها اعمال می‌شود
+              </span>
+            </div>
+            <div className="grid gap-2.5 sm:grid-cols-2">
+              {STORE_HEADER_SKINS.map((o) => (
+                <SkinOptionCard
+                  key={o.value}
+                  option={o}
+                  selected={look.skin === o.value}
+                  dark={header.bg}
+                  onSelect={() => setLookKey("skin", o.value)}
+                />
+              ))}
+            </div>
+            <p className="text-[10px] leading-4 text-muted-foreground">
+              روی هر پیش‌نمایش ماوس ببرید — پوسته‌ها با CSS واقعی نمایش داده می‌شوند. «کلاسیک» یعنی ظاهر فعلی بدون تغییر.
+            </p>
+          </div>
+
+          {/* ── v32 (14-b): ترتیب منو + جای کلیدها — drag & drop GUI ── */}
+          <div className="space-y-3 rounded-xl border p-3">
+            <NavOrderEditor
+              order={look.navOrder}
+              onChange={(next) => setLookKey("navOrder", next)}
+              onReset={() => setLookKey("navOrder", normalizeNavOrder(undefined))}
+              scopeId={scope}
+            />
+            <div className="space-y-2 border-t pt-3">
+              <p className="flex items-center gap-1.5 text-[11px] font-extrabold text-muted-foreground">
+                <PanelTop className="h-3.5 w-3.5 text-primary" />
+                جای کلیدهای تاریک/روشن، سبد و حساب
+              </p>
+              <div className="flex flex-col gap-2.5 sm:flex-row">
+                {STORE_ACTIONS_MODES.map((o) => (
+                  <ActionsModeCard
+                    key={o.value}
+                    option={o}
+                    selected={look.actionsMode === o.value}
+                    onSelect={() => setLookKey("actionsMode", o.value)}
+                  />
+                ))}
+              </div>
             </div>
           </div>
         </TabsContent>
@@ -686,6 +1122,28 @@ function ChromeEditorForm({
             <SwitchRow id={`${scope}-f-round`} label="گوشه‌های گرد" checked={footer.round} onChange={(v) => setF("round", v)} />
           </div>
         </TabsContent>
+
+        {/* ── v32 (14-b): هاور محصولات tab — LIVE mini card previews ── */}
+        <TabsContent value="hover" className="mt-3 space-y-3">
+          <div className="flex items-start gap-3 rounded-xl border border-primary/25 bg-primary/5 p-3 text-[11px] leading-5">
+            <MousePointerClick className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+            <p>
+              هنگام هاور روی کارت محصولات فروشگاه چه اتفاقی بیفتد؟ روی هر کارت زیر ماوس ببرید تا افکت
+              را زنده ببینید و سپس انتخاب کنید — روی همه صفحات فروشگاه (لیست محصولات، مرتبط‌ها و
+              علاقه‌مندی‌ها) اعمال می‌شود.
+            </p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {STORE_HOVER_FX.map((o) => (
+              <HoverFxOptionCard
+                key={o.value}
+                option={o}
+                selected={look.productHover === o.value}
+                onSelect={() => setLookKey("productHover", o.value)}
+              />
+            ))}
+          </div>
+        </TabsContent>
       </Tabs>
 
       {/* ── live mini preview — updates instantly ── */}
@@ -694,7 +1152,7 @@ function ChromeEditorForm({
           <Eye className="h-3.5 w-3.5 text-primary" />
           پیش‌نمایش زنده
         </p>
-        <LiveHeaderStrip header={header} />
+        <LiveHeaderStrip header={header} look={look} />
         <LiveFooterStrip footer={footer} />
       </div>
 
@@ -705,7 +1163,14 @@ function ChromeEditorForm({
       </div>
 
       {/* ── actions ── */}
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="space-y-2">
+        {dirty && (
+          <p className="flex items-center gap-1.5 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-[11px] font-bold text-amber-600 dark:text-amber-400">
+            <Sparkles className="h-3.5 w-3.5" aria-hidden />
+            تغییرات ذخیره‌نشده دارید
+          </p>
+        )}
+        <div className="flex flex-wrap items-center gap-2">
         <Button
           type="button"
           className="h-11 flex-1 rounded-lg font-bold"
@@ -736,6 +1201,7 @@ function ChromeEditorForm({
         >
           انصراف
         </Button>
+        </div>
       </div>
     </div>
   );
@@ -746,10 +1212,14 @@ function ChromeEditorForm({
 export function ChromeEditorDialog({
   template,
   chrome,
+  storeChrome,
   onClose,
 }: {
   template: TemplateDef | null;
   chrome?: Record<string, ChromeOverrides>;
+  /** v32 (14-b): the store-wide chrome look options (GET /api/admin/templates
+   *  → storeChrome) — skin / nav order / actions placement / product hover. */
+  storeChrome?: StoreChromeData;
   onClose: () => void;
 }) {
   return (
@@ -761,7 +1231,8 @@ export function ChromeEditorDialog({
             ویرایش هدر و فوتر — {template?.nameFa}
           </DialogTitle>
           <DialogDescription className="text-xs leading-6">
-            رنگ‌ها و اجزای هدر و فوتر همین قالب را تغییر دهید
+            رنگ‌ها و اجزای هدر و فوتر همین قالب را تغییر دهید — پوسته هدر، ترتیب منو، جای کلیدها و
+            افکت هاور محصولات برای کل فروشگاه ذخیره می‌شود.
           </DialogDescription>
         </DialogHeader>
 
@@ -770,6 +1241,7 @@ export function ChromeEditorDialog({
             key={template.id}
             template={template}
             saved={chrome?.[template.id]}
+            savedStoreChrome={storeChrome}
             onClose={onClose}
           />
         )}

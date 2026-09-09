@@ -40,7 +40,7 @@ export async function GET(req: Request) {
     db.customerMessage.count({ where: { status: "NEW" } }),
     db.user.count({ where: { role: "CUSTOMER", createdAt: { gte: new Date(now.getTime() - 1000 * 60 * 60 * 24 * 30) } } }),
     db.review.count({ where: { status: "PENDING" } }),
-    db.order.findMany({ orderBy: { createdAt: "desc" }, take: 8, include: { items: true } }),
+    db.order.findMany({ orderBy: { createdAt: "desc" }, take: 10, include: { items: true } }),
     db.payment.findMany({ where: { status: { in: ["VERIFIED", "FAILED"] } }, orderBy: { createdAt: "desc" }, take: 6, include: { order: { select: { orderNumber: true } } } }),
     db.customerMessage.findMany({ where: { status: "NEW" }, orderBy: { createdAt: "desc" }, take: 5 }),
     db.order.findMany({
@@ -122,6 +122,23 @@ export async function GET(req: Request) {
       id: o.id, orderNumber: o.orderNumber, status: o.status, paymentStatus: o.paymentStatus,
       paymentMethod: o.paymentMethod, total: o.total, itemCount: o.items.length,
       customer: `${o.firstName} ${o.lastName}`, phone: o.phone, createdAt: o.createdAt,
+      // v32 (Task 13-b): line items + order-level totals so the dashboard's
+      // Finnova-style split panel can render the selected order's detail
+      // card without a second request. Additive — older clients ignore it.
+      subtotal: o.subtotal,
+      shipping: o.shippingCost,
+      discount: o.discount,
+      city: o.city,
+      province: o.province,
+      items: o.items.map((it) => ({
+        name: it.name,
+        sku: it.sku,
+        image: it.image,
+        color: it.color,
+        quantity: it.quantity,
+        unitPrice: it.unitPrice,
+        total: it.total,
+      })),
     })),
     recentPayments: recentPayments.map((p) => ({
       id: p.id, orderNumber: p.order.orderNumber, amount: p.amount, status: p.status,

@@ -12,7 +12,7 @@
 
 import { db } from "@/lib/db";
 import { serializeProduct, productInclude, type ProductDTO } from "@/lib/product";
-import { getStoreSettings, parseTickerMessages, resolveTemplateFeatures, parseTemplateChrome, getTemplateFooterContent } from "@/lib/settings";
+import { getStoreSettings, parseTickerMessages, resolveTemplateFeatures, parseTemplateChrome, getTemplateFooterContent, parseStoreChrome } from "@/lib/settings";
 import { applyTemplateBrandToStore, getTemplateContentData } from "@/lib/templates/content";
 import type {
   HomeData,
@@ -281,6 +281,9 @@ export async function getHomeData(): Promise<HomeData> {
     features: resolveTemplateFeatures(settings.templateFeatures, settings.activeTemplate),
     // v24: admin header/footer overrides per template (Admin → ظاهر)
     chromeOverridesMap: parseTemplateChrome((settings as { templateChrome?: string | null }).templateChrome) as TemplateStore["chromeOverridesMap"],
+    // v32 (14-b): store-wide chrome look options — header skin, nav item
+    // order, actions placement, product hover effect (Admin → ظاهر → هدر)
+    storeChrome: parseStoreChrome((settings as { storeChrome?: string | null }).storeChrome),
     // v27b: footer CONTENT overrides for the ACTIVE template (Admin →
     // تنظیمات → فوتر) — text/copyright/custom link columns
     footerContent: getTemplateFooterContent((settings as { templateFooters?: string | null }).templateFooters, settings.activeTemplate) as TemplateStore["footerContent"],
@@ -454,6 +457,9 @@ export async function getChromeData(): Promise<HomeData> {
     features: resolveTemplateFeatures(settings.templateFeatures, settings.activeTemplate),
     // v24: admin header/footer overrides per template (all store pages)
     chromeOverridesMap: parseTemplateChrome((settings as { templateChrome?: string | null }).templateChrome) as TemplateStore["chromeOverridesMap"],
+    // v32 (14-b): store-wide chrome look options — header skin, nav item
+    // order, actions placement, product hover effect (Admin → ظاهر → هدر)
+    storeChrome: parseStoreChrome((settings as { storeChrome?: string | null }).storeChrome),
     // v27b: footer CONTENT overrides for the ACTIVE template — the bespoke
     // TemplateFooter on every store page reads them
     footerContent: getTemplateFooterContent((settings as { templateFooters?: string | null }).templateFooters, settings.activeTemplate) as TemplateStore["footerContent"],

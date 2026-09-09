@@ -1,15 +1,19 @@
 "use client";
 
 /* ────────────────────────────────────────────────────────────────────────
- * v32 · «اسکریپت به‌روزرسانی (Update Script)» admin panel (Task 5-b + 10-a)
+ * v32 · «اسکریپت به‌روزرسانی (Update Script)» admin panel
+ * (Task 5-b + 10-a + 13-a)
  * ────────────────────────────────────────────────────────────────────────
  * Self-contained client card (rendered by another agent inside a settings
  * TabsContent — no props, no imports from the settings page file).
  *
- * Flow: save manifest URL (PUT /api/admin/update/config) → «بررسی
- * به‌روزرسانی» (GET check) → confirm dialog → POST apply → poll
- * /api/admin/update/status every 2s while a phase is active → success /
- * error card. Data (db/, .env, uploads) is never touched by the update.
+ * v32 (Task 13-a) · ZERO configuration: the update channel is PERMANENTLY
+ * HARD-WIRED to the owner's official GitHub repo — the manifest URL lives
+ * only in src/lib/updater.ts (GITHUB_MANIFEST_URL). This panel has ONE
+ * «بررسی به‌روزرسانی» button (real GitHub fetch) → on-latest chip, an
+ * update card (version + structured changelog + «نصب نسخه جدید») → POST
+ * apply → poll /api/admin/update/status every 2s while a phase is active →
+ * success / error card. Data (db/, .env, uploads) is never touched.
  *
  * v32 (Task 10-a): the confirm dialog became a backup wizard — a checkbox
  * (default CHECKED) offers a FULL pre-update backup: GET /api/admin/backup
@@ -26,10 +30,8 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   AlertDialog,
@@ -49,7 +51,6 @@ import {
   AlertTriangle,
   CheckCircle2,
   ChevronDown,
-  CloudUpload,
   Download,
   FileArchive,
   Github,
@@ -58,20 +59,12 @@ import {
   Loader2,
   PackageCheck,
   RotateCw,
-  Save,
   ScanSearch,
   ShieldCheck,
   Wrench,
 } from "lucide-react";
 
 /* ── types (mirror the API responses) ── */
-
-interface UpdateConfig {
-  manifestUrl: string | null;
-  effectiveUrl: string;
-  source: "store" | "env" | "github" | "default";
-  defaultManifestUrl: string;
-}
 
 interface UpdateCheck {
   current: string;
@@ -170,16 +163,47 @@ function faBytes(n: number): string {
   return `${n.toLocaleString("fa-IR")} بایت`;
 }
 
-/** mirror of GITHUB_MANIFEST_URL in src/lib/updater.ts (server-only) */
-const GITHUB_DEFAULT_HINT =
+/** mirror of GITHUB_MANIFEST_URL in src/lib/updater.ts (server-only) —
+ * shown to the admin as the hard-wired channel, NOT editable. */
+const GITHUB_CHANNEL_HINT =
   "https://raw.githubusercontent.com/Alextaylorvhjnf/TAJSHOPBYAlex/main/updates/update-manifest.json";
 
-const SOURCE_LABELS: Record<string, string> = {
-  store: "تنظیم‌شده در پنل",
-  env: "متغیر محیطی سرور",
-  github: "گیت‌هاب رسمی اسکریپت",
-  default: "فایل همراه اسکریپت",
-};
+/* ── v32 (Task 13-a) · structured changelog rendering ───────────────────────
+ * Manifest `notes` arrive as raw text (single long line or multi-line with
+ * bullets). Rendering it as one whitespace-pre-line blob is ugly — instead
+ * it is parsed into paragraphs and bullet lists:
+ *   • lines starting with - • * – — or ۱. / 1) … → bullet items (<ul>)
+ *   • other lines → paragraphs (<p>)
+ *   • a LONG single line whose only structure is «،» / «؛» / "," / " — "
+ *     separators (the classic one-line changelog) → itemized into bullets */
+type NotesBlock = { kind: "p"; text: string } | { kind: "ul"; items: string[] };
+
+const NOTES_BULLET_RE = /^(?:[-•*–—]|[۰-۹0-9]+\s*[.)\u2013-])\s*(.+)$/u;
+
+function parseManifestNotes(raw: string): NotesBlock[] {
+  const lines = raw.replace(/\r\n?/g, "\n").split("\n").map((l) => l.trim()).filter(Boolean);
+  const blocks: NotesBlock[] = [];
+  for (const line of lines) {
+    const m = line.match(NOTES_BULLET_RE);
+    if (m) {
+      const last = blocks[blocks.length - 1];
+      if (last && last.kind === "ul") last.items.push(m[1].trim());
+      else blocks.push({ kind: "ul", items: [m[1].trim()] });
+      continue;
+    }
+    // one long comma/em-dash-separated line → itemized changelog
+    const clauses = line
+      .split(/(?:،|؛|,)\s*|\s+—\s*/)
+      .map((c) => c.trim())
+      .filter(Boolean);
+    if (line.length >= 80 && clauses.length >= 3) {
+      blocks.push({ kind: "ul", items: clauses });
+    } else {
+      blocks.push({ kind: "p", text: line });
+    }
+  }
+  return blocks;
+}
 
 /* ── tiny local helpers ── */
 
@@ -235,29 +259,6 @@ export function UpdatePanel() {
    * status line appears under the check button; an update report or an
    * error keeps it hidden/cleared (silent). */
   const [upToDateLatest, setUpToDateLatest] = useState<string | null>(null);
-
-  /* ── manifest URL config ── */
-  const configQuery = useQuery({
-    queryKey: ["admin-update-config"],
-    queryFn: () => apiFetch<UpdateConfig>("/api/admin/update/config"),
-  });
-  /* editedUrl = null → untouched → show the server value (derived state, no effect) */
-  const [editedUrl, setEditedUrl] = useState<string | null>(null);
-  const urlValue = editedUrl ?? configQuery.data?.manifestUrl ?? "";
-
-  const saveConfig = useMutation({
-    mutationFn: (value: string) =>
-      apiFetch<{ message?: string }>("/api/admin/update/config", {
-        method: "PUT",
-        body: JSON.stringify({ manifestUrl: value.trim() ? value.trim() : null }),
-      }),
-    onSuccess: (json) => {
-      toast.success(json.message ?? "آدرس مانیفست ذخیره شد");
-      setEditedUrl(null); // fall back to the (refetched) server value
-      void configQuery.refetch();
-    },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "ذخیرهٔ آدرس مانیفست ناموفق بود"),
-  });
 
   /* ── check ── */
   const check = useMutation({
@@ -527,8 +528,8 @@ export function UpdatePanel() {
             اسکریپت به‌روزرسانی (Update Script)
           </CardTitle>
           <Note>
-            از این بخش نسخهٔ اسکریپت فروشگاه را بررسی و به‌روز کنید. فایل به‌روزرسانی (ZIP) از سروری که مانیفست
-            در آن قرار دارد دانلود، با چک‌سام SHA-256 تأیید، از فایل‌های فعلی پشتیبان گرفته و سپس فقط روی
+            از این بخش نسخهٔ اسکریپت فروشگاه را بررسی و به‌روز کنید. فایل به‌روزرسانی (ZIP) همیشه از مخزن رسمی
+            گیت‌هاب سازنده دانلود، با چک‌سام SHA-256 تأیید، از فایل‌های فعلی پشتیبان گرفته و سپس فقط روی
             <span className="font-bold"> کدها </span>
             اعمال می‌شود. دیتابیس (سفارش‌ها، کاربران، محصولات)، فایل <span dir="ltr" className="font-mono">.env</span> و
             پوشهٔ <span dir="ltr" className="font-mono">uploads/</span> هرگز دست نمی‌خورند. راهنمای کامل انتشار
@@ -537,51 +538,16 @@ export function UpdatePanel() {
         </CardHeader>
 
         <CardContent className="space-y-4">
-          {/* ── manifest URL config ── */}
-          <div className="space-y-1.5">
-            <Label htmlFor="update-manifest-url" className="text-xs font-medium">
-              آدرس مانیفست به‌روزرسانی (update-manifest.json)
-            </Label>
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <Input
-                id="update-manifest-url"
-                dir="ltr"
-                className="rounded-lg font-mono text-xs"
-                placeholder="https://raw.githubusercontent.com/user/repo/main/update-manifest.json"
-                value={urlValue}
-                onChange={(e) => setEditedUrl(e.target.value)}
-                disabled={configQuery.isLoading || saveConfig.isPending}
-                maxLength={500}
-              />
-              <Button
-                type="button"
-                variant="outline"
-                className="shrink-0 rounded-lg"
-                disabled={configQuery.isLoading || saveConfig.isPending || editedUrl === null}
-                onClick={() => editedUrl !== null && saveConfig.mutate(editedUrl)}
-              >
-                {saveConfig.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                ذخیره آدرس
-              </Button>
-            </div>
-            {configQuery.isLoading ? (
-              <Skeleton className="h-4 w-2/3" />
-            ) : (
-              <p className="text-[11px] leading-5 text-muted-foreground">
-                {configQuery.data?.manifestUrl ? (
-                  <>
-                    فعال (ذخیره‌شده در پنل): <span dir="ltr" className="font-mono">{configQuery.data.manifestUrl}</span>
-                  </>
-                ) : (
-                  <>
-                    پیش‌فرض فعال ({SOURCE_LABELS[configQuery.data?.source ?? "github"] ?? "گیت‌هاب رسمی"}):{" "}
-                    <span dir="ltr" className="font-mono">{configQuery.data?.effectiveUrl ?? GITHUB_DEFAULT_HINT}</span>
-                    {" "}— همین حالا بدون تنظیم، از گیت‌هاب رسمی اسکریپت بررسی می‌شود
-                  </>
-                )}
-              </p>
-            )}
-          </div>
+          {/* ── v32 (Task 13-a) · update channel — HARD-WIRED, read-only
+              info (the URL config UI was removed; the source of truth is
+              GITHUB_MANIFEST_URL in src/lib/updater.ts) ── */}
+          <p className="flex flex-wrap items-center gap-1.5 rounded-lg bg-muted/50 px-3 py-2 text-[11px] leading-5 text-muted-foreground">
+            <Github className="h-3.5 w-3.5 shrink-0 text-primary/70" />
+            <span>
+              کانال به‌روزرسانی به‌صورت ثابت روی مخزن رسمی گیت‌هاب سازنده تنظیم شده و قابل تغییر نیست:{" "}
+              <span dir="ltr" className="font-mono">{GITHUB_CHANNEL_HINT}</span>
+            </span>
+          </p>
 
           {/* ── check button ── */}
           <div className="flex flex-wrap items-center gap-2">
@@ -657,8 +623,28 @@ export function UpdatePanel() {
 
               {checkResult.notes && (
                 <div className="rounded-lg bg-card p-3">
-                  <p className="mb-1 text-[11px] font-bold text-muted-foreground">یادداشت‌های نسخه:</p>
-                  <p className="whitespace-pre-line text-xs leading-6">{checkResult.notes}</p>
+                  <p className="mb-2 text-[11px] font-bold text-muted-foreground">تغییرات و یادداشت‌های نسخه:</p>
+                  {/* v32 (Task 13-a) · structured changelog — paragraphs and
+                      bullet lists parsed from the manifest notes, not one
+                      whitespace-pre-line blob (see parseManifestNotes). */}
+                  <div className="space-y-2">
+                    {parseManifestNotes(checkResult.notes).map((block, i) =>
+                      block.kind === "p" ? (
+                        <p key={i} className="text-xs leading-6 text-foreground/90">
+                          {block.text}
+                        </p>
+                      ) : (
+                        <ul key={i} className="space-y-1 pr-1">
+                          {block.items.map((item, j) => (
+                            <li key={j} className="flex items-start gap-1.5 text-xs leading-6 text-foreground/90">
+                              <CheckCircle2 className="mt-1.5 h-3 w-3 shrink-0 text-emerald-500/70" />
+                              <span>{item}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      )
+                    )}
+                  </div>
                 </div>
               )}
 
@@ -703,7 +689,7 @@ export function UpdatePanel() {
                         className="h-11 w-full rounded-lg bg-lime-500 text-base font-bold text-lime-950 shadow-lg shadow-lime-500/20 hover:bg-lime-400 sm:w-auto sm:min-w-56"
                       >
                         <Download className="h-5 w-5" />
-                        دانلود و نصب به‌روزرسانی
+                        نصب نسخه جدید
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent dir="rtl">
@@ -915,7 +901,7 @@ export function UpdatePanel() {
               )}
 
               <p className="text-[10px] text-muted-foreground">
-                مانیفست: <span dir="ltr" className="font-mono">{checkResult.manifestUrl}</span>
+                کانال به‌روزرسانی (گیت‌هاب رسمی): <span dir="ltr" className="font-mono">{checkResult.manifestUrl}</span>
               </p>
             </div>
           )}
@@ -966,10 +952,18 @@ export function UpdatePanel() {
                 })}
               </ol>
               {phase === "done" ? (
+                /* v32 (Task 13-a) · post-install finished state — the required
+                   success line + «رفرش صفحه» so the new features actually load. */
                 <div className="space-y-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3">
-                  <p className="flex items-start gap-1.5 text-xs font-bold text-emerald-700">
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
-                    راه‌اندازی مجدد در حال انجام است — چند لحظه صبر کنید و صفحه را رفرش کنید.
+                  <p className="flex items-start gap-1.5 text-sm font-bold text-emerald-700">
+                    <CheckCircle2 className="mt-0.5 h-4.5 w-4.5 shrink-0" />
+                    اسکریپت شما به آخرین نسخه به‌روز شد
+                    {state.version && (
+                      <span dir="ltr" className="font-mono">(نسخهٔ {state.version})</span>
+                    )}
+                  </p>
+                  <p className="text-[11px] leading-5 text-emerald-700/80">
+                    برای بارگذاری قابلیت‌های جدید، صفحه را رفرش کنید — فروشگاه چند لحظه برای راه‌اندازی مجدد در دسترس نیست.
                   </p>
                   <Button
                     type="button"
@@ -1024,63 +1018,6 @@ export function UpdatePanel() {
             </div>
           )}
 
-          {/* ── publishing guide (summary of UPDATE-GUIDE.md) ── */}
-          <Collapsible>
-            <div className="rounded-xl border bg-card">
-              <CollapsibleTrigger className="flex w-full items-center justify-between gap-2 rounded-xl p-3 text-right text-xs font-bold hover:bg-muted/50">
-                <span className="flex items-center gap-2">
-                  <CloudUpload className="h-4 w-4 text-primary" />
-                  راهنمای انتشار به‌روزرسانی (برای سازندهٔ بسته)
-                </span>
-                <ChevronDown className="h-4 w-4 text-muted-foreground" />
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <div className="space-y-3 border-t px-3 pb-3 pt-3 text-[11px] leading-6 text-muted-foreground">
-                  <div className="space-y-1.5 rounded-lg bg-muted/50 p-2.5">
-                    <p className="flex items-center gap-1.5 font-bold text-foreground">
-                      <Github className="h-3.5 w-3.5" />
-                      گزینهٔ ۱ — گیت‌هاب (پیشنهادی)
-                    </p>
-                    <p>
-                      یک ریپازیتوری مثل <span dir="ltr" className="font-mono">taj-updates</span> بسازید؛ فایل{" "}
-                      <span dir="ltr" className="font-mono">update-manifest.json</span> و ZIP نسخه را در آن بگذارید
-                      (فایل خام در شاخهٔ main، یا بهتر: در GitHub Releases و آدرس مستقیم فایل ضمیمه). آدرس raw مانیفست
-                      را در فیلد بالا ذخیره کنید. رایگان، سریع و بدون نیاز به هاست اضافه.
-                    </p>
-                  </div>
-                  <div className="space-y-1.5 rounded-lg bg-muted/50 p-2.5">
-                    <p className="flex items-center gap-1.5 font-bold text-foreground">
-                      <CloudUpload className="h-3.5 w-3.5" />
-                      گزینهٔ ۲ — سرور / هاست خودتان (cPanel و…)
-                    </p>
-                    <p>
-                      فایل‌ها را در مسیری مثل{" "}
-                      <span dir="ltr" className="font-mono">public_html/updates/</span> آپلود کنید و آدرس{" "}
-                      <span dir="ltr" className="font-mono">https://shoping.alexvshop.ir/updates/update-manifest.json</span>{" "}
-                      را در فیلد بالا ذخیره کنید.
-                    </p>
-                  </div>
-                  <ul className="list-inside list-disc space-y-1 pr-1">
-                    <li>
-                      ZIP فقط شامل فایل‌های تغییرکرده با مسیر کامل:{" "}
-                      <span dir="ltr" className="font-mono">src/… ، public/… ، prisma/schema.prisma</span> و فایل‌های پیکربندی.
-                    </li>
-                    <li>
-                      هرگز <span dir="ltr" className="font-mono">db/</span>،{" "}
-                      <span dir="ltr" className="font-mono">.env</span> یا{" "}
-                      <span dir="ltr" className="font-mono">uploads/</span> در ZIP نباشد — به‌روزرسان خودش اینها را رد می‌کند.
-                    </li>
-                    <li>
-                      چک‌سام: <span dir="ltr" className="font-mono">sha256sum file.zip</span> و مقدار آن در فیلد{" "}
-                      <span dir="ltr" className="font-mono">sha256</span> مانیفست.
-                    </li>
-                    <li>اگر package.json تغییر کرده باشد، بعد از به‌روزرسانی یک‌بار bun install را در کانتینر اجرا کنید.</li>
-                  </ul>
-                  <p>شرح کامل قالب مانیفست، ساخت بسته و بازگشت (rollback) در فایل UPDATE-GUIDE.md پروژه آمده است.</p>
-                </div>
-              </CollapsibleContent>
-            </div>
-          </Collapsible>
         </CardContent>
       </Card>
     </div>

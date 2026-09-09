@@ -26,7 +26,7 @@ import {
 } from "lucide-react";
 import { AdminPageHeader, RoleBadge } from "@/components/admin/ui-bits";
 import { apiFetch } from "@/components/admin/api-client";
-import { ImageUpload } from "@/components/admin/image-upload";
+import { AvatarUpload } from "@/components/admin/avatar-upload";
 import { formatDateTime } from "@/lib/format";
 import { useBranding } from "@/components/providers/branding-provider";
 import { AVATAR_GROUPS, AVATAR_PRESETS } from "@/lib/avatars";
@@ -321,16 +321,20 @@ export default function AdminAccountPage() {
               </span>
             </button>
           </div>
+          {/* v29.3 (13-e): dedicated avatar tile — always clickable, local
+              preview (image + filename + size), re-pick REPLACES the previous
+              image; no «حذف آواتار» needed first. The generic ImageUpload used
+              to collapse to ~0px width here (absolute-positioned preview inside
+              a flex row) making it unclickable after the first upload. */}
           <div className="flex flex-col gap-3 rounded-xl border bg-muted/30 p-3 sm:flex-row sm:items-center">
-            <div className="flex-1">
+            <div className="min-w-0 flex-1">
               <p className="text-[11px] font-bold">تصویر اختصاصی (اختیاری)</p>
               <p className="text-[10px] leading-4 text-muted-foreground">
-                هر عکس دلخواهی (JPG / PNG / WebP تا ۵MB) — انتخاب دستی، اولویت دارد
+                انتخاب دستی اولویت دارد — با کلیک روی تصویر، هر زمان می‌توانید تصویر جدیدی را جایگزین کنید (JPG / PNG / WebP تا ۵MB)
               </p>
             </div>
-            <ImageUpload
+            <AvatarUpload
               folder="avatars"
-              height={64}
               value={avatar?.startsWith("/uploads/") ? avatar : null}
               onChange={(url) => {
                 setAvatar(url);
@@ -343,7 +347,7 @@ export default function AdminAccountPage() {
               type="button"
               variant="ghost"
               size="sm"
-              className="h-8 rounded-lg text-destructive hover:bg-destructive/10"
+              className="h-11 rounded-lg px-4 text-destructive hover:bg-destructive/10"
               onClick={() => {
                 setAvatar(null);
                 setAvatarDirty(true);

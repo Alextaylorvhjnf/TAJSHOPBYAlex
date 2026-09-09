@@ -96,6 +96,12 @@ export default async function StoreLayout({ children }: { children: React.ReactN
 
   const gateProps = chromeData ? { templateId: activeTemplate, data: chromeData } : null;
 
+  /* v32 (14-b): the store-wide product-card hover effect (Admin → ظاهر →
+   * «هدر و فوتر» → «افکت های هاور محصولات») — rides the store shell so the
+   * scoped CSS in globals.css ([data-hover-fx] [data-product-card] …) reaches
+   * every shared ProductCard on every page. undefined/«none» = current zoom. */
+  const hoverFx = chromeData?.store.storeChrome?.productHover;
+
   /* v5-f · per-template BRAND — getChromeData already applied the ACTIVE
    * template's own name/logo to chromeData.store (Admin → ظاهر → محتوای
    * اختصاصی قالب → برند). Re-wrap the branding context with those values so
@@ -117,6 +123,7 @@ export default async function StoreLayout({ children }: { children: React.ReactN
       <div
         className="store-shell min-h-screen flex flex-col"
         data-chrome-template={activeTemplate}
+        data-hover-fx={hoverFx && hoverFx !== "none" ? hoverFx : undefined}
       >
       {canvasCss && (
         <style

@@ -72,7 +72,9 @@ export async function saveImageUpload(file: File, folder: UploadFolder): Promise
   // Optimize with sharp → WebP (fallback to original bytes on failure).
   // NOTE: favicon/branding PNGs must stay PNG (browser tab icons) — sharp keeps
   // PNG for them via the preserveOriginal flag below.
-  const preserveOriginal = folder === "branding";
+  // v32: GIFs must stay GIF too — converting through sharp would flatten the
+  // ANIMATION (animated slider art is now a first-class feature).
+  const preserveOriginal = folder === "branding" || realExt === "gif";
   let finalBuffer: Buffer = bytes;
   let finalExt = realExt;
   if (!preserveOriginal) {
@@ -108,6 +110,8 @@ const VIDEO_ALLOWED = new Map<string, string>([
 ]);
 
 const VIDEO_MAX_SIZE = 64 * 1024 * 1024; // 64MB — story clips are short
+/* v32: slider hero videos may be heavier cinematic loops — 100MB cap */
+const VIDEO_MAX_SIZE_SLIDERS = 100 * 1024 * 1024;
 
 /** Magic-number sniffing for real video containers (defeats spoofed MIME). */
 function sniffVideo(bytes: Buffer): string | null {
@@ -130,12 +134,18 @@ function sniffVideo(bytes: Buffer): string | null {
  * No re-encode (no ffmpeg dependency) — stored as-is.
  * v16: `folder` defaults to "videos" (story clips); ticket attachments pass
  * "tickets" so their URLs match ticketAttachmentSchema (/uploads/tickets/…).
+ * v32: slider hero videos (template-content editor) pass "sliders" — they
+ * land under /uploads/sliders/… with the bigger 100MB cap.
  */
 export async function saveVideoUpload(file: File, folder: string = "videos"): Promise<UploadResult> {
   if (!file || typeof file === "string") return { ok: false, message: "فایلی ارسال نشده است" };
   const declared = VIDEO_ALLOWED.get(file.type);
   if (!declared) return { ok: false, message: "فرمت ویدیو مجاز نیست (MP4, WebM, MOV)" };
-  if (file.size > VIDEO_MAX_SIZE) return { ok: false, message: "حجم ویدیو باید حداکثر ۶۴ مگابایت باشد" };
+  /* v32: per-folder size caps — slider hero videos get the cinematic 100MB
+   * budget; story clips keep their 64MB. Enforced server-side, always. */
+  const maxSize = folder === "sliders" ? VIDEO_MAX_SIZE_SLIDERS : VIDEO_MAX_SIZE;
+  const maxFa = folder === "sliders" ? "۱۰۰" : "۶۴";
+  if (file.size > maxSize) return { ok: false, message: `حجم ویدیو باید حداکثر ${maxFa} مگابایت باشد` };
   if (file.size < 1024) return { ok: false, message: "فایل ویدیو نامعتبر است" };
 
   const bytes = Buffer.from(await file.arrayBuffer());

@@ -29,8 +29,8 @@ export const dynamic = "force-dynamic";
 const REAL_FETCH_EVERY_MS = 10 * 60_000;
 /** poll fetches use a shorter budget than the manual /check (15s) */
 const POLL_MANIFEST_TIMEOUT_MS = 10_000;
-/** notification title template — the version string is part of the dedupe key */
-const notifyTitle = (version: string) => `به‌روزرسانی جدید نسخه ${version}`;
+/** notification title — the version string is part of the dedupe key */
+const notifyTitle = (version: string) => `آپدیت جدید اسکریپت (نسخهٔ ${version})`;
 
 interface PollSnapshot {
   current: string;             // app version at real-fetch time
@@ -47,11 +47,13 @@ let inFlight: Promise<PollSnapshot> | null = null;
 
 /**
  * Create the update notification for every active ADMIN/SUPER_ADMIN.
- * Dedupe: a user is skipped when they already have an UNREAD SYSTEM
- * notification whose title contains this version string.
+ * v32 (Task 13-a) · message is EXACTLY «آپدیت جدید اسکریپت موجود است،
+ * می‌توانید آپدیت کنید» with the version in parentheses; the link opens
+ * the update tab. Dedupe: a user is skipped when they already have an
+ * UNREAD SYSTEM notification whose title contains this version string.
  * @returns number of notifications actually created.
  */
-async function notifyAdminsAboutUpdate(version: string, notes: string | null): Promise<number> {
+async function notifyAdminsAboutUpdate(version: string): Promise<number> {
   let admins: { id: string }[];
   try {
     admins = await db.user.findMany({
@@ -62,10 +64,7 @@ async function notifyAdminsAboutUpdate(version: string, notes: string | null): P
     return 0; // db unavailable (pre-install) — poll still answers fine
   }
 
-  const excerpt = notes?.trim().replace(/\s+/g, " ").slice(0, 200) ?? "";
-  const message = excerpt
-    ? `نسخهٔ جدید اسکریپت (${version}) در گیت‌هاب منتشر شده است. از تنظیمات ← به‌روزرسانی اسکریپت نصب کنید.\n\nیادداشت‌های نسخه: ${excerpt}`
-    : `نسخهٔ جدید اسکریپت (${version}) در گیت‌هاب منتشر شده است. از تنظیمات ← به‌روزرسانی اسکریپت نصب کنید.`;
+  const message = `آپدیت جدید اسکریپت موجود است، می‌توانید آپدیت کنید (نسخهٔ ${version})`;
 
   let created = 0;
   for (const admin of admins) {
@@ -97,9 +96,9 @@ async function notifyAdminsAboutUpdate(version: string, notes: string | null): P
   return created;
 }
 
-/** The real (throttled) work: resolve the manifest URL exactly like /check
- * (StoreSettings → env → GitHub default), fetch it, compare versions and —
- * on a new version — notify the admins. Never throws; failures produce a
+/** The real (throttled) work: resolve the HARDCODED manifest URL (the
+ * owner's official GitHub repo — v32/Task 13-a), fetch it, compare versions
+ * and — on a new version — notify the admins. Never throws; failures produce a
  * snapshot that keeps the last-known state plus a Persian error. */
 async function realFetch(origin: string): Promise<PollSnapshot> {
   const fetchedAt = Date.now();
@@ -119,7 +118,7 @@ async function realFetch(origin: string): Promise<PollSnapshot> {
       fetchedAt,
     };
     if (hasUpdate && snap.notifiedFor !== manifest.version) {
-      await notifyAdminsAboutUpdate(manifest.version, manifest.notes);
+      await notifyAdminsAboutUpdate(manifest.version);
       snap.notifiedFor = manifest.version;
     }
     return snap;

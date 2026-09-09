@@ -2,8 +2,9 @@
  * v29.2 · UPDATE SCRIPT — server-side engine (Task 5-b)
  * ────────────────────────────────────────────────────────────────────────
  * «اسکریپت به‌روزرسانی» lets the store owner upgrade the application code
- * from the admin panel: a manifest JSON (hosted on GitHub or their own
- * server) is fetched, compared against package.json's version, and when a
+ * from the admin panel: a manifest JSON hosted on the owner's official
+ * GitHub repo (HARDCODED — v32/Task 13-a removed every URL override) is
+ * fetched, compared against package.json's version, and when a
  * newer version exists a signed (sha256-verified) ZIP is downloaded and
  * applied — CODE ONLY. Data is untouchable by design:
  *
@@ -29,22 +30,21 @@ import crypto from "crypto";
 import { Readable, Transform } from "stream";
 import { pipeline } from "stream/promises";
 import { spawn } from "child_process";
-import { getStoreSettings } from "@/lib/settings";
 import { logSystemEvent } from "@/lib/admin-log";
 
 /* ── constants ── */
 
 const APP_ROOT = process.cwd();
 
-/** shipped demo manifest — LAST-resort offline fallback only */
-export const DEFAULT_MANIFEST_URL = "/update/update-manifest.json";
-
 /**
  * v30 · the store's own GitHub distribution channel (added by request):
  * https://github.com/Alextaylorvhjnf/TAJSHOPBYAlex
  * updates/ folder holds update-manifest.json + versioned update zips.
- * Used whenever neither the panel-saved URL nor env UPDATE_MANIFEST_URL
- * is set — so «بررسی به‌روزرسانی» works out of the box against GitHub.
+ *
+ * v32 (Task 13-a) · PERMANENTLY HARD-WIRED — this is now the ONLY source
+ * of the manifest URL. The panel's URL-config UI, the StoreSettings
+ * override and the env UPDATE_MANIFEST_URL override were all removed, so
+ * «بررسی به‌روزرسانی» always checks the owner's official GitHub repo.
  */
 export const GITHUB_MANIFEST_URL =
   "https://raw.githubusercontent.com/Alextaylorvhjnf/TAJSHOPBYAlex/main/updates/update-manifest.json";
@@ -182,28 +182,16 @@ export interface UpdateManifest {
 }
 
 /**
- * Manifest URL resolution priority:
- *   1. StoreSettings.updateManifestUrl (admin-set, settings tab)
- *   2. process.env.UPDATE_MANIFEST_URL
- *   3. the store's GitHub repo (GITHUB_MANIFEST_URL — default since v30)
- *   4. the shipped demo manifest /update/update-manifest.json (offline fallback)
+ * v32 (Task 13-a) · manifest URL resolution — HARDCODED, no configuration:
+ * the owner's official GitHub repo (GITHUB_MANIFEST_URL) is the one and
+ * only channel. Kept as an async function (and under its historical name)
+ * so /check, /poll and /apply keep their existing call shape untouched.
  */
 export async function resolveManifestSetting(): Promise<{
   raw: string;
-  source: "store" | "env" | "github" | "default";
+  source: "github";
 }> {
-  let fromDb: string | null = null;
-  try {
-    const s = await getStoreSettings();
-    fromDb = s.updateManifestUrl?.trim() || null;
-  } catch {
-    /* db unavailable (pre-install) → fall through to env/github/default */
-  }
-  if (fromDb) return { raw: fromDb, source: "store" };
-  const fromEnv = process.env.UPDATE_MANIFEST_URL?.trim() || "";
-  if (fromEnv) return { raw: fromEnv, source: "env" };
-  if (GITHUB_MANIFEST_URL) return { raw: GITHUB_MANIFEST_URL, source: "github" };
-  return { raw: DEFAULT_MANIFEST_URL, source: "default" };
+  return { raw: GITHUB_MANIFEST_URL, source: "github" };
 }
 
 /** a relative manifest URL ("/update/…") is resolved against the request origin */

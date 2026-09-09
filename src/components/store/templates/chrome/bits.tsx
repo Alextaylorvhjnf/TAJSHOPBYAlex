@@ -24,7 +24,7 @@
  *   hover lifts — all neutralized by prefers-reduced-motion.
  */
 
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, Fragment, type ReactNode } from "react";
 import type { CSSProperties } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -35,7 +35,7 @@ import {
   ChevronDown, ChevronLeft, Plus, Minus, Trash2, LayoutGrid,
 } from "lucide-react";
 import type { HomeData, TemplateCategory, TemplateBrand, TemplateStore } from "@/lib/templates/types";
-import type { MegaMenuStyle } from "./config";
+import type { MegaMenuStyle, HeaderCfg } from "./config";
 import { MegaMenuBody } from "./mega-menus";
 import { useCart, useMe, type CartItemDTO } from "@/hooks/use-store";
 import { formatPrice, toFaDigits } from "@/lib/format";
@@ -814,6 +814,50 @@ export function ChromeAccount({
   );
 }
 
+/* ── v32 (14-b): header ACTION cluster + placement ─────────────────── */
+
+/** v32 (14-b): the theme-toggle / account / cart trio honoring the store-wide
+ *  actions placement (Admin → ظاهر → «هدر و فوتر» → جای کلیدها).
+ *  "grouped" (default, current behavior) renders all three side by side at
+ *  the end of the row; "split" renders ONLY account + cart here — the
+ *  variant additionally places <ChromeActionsTheme> next to the logo so the
+ *  dark/light key sits at the START of the header row. Rendered by all 8
+ *  chrome header variants. */
+export function ChromeActions({
+  a,
+  onDark,
+  cfg,
+}: {
+  a?: ChromeAccentClasses;
+  onDark?: boolean;
+  cfg: HeaderCfg;
+}) {
+  const split = cfg.actionsMode === "split";
+  return (
+    <>
+      {!split && cfg.showThemeToggle !== false && <ChromeThemeToggle a={a} onDark={onDark} />}
+      {cfg.showAccount !== false && <ChromeAccount a={a} onDark={onDark} />}
+      {cfg.showCart !== false && <ChromeCart a={a} onDark={onDark} cartStyle={cfg.cartStyle} />}
+    </>
+  );
+}
+
+/** v32 (14-b): the dark/light key in «مجزا» mode — rendered next to the logo
+ *  (start of the header row) by every chrome variant. No-op unless the admin
+ *  chose split placement AND the toggle is visible. */
+export function ChromeActionsTheme({
+  a,
+  onDark,
+  cfg,
+}: {
+  a?: ChromeAccentClasses;
+  onDark?: boolean;
+  cfg: HeaderCfg;
+}) {
+  if (cfg.actionsMode !== "split" || cfg.showThemeToggle === false) return null;
+  return <ChromeThemeToggle a={a} onDark={onDark} />;
+}
+
 /* ── Announcement ticker (moving marquee — "alive") ───────────────── */
 
 export type TickerMessage = { text: string; link?: string | null };
@@ -1243,9 +1287,63 @@ export function ChromeHeaderNav({
     a ? a.softHover : onDark ? "hover:bg-white/10" : "hover:bg-muted"
   );
 
+  /* v32 (14-b): admin-ordered nav items (Admin → ظاهر → هدر و فوتر →
+   * «ترتیب آیتم‌های منو», dnd-kit). Stored order = subset of the known
+   * keys; unknown/missing keys keep the designed default relative order
+   * AFTER the ordered ones — a partial save never hides a link. */
+  const navOrder = data.store.storeChrome?.navOrder;
+  const navRank = new Map((navOrder ?? []).map((k, i) => [k, i]));
+  const navFallback = new Map<string, number>();
+  const navItems: { key: string; node: ReactNode }[] = [];
+  const pushNav = (key: string, node: ReactNode) => {
+    if (!navFallback.has(key)) navFallback.set(key, navItems.length);
+    navItems.push({ key, node });
+  };
+
+  const categoriesButton = (
+    <span className="flex shrink-0 items-center" onMouseEnter={openSoon}>
+      <button
+        ref={trigRef}
+        type="button"
+        aria-expanded={open}
+        aria-haspopup="true"
+        aria-controls="chrome-mega-panel"
+        aria-label={open ? "بستن منوی دسته‌بندی‌ها" : "باز کردن منوی دسته‌بندی‌ها"}
+        onClick={() => {
+          clearTimers();
+          if (open) hide();
+          else measureAndOpen();
+        }}
+        className={cn(linkCls, "gap-1.5")}
+      >
+        <LayoutGrid className="h-3.5 w-3.5 opacity-70" aria-hidden />
+        دسته‌بندی‌ها
+        <ChevronDown
+          className={cn("h-3.5 w-3.5 transition-transform duration-200", open && "rotate-180")}
+          aria-hidden
+        />
+      </button>
+    </span>
+  );
+
+  pushNav("home", <Link href="/" className={linkCls}>خانه</Link>);
+  pushNav("shop", <Link href="/products" className={linkCls}>فروشگاه</Link>);
+  if (showCategories && data.categories.length > 0) pushNav("categories", categoriesButton);
+  if (about) pushNav("about", <Link href={`/info/${about.slug}`} className={linkCls}>درباره ما</Link>);
+  pushNav("contact", <Link href="/contact" className={linkCls}>تماس با ما</Link>);
+
+  const orderedNav = navRank.size
+    ? [...navItems].sort((x, y) => {
+        const rx = navRank.has(x.key) ? (navRank.get(x.key) as number) : navRank.size + (navFallback.get(x.key) ?? 0);
+        const ry = navRank.has(y.key) ? (navRank.get(y.key) as number) : navRank.size + (navFallback.get(y.key) ?? 0);
+        return rx - ry;
+      })
+    : navItems;
+
   return (
     <div
       ref={wrapRef}
+      data-chrome-nav=""
       className={cn("relative flex min-w-0 flex-1 items-center", className)}
       onMouseLeave={closeSoon}
       onFocus={() => {
@@ -1266,45 +1364,10 @@ export function ChromeHeaderNav({
       }}
     >
       <nav aria-label="منوی اصلی" className="no-scrollbar flex items-center gap-0.5 overflow-x-auto">
-        <Link href="/" className={linkCls}>
-          خانه
-        </Link>
-        <Link href="/products" className={linkCls}>
-          فروشگاه
-        </Link>
-        {showCategories && data.categories.length > 0 && (
-          <span className="flex shrink-0 items-center" onMouseEnter={openSoon}>
-            <button
-              ref={trigRef}
-              type="button"
-              aria-expanded={open}
-              aria-haspopup="true"
-              aria-controls="chrome-mega-panel"
-              aria-label={open ? "بستن منوی دسته‌بندی‌ها" : "باز کردن منوی دسته‌بندی‌ها"}
-              onClick={() => {
-                clearTimers();
-                if (open) hide();
-                else measureAndOpen();
-              }}
-              className={cn(linkCls, "gap-1.5")}
-            >
-              <LayoutGrid className="h-3.5 w-3.5 opacity-70" aria-hidden />
-              دسته‌بندی‌ها
-              <ChevronDown
-                className={cn("h-3.5 w-3.5 transition-transform duration-200", open && "rotate-180")}
-                aria-hidden
-              />
-            </button>
-          </span>
-        )}
-        {about && (
-          <Link href={`/info/${about.slug}`} className={linkCls}>
-            درباره ما
-          </Link>
-        )}
-        <Link href="/contact" className={linkCls}>
-          تماس با ما
-        </Link>
+        {/* v32 (14-b): admin-ordered primary nav (drag & drop in admin) */}
+        {orderedNav.map((item) => (
+          <Fragment key={item.key}>{item.node}</Fragment>
+        ))}
       </nav>
 
       {(open || exiting) && (

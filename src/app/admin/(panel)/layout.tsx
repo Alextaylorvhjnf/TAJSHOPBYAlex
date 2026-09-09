@@ -5,6 +5,12 @@ import type { Metadata } from "next";
 // v23 ZYWRA admin design system (scoped to the admin shell wrapper;
 // theme vars live in the same file — light “finnova” + dark “saas-dark”)
 import "./admin-v20.css";
+// v32 (Task 13-b): full Peoplexio/Finnova redesign layered ON TOP of the
+// v20 tokens — 4 selectable accent themes (purple/pink/charcoal/red) ×
+// light/dark + the floating rounded-2xl shell + dashboard widgets.
+// Imported after admin-v20.css; its attribute selectors also win on
+// specificity, so bundle order can never flip the cascade.
+import "./admin-v32.css";
 
 export const metadata: Metadata = {
   title: "پنل مدیریت",

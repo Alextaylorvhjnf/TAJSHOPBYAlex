@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /* ────────────────────────────────────────────────────────────────────────
- * scripts/release-update.mjs — maintainer release tool (v31)
+ * scripts/release-update.mjs — maintainer release tool (v32)
  * ────────────────────────────────────────────────────────────────────────
  * Builds + publishes a new app update to the store's GitHub repo
  * (https://github.com/Alextaylorvhjnf/TAJSHOPBYAlex).

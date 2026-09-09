@@ -10,8 +10,10 @@ import { useBranding } from "@/components/providers/branding-provider";
 import { TAJLogo } from "./logo";
 import { CartDrawerButton } from "./cart-drawer";
 import { ChromeHeaderNav } from "./templates/chrome/bits";
+import { ChromeSkinStyle } from "./templates/chrome/header";
 import { paletteAnnouncementStyle, paletteForMode, type TemplatePalette, type TemplatePalettePair } from "@/lib/templates/canvas";
 import type { HomeData } from "@/lib/templates/types";
+import { getCategoryIcon } from "@/lib/templates/category-icons";
 import { formatPrice } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import {
@@ -215,7 +217,9 @@ function SearchBox({ autoFocus = false, onNavigate }: { autoFocus?: boolean; onN
           {results.categories.length > 0 && (
             <div className="p-2 border-b">
               <p className="px-2 pt-1 pb-1.5 text-[10px] font-bold text-muted-foreground">دسته‌بندی‌ها</p>
-              {results.categories.map((c, i) => (
+              {results.categories.map((c, i) => {
+                const CatIcon = getCategoryIcon(c.name, c.slug);
+                return (
                 <button
                   key={c.slug}
                   data-sug={i}
@@ -230,13 +234,14 @@ function SearchBox({ autoFocus = false, onNavigate }: { autoFocus?: boolean; onN
                   )}
                 >
                   <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
-                    <LayoutGrid className="h-4 w-4" />
+                    <CatIcon className="h-4 w-4" aria-hidden />
                   </span>
                   {c.name}
                   <span className="ms-auto text-[10px] font-bold text-muted-foreground">دسته‌بندی</span>
                   <ChevronLeft className="h-3.5 w-3.5 text-muted-foreground" />
                 </button>
-              ))}
+                );
+              })}
             </div>
           )}
 
@@ -463,8 +468,19 @@ export function Header({
       : null);
   const aboutLink = navData?.infoLinks?.find((l) => l.slug === "about");
 
+  /* v32 (14-b): store-wide chrome look options (Admin → ظاهر → «هدر و فوتر»)
+   * — the header SKIN (one scoped CSS layer over this structure) and the
+   * actions placement. The nav item ORDER is applied inside ChromeHeaderNav
+   * (bits.tsx) from the same settings object. Missing/«کلاسیک» = byte-
+   * identical current header. */
+  const storeChrome = chromeData?.store.storeChrome;
+  const skin = storeChrome?.skin && storeChrome.skin !== "classic" ? storeChrome.skin : undefined;
+  const actionsSplit = storeChrome?.actionsMode === "split";
+
   return (
-    <header className="store-shell-header sticky top-0 z-40 w-full">
+    <header data-chrome-skin={skin} className="store-shell-header sticky top-0 z-40 w-full">
+      {/* v32 (14-b): the header skin CSS (no-op for «کلاسیک») */}
+      <ChromeSkinStyle skin={skin} />
       {/* announcement bar — branding-driven (Settings → فروشگاه).
           v25: painted with the template palette when one is active. */}
       {branding.announcementActive !== false && (
@@ -517,7 +533,7 @@ export function Header({
       )}
 
       {/* main header — premium glass */}
-      <div className="glass border-b">
+      <div data-chrome-surface="" className="glass border-b">
         <div className="mx-auto max-w-7xl px-4">
           <div className="h-16 md:h-[72px] flex items-center gap-1 sm:gap-2">
             {/* mobile menu */}
@@ -534,19 +550,25 @@ export function Header({
                     <TAJLogo />
                   </div>
                   <nav className="p-3 space-y-1" aria-label="دسته‌بندی‌ها">
-                    {catData?.categories.map((c) => (
+                    {catData?.categories.map((c) => {
+                      const CatIcon = getCategoryIcon(c.name, c.slug);
+                      return (
                       <Link
                         key={c.id}
                         href={`/products?category=${c.slug}`}
                         onClick={() => setMobileOpen(false)}
                         className="flex min-h-11 items-center justify-between rounded-lg px-3 py-2.5 text-sm hover:bg-accent"
                       >
-                        <span>{c.name}</span>
+                        <span className="flex min-w-0 items-center gap-2">
+                          <CatIcon className="h-4 w-4 shrink-0 text-primary" aria-hidden />
+                          <span className="truncate">{c.name}</span>
+                        </span>
                         <Badge variant="secondary" className="text-[10px]">
                           {c.productCount.toLocaleString("fa-IR")}
                         </Badge>
                       </Link>
-                    ))}
+                      );
+                    })}
                   </nav>
                   <div className="border-t p-3 space-y-1">
                     {/* v25: the primary header buttons, mobile sheet edition */}
@@ -585,6 +607,10 @@ export function Header({
               <TAJLogo className="hidden md:inline-flex" />
             </Link>
 
+            {/* v32 (14-b): «مجزا» placement — the dark/light key beside the
+                logo at the START of the row (RTL: next to the brand) */}
+            {actionsSplit && <ThemeToggle />}
+
             {/* desktop search */}
             <div className="hidden md:flex flex-1 items-center max-w-2xl mx-2 lg:mx-4">
               <SearchBox />
@@ -601,7 +627,7 @@ export function Header({
               >
                 {searchOpen ? <X className="h-5 w-5" /> : <Search className="h-5 w-5" />}
               </Button>
-              <ThemeToggle />
+              {!actionsSplit && <ThemeToggle />}
               <Button asChild variant="ghost" size="icon" className="h-11 w-11 rounded-full relative" aria-label={`علاقه‌مندی‌ها (${wishlistCount.toLocaleString("fa-IR")})`}>
                 <Link href="/account/wishlist">
                   <Heart className="h-5 w-5" />

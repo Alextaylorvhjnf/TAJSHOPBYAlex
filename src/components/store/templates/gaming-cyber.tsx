@@ -1,532 +1,330 @@
 "use client";
 
 /**
- * TEMPLATE · gaming-cyber — «VICE ARENA» (v31 · RIG HERO REBUILD)
+ * TEMPLATE · gaming-cyber — «TAJ ARENA» (v32 · PRO REDESIGN)
  * ---------------------------------------------------------------------------
- * v31 hero: 100% CODE-DRAWN tempered-glass ARGB tower on an animated
- * ARGB desk mat (edge LEDs + dot texture + code-drawn mouse), flanked by
- * the two GENERATED 3D headset artworks (pink bunny / black tactical).
- * 3 front + 2 internal RGB fans — rings hue-cycle at phase offsets, the
- * BLADES never spin (owner's explicit demand). Top LED strip, PSU
- * underglow, glass tint reacting to the ambient glow. Old photo slider
- * removed; Persian copy/CTAs/parallax kept; scene stays dark in both
- * skins so the RGB always reads.
- * GTA-6 VICE promo bones: magenta #D000FF + acid-lime #EAFF00, giant italic-
- * black display headlines (900 + skewX(-8deg), white→magenta gradient), lime
- * pill CTAs (lime bg + BLACK text + plus-circle), vertical lime tab, MAGENTA
- * grid floor, outlined numerals ۰۱/۰۲ deal blocks, huge glowing monogram.
- * GameUp bones: void #120E18 canvas, purple→pink CONNECT gradient banner,
- * glass cards, thin neon SVG swooshes, glowing rounded-full CTAs.
- * ARGB PRODUCT LIGHTING (owner's #1 ask — 100% CSS): every product image on a
- * «stage» (rotating conic rainbow RING + pulsing UNDERGLOW); name-aware fx —
- * فن/Fan SPINS like a GIF, کیبورد/Keyboard hue-breathes, ماوس/پد موس ring
- * accelerates — ALL gated by [data-glow="on"] + prefers-reduced-motion.
- * Art: argb-bunny-pink + argb-tactical-black (generated 3D headsets flanking
- * the code-drawn hero rig + ARGB_GEAR spotlights) · vice-girl (deal zone) ·
- * stream-girl (CONNECT) · argb-rig (banner) · argb-fan (spinning spotlight) ·
- * argb-keyboard (hue spotlight) + v28 anime set.
- * Feature toggles (timer/glow/parallax/scanlines, missing = ON) kept; v25
- * timerEndsAt global override kept; LIGHT SKIN + reduced-motion cover v30. */
+ * v32 = COMPLETE professional redesign (owner: old look «خیلی بچگانه» —
+ * too childish). New direction = a DISCIPLINED GameUp × GTA-Vice system,
+ * e-sports grade:
+ *   · void #1A1527 canvas + #241E33 panels (GameUp surfaces), generous
+ *     spacing, real content hierarchy, restrained color use;
+ *   · ONE signature gradient purple→pink (#A855F7→#EC4899) for the hero
+ *     shell, section-head underline and secondary CTAs — the old always-on
+ *     rainbow conic borders are GONE (RGB identity now lives ONLY in the
+ *     code-drawn rig, the 2 animated chrome hairlines and hover glows);
+ *   · acid-lime #EAFF00 reserved for the primary pill CTAs + tiny chips;
+ *   · green LIVE badges with pulsing dot; mono uppercase Latin codes;
+ *     tabular-nums digits; upright 900 Persian display type (no skew, no
+ *     italic, no rainbow clip-text headlines); scanline/grid overlays.
+ *   · HEADER fully rebuilt (owner bug: nav needed horizontal swiping):
+ *     ≥1024px = logo + FULL nav row (ChromeHeaderNav with the categories
+ *     mega-menu trigger + zoomfade menuStyle wiring) + search + account
+ *     avatar + cart + theme toggle — ALL visible at once on TWO compact
+ *     rows, zero overflow-x; <1024px = hamburger drawer (search + nav +
+ *     categories). Sticky, glass (blur via ::before so the fixed mega
+ *     panel never gets a containing block), animated purple→pink
+ *     hairline. Kill-switch for the global per-article RGB aura.
+ *   · HERO keeps the v31 signature: 100% CODE-DRAWN tempered-glass ARGB
+ *     tower on the animated ARGB desk mat (rings hue-cycle, BLADES never
+ *     spin — owner's demand), now polished with magenta/cyan rim lights,
+ *     flanked by the two generated 3D headset artworks, inside a GameUp
+ *     composition (gradient shell, grid overlay, HUD corner brackets).
+ *   · v5-f content keys (designed fallbacks → DEFAULT_TEMPLATE_CONTENT →
+ *     literals): heroTitle/heroSubtitle/ctaLabel + NEW arenaTitle/
+ *     arenaSubtitle/arenaImage, gearTitle/gearSubtitle/gearImage,
+ *     dealTitle/dealSubtitle/dealImage, joinTitle/joinText/joinCtaLabel/
+ *     joinCtaUrl (empty or "#chat" = open the AI copilot), aiWidgetImage.
+ *     tplShowcases still override the ARGB spotlight tiles; the template's
+ *     own slides still join the mission board.
+ *   · Feature toggles (timer/glow/parallax/scanlines, missing = ON) and
+ *     the v25 global timerEndsAt override kept; LIGHT SKIN via --g-* token
+ *     vars (photo-dark panels stay dark in both skins); reduced-motion
+ *     kill-switch covers EVERY loop; ≥44px touch targets; no horizontal
+ *     overflow at 360px. All CSS scoped under [data-tpl="gaming-cyber"].
+ */
 
-import { useCallback, useEffect, useId, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { usePathname } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { motion, useMotionValue, useReducedMotion, useSpring, useTransform, type MotionValue } from "framer-motion";
 import { toast } from "sonner";
 import {
   Activity, BadgeCheck, Check, ChevronLeft, Fan, Flame, Gamepad2,
-  Headphones, HelpCircle, Keyboard, Layers, Loader2, Package, Plus, Radio,
-  ShieldCheck, ShoppingBasket, Sparkles, Star, Swords, Timer, Trophy, Truck,
-  Users, Zap,
+  Headphones, HelpCircle, Keyboard, Layers, Loader2, Menu, Package, Plus,
+  Radio, ShieldCheck, ShoppingBasket, Sparkles, Star, Swords, Timer,
+  Trophy, Truck, Users, X, Zap,
 } from "lucide-react";
 import type { HomeData, TemplateProduct } from "@/lib/templates/types";
-import type { TemplateContentData, TemplateShowcase } from "@/lib/templates/content";
+import {
+  DEFAULT_TEMPLATE_CONTENT,
+  type TemplateContentData,
+  type TemplateShowcase,
+} from "@/lib/templates/content";
 import { formatPrice } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { useChatStore } from "@/lib/stores";
 import { Reveal } from "../reveal";
 import { StoriesRow, type StoryItem } from "../stories-row";
-import { TemplateHeader } from "./chrome/header";
 import { TemplateFooter } from "./chrome/footer";
-import { TEMPLATE_CHROME } from "./chrome/config";
-import { resolveTickerMessages } from "./chrome/bits";
+import { TEMPLATE_CHROME, type HeaderCfg } from "./chrome/config";
+import {
+  ACCENT_CLASSES, CHROME_ACCENTS, ChromeAccount, ChromeCart, ChromeSearch,
+  ChromeThemeToggle, ChromeHeaderNav, pickEnum, resolveTickerMessages,
+  type ChromeAccentClasses,
+} from "./chrome/bits";
 
 /* ══ ALL custom CSS — one plain <style> tag, scoped under [data-tpl] ══ */
 const GC_CSS = `
+/* ═══ tokens — dark arena (GameUp surfaces) ═══ */
 [data-tpl="gaming-cyber"]{
-  --gc-bg:#120E18;--gc-surface:#221A31;--gc-card:#2A2038;
-  --gc-magenta:#E22BFF;--gc-vice:#D000FF;--gc-lime:#EAFF00;--gc-lime-ink:#0B0014;
-  --gc-violet:#8B5CF6;--gc-cyan:#06B6D4;--gc-emerald:#10B981;
-  --gc-text:#EFEAF9;--gc-dim:#A79BC6;--gc-mono:#67E8F9;
-  background:#120E18;color:#EFEAF9;
+  --g-bg:#1A1527;--g-panel:#241E33;--g-panel2:#2D2540;
+  --g-line:rgba(139,92,246,.22);--g-line-strong:rgba(139,92,246,.44);
+  --g-ink:#F1EDFA;--g-dim:#ABA3C8;--g-faint:#877CAE;
+  --g-code:#9287BC;--g-cyan:#67E8F9;--g-pink:#EC4899;--g-hot:#F472B6;
+  --g-violet:#A78BFA;--g-live:#34D399;--g-star:#FBBF24;--g-lime:#EAFF00;
+  background:#1A1527;color:#F1EDFA;
+}
+html:not(.dark) [data-tpl="gaming-cyber"]{
+  --g-bg:#F6F2FB;--g-panel:#FFFFFF;--g-panel2:#F0EAF8;
+  --g-line:rgba(124,58,237,.22);--g-line-strong:rgba(124,58,237,.42);
+  --g-ink:#2A1B40;--g-dim:#5E5377;--g-faint:#7A6B9E;
+  --g-code:#7A6B9E;--g-cyan:#0E7490;--g-pink:#DB2777;--g-hot:#C026D3;
+  --g-violet:#7C3AED;--g-live:#047857;--g-star:#B45309;
+  background:#F6F2FB;color:#2A1B40;
 }
 [data-tpl="gaming-cyber"] .gc-root{
   position:relative;
   background:
-    radial-gradient(1100px 540px at 82% -4%,rgba(168,85,247,.20),transparent 62%),
-    radial-gradient(880px 480px at 6% 14%,rgba(208,0,255,.12),transparent 60%),
-    radial-gradient(900px 640px at 50% 108%,rgba(6,182,212,.09),transparent 62%),
-    #120E18;
-  color:#EFEAF9;
+    radial-gradient(1100px 520px at 84% -6%,rgba(168,85,247,.14),transparent 62%),
+    radial-gradient(880px 460px at 4% 10%,rgba(236,72,153,.08),transparent 60%),
+    radial-gradient(900px 620px at 50% 110%,rgba(34,211,238,.06),transparent 62%),
+    var(--g-bg);
+  color:var(--g-ink);
 }
-[data-tpl="gaming-cyber"] .gc-code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:10.5px;font-weight:700;letter-spacing:.16em;color:#8F7FC0}
-[data-tpl="gaming-cyber"] .gc-code-cyan{color:#67E8F9}
-[data-tpl="gaming-cyber"] .gc-code-magenta{color:#F79CFF}
-/* ── floating window chrome ─────────────────────────────────────────── */
-[data-tpl="gaming-cyber"] .gc-win{
-  position:relative;border-radius:16px;overflow:hidden;
-  border:1px solid rgba(139,92,246,.30);
-  background:linear-gradient(180deg,rgba(42,32,56,.55),rgba(34,26,49,.72));
-  backdrop-filter:blur(10px);
-  box-shadow:0 22px 60px -30px rgba(0,0,0,.85);
+/* ═══ shared type atoms ═══ */
+[data-tpl="gaming-cyber"] .gc-code{
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:10.5px;font-weight:700;letter-spacing:.18em;color:var(--g-code);
 }
-[data-tpl="gaming-cyber"] .gc-win-bar{
-  display:flex;align-items:center;gap:10px;padding:9px 14px;
-  border-bottom:1px solid rgba(139,92,246,.24);background:rgba(18,14,24,.75);
-}
-[data-tpl="gaming-cyber"] .gc-dots{display:inline-flex;gap:6px;flex-shrink:0}
-[data-tpl="gaming-cyber"] .gc-dots i{width:9px;height:9px;border-radius:999px;display:block}
-[data-tpl="gaming-cyber"] .gc-dots i:nth-child(1){background:#FF5F57;box-shadow:0 0 8px rgba(255,95,87,.65)}
-[data-tpl="gaming-cyber"] .gc-dots i:nth-child(2){background:#FEBC2E;box-shadow:0 0 8px rgba(254,188,46,.6)}
-[data-tpl="gaming-cyber"] .gc-dots i:nth-child(3){background:#28C840;box-shadow:0 0 8px rgba(40,200,64,.6)}
-[data-tpl="gaming-cyber"] .gc-win-title{font-size:12.5px;font-weight:800;color:#EFEAF9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-[data-tpl="gaming-cyber"] .gc-win-code{margin-inline-start:auto;flex-shrink:0;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:10px;letter-spacing:.14em;color:#8F7FC0}
-[data-tpl="gaming-cyber"] .gc-win-code-flush{margin-inline-start:0}
-[data-tpl="gaming-cyber"] .gc-win-bar-sm{padding:6px 12px}
-[data-tpl="gaming-cyber"][data-scan="on"] .gc-win-scan{position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(6,182,212,.045) 0 1px,transparent 1px 3px)}
-/* ── LIVE badge (emerald) ───────────────────────────────────────────── */
+[data-tpl="gaming-cyber"] .gc-code-cyan{color:var(--g-cyan)}
+[data-tpl="gaming-cyber"] .gc-code-hot{color:var(--g-hot)}
+/* ═══ LIVE badge (green, pulsing dot) ═══ */
 [data-tpl="gaming-cyber"] .gc-live-badge{
   display:inline-flex;align-items:center;gap:6px;flex-shrink:0;padding:3px 10px;
-  border-radius:999px;background:rgba(16,185,129,.14);border:1px solid rgba(16,185,129,.45);
-  color:#34D399;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  border-radius:999px;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.42);
+  color:var(--g-live);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
   font-size:9.5px;font-weight:900;letter-spacing:.18em;
 }
-[data-tpl="gaming-cyber"] .gc-live-dot{width:7px;height:7px;border-radius:999px;background:#10B981;animation:gc-live-pulse 1.6s ease-out infinite}
+[data-tpl="gaming-cyber"] .gc-live-dot{width:7px;height:7px;border-radius:999px;background:#22C55E;animation:gc-live-pulse 1.8s ease-out infinite}
 [data-tpl="gaming-cyber"] .gc-live-dot-sm{width:5px;height:5px}
 [data-tpl="gaming-cyber"] .gc-live-badge-sm{padding:1px 7px}
 @keyframes gc-live-pulse{
-  0%{box-shadow:0 0 0 0 rgba(16,185,129,.55)}
-  80%{box-shadow:0 0 0 9px rgba(16,185,129,0)}
-  100%{box-shadow:0 0 0 0 rgba(16,185,129,0)}
+  0%{box-shadow:0 0 0 0 rgba(34,197,94,.55)}
+  80%{box-shadow:0 0 0 9px rgba(34,197,94,0)}
+  100%{box-shadow:0 0 0 0 rgba(34,197,94,0)}
 }
-/* ── HUD corner brackets ────────────────────────────────────────────── */
+/* ═══ HUD corner brackets ═══ */
 [data-tpl="gaming-cyber"] .gc-corners{position:absolute;inset:10px;pointer-events:none;z-index:12}
 [data-tpl="gaming-cyber"] .gc-corners i{position:absolute;width:16px;height:16px}
-[data-tpl="gaming-cyber"] .gc-corners i:nth-child(1){top:0;right:0;border-top:2px solid rgba(6,182,212,.8);border-right:2px solid rgba(6,182,212,.8)}
-[data-tpl="gaming-cyber"] .gc-corners i:nth-child(2){top:0;left:0;border-top:2px solid rgba(6,182,212,.45);border-left:2px solid rgba(6,182,212,.45)}
-[data-tpl="gaming-cyber"] .gc-corners i:nth-child(3){bottom:0;right:0;border-bottom:2px solid rgba(6,182,212,.45);border-right:2px solid rgba(6,182,212,.45)}
-[data-tpl="gaming-cyber"] .gc-corners i:nth-child(4){bottom:0;left:0;border-bottom:2px solid rgba(6,182,212,.8);border-left:2px solid rgba(6,182,212,.8)}
-/* ── scanlines texture (feature-gated by [data-scan]) ──────────────── */
+[data-tpl="gaming-cyber"] .gc-corners i:nth-child(1){top:0;right:0;border-top:2px solid rgba(103,232,249,.7);border-right:2px solid rgba(103,232,249,.7)}
+[data-tpl="gaming-cyber"] .gc-corners i:nth-child(2){top:0;left:0;border-top:2px solid rgba(103,232,249,.38);border-left:2px solid rgba(103,232,249,.38)}
+[data-tpl="gaming-cyber"] .gc-corners i:nth-child(3){bottom:0;right:0;border-bottom:2px solid rgba(103,232,249,.38);border-right:2px solid rgba(103,232,249,.38)}
+[data-tpl="gaming-cyber"] .gc-corners i:nth-child(4){bottom:0;left:0;border-bottom:2px solid rgba(103,232,249,.7);border-left:2px solid rgba(103,232,249,.7)}
+/* ═══ scanlines texture (feature-gated) ═══ */
 [data-tpl="gaming-cyber"][data-scan="on"] .gc-scanlines{
-  background:repeating-linear-gradient(0deg,rgba(6,182,212,.07) 0 1px,transparent 1px 3px);
+  background:repeating-linear-gradient(0deg,rgba(103,232,249,.06) 0 1px,transparent 1px 3px);
 }
-/* ── RGB border cycle (feature-gated by [data-glow]) ────────────────── */
-[data-tpl="gaming-cyber"][data-glow="on"] .gc-rgb{position:relative}
-[data-tpl="gaming-cyber"][data-glow="on"] .gc-rgb::before{
-  content:"";position:absolute;inset:-1px;border-radius:inherit;padding:1.5px;
-  background:conic-gradient(#FF3EF0,#D000FF,#8B5CF6,#06B6D4,#10B981,#EAFF00,#FF7A00,#FF3EF0);
-  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
-  -webkit-mask-composite:xor;
-  mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
-  mask-composite:exclude;
-  opacity:.55;animation:gc-rgb-cycle 6s linear infinite;pointer-events:none;z-index:2;
-}
-[data-tpl="gaming-cyber"][data-glow="on"] .gc-rgb:hover::before{opacity:1}
-@keyframes gc-rgb-cycle{to{filter:hue-rotate(360deg)}}
-[data-tpl="gaming-cyber"][data-glow="on"] .gc-glow-halo{box-shadow:0 0 44px -12px rgba(208,0,255,.6)}
-/* ── hexagon clip accents ───────────────────────────────────────────── */
+/* ═══ hexagon accents ═══ */
 [data-tpl="gaming-cyber"] .gc-hex{clip-path:polygon(50% 0,95% 25%,95% 75%,50% 100%,5% 75%,5% 25%)}
-[data-tpl="gaming-cyber"] .gc-hex-grad{background:linear-gradient(135deg,#E22BFF,#8B5CF6 50%,#06B6D4)}
-/* ── product card ───────────────────────────────────────────────────── */
-[data-tpl="gaming-cyber"] .gc-card{
-  position:relative;display:flex;flex-direction:column;border-radius:16px;overflow:hidden;
-  border:1px solid rgba(139,92,246,.26);
-  background:linear-gradient(180deg,rgba(42,32,56,.62),rgba(34,26,49,.78));
-  backdrop-filter:blur(8px);
-  transition:transform .25s,border-color .25s,box-shadow .25s;
+[data-tpl="gaming-cyber"] .gc-hex-grad{background:linear-gradient(135deg,#A855F7,#EC4899)}
+/* ═══ floating window chrome ═══ */
+[data-tpl="gaming-cyber"] .gc-win{
+  position:relative;border-radius:16px;overflow:hidden;
+  border:1px solid var(--g-line-strong);
+  background:linear-gradient(180deg,var(--g-panel),var(--g-panel) 55%,var(--g-bg));
+  box-shadow:0 24px 60px -34px rgba(0,0,0,.55);
 }
-[data-tpl="gaming-cyber"] .gc-card:hover{transform:translateY(-5px);border-color:rgba(226,43,255,.55)}
-[data-tpl="gaming-cyber"][data-glow="on"] .gc-card:hover{
-  box-shadow:0 0 0 1px rgba(226,43,255,.35),0 18px 44px -16px rgba(208,0,255,.5);
+[data-tpl="gaming-cyber"] .gc-win-bar{
+  display:flex;align-items:center;gap:10px;padding:8px 14px;
+  border-bottom:1px solid var(--g-line);
+  background:color-mix(in srgb,var(--g-bg) 55%,var(--g-panel));
 }
-/* ── glitch / RGB-split hover on product titles ─────────────────────── */
-[data-tpl="gaming-cyber"] .gc-glitch:hover .gc-glitch-t,
-[data-tpl="gaming-cyber"] .gc-glitch:focus-within .gc-glitch-t{
-  animation:gc-glitch .5s steps(2,jump-none) infinite;color:#fff;
-}
-@keyframes gc-glitch{
-  0%,100%{text-shadow:none;transform:none}
-  18%{text-shadow:2px 0 rgba(255,62,240,.85),-2px 0 rgba(6,182,212,.85);transform:translateX(1px)}
-  36%{text-shadow:-2px 0 rgba(226,43,255,.85),2px 0 rgba(6,182,212,.85);transform:translateX(-1px)}
-  54%{text-shadow:1px 0 rgba(139,92,246,.85),-1px 0 rgba(6,182,212,.85)}
-}
-/* ── buttons ────────────────────────────────────────────────────────── */
+[data-tpl="gaming-cyber"] .gc-dots{display:inline-flex;gap:6px;flex-shrink:0}
+[data-tpl="gaming-cyber"] .gc-dots i{width:8px;height:8px;border-radius:999px;display:block}
+[data-tpl="gaming-cyber"] .gc-dots i:nth-child(1){background:#FF5F57}
+[data-tpl="gaming-cyber"] .gc-dots i:nth-child(2){background:#FEBC2E}
+[data-tpl="gaming-cyber"] .gc-dots i:nth-child(3){background:#28C840}
+[data-tpl="gaming-cyber"] .gc-win-title{font-size:12.5px;font-weight:800;color:var(--g-ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+[data-tpl="gaming-cyber"] .gc-win-code{margin-inline-start:auto;flex-shrink:0;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:10px;letter-spacing:.14em;color:var(--g-code)}
+[data-tpl="gaming-cyber"] .gc-win-code-flush{margin-inline-start:0}
+[data-tpl="gaming-cyber"] .gc-win-bar-sm{padding:6px 12px}
+[data-tpl="gaming-cyber"][data-scan="on"] .gc-win-scan{position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(103,232,249,.04) 0 1px,transparent 1px 3px)}
+/* ═══ buttons ═══ */
 [data-tpl="gaming-cyber"] .gc-btn{
   display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:12px;
   font-weight:800;color:#fff;cursor:pointer;
-  background:linear-gradient(135deg,#E22BFF 0%,#8B5CF6 55%,#06B6D4 135%);
-  border:1px solid rgba(226,43,255,.55);
-  box-shadow:0 10px 26px -12px rgba(208,0,255,.75);
+  background:linear-gradient(135deg,#A855F7 0%,#C55CF0 45%,#EC4899 120%);
+  border:1px solid rgba(168,85,247,.55);
+  box-shadow:0 10px 26px -14px rgba(168,85,247,.8);
   transition:filter .2s,transform .2s,box-shadow .2s;
 }
-[data-tpl="gaming-cyber"] .gc-btn:hover{filter:brightness(1.12) saturate(1.2);transform:translateY(-1px);box-shadow:0 14px 34px -12px rgba(208,0,255,.9)}
+[data-tpl="gaming-cyber"] .gc-btn:hover{filter:brightness(1.1);transform:translateY(-1px);box-shadow:0 14px 32px -12px rgba(168,85,247,.95)}
 [data-tpl="gaming-cyber"] .gc-btn:active{transform:translateY(0) scale(.98)}
 [data-tpl="gaming-cyber"] .gc-btn:disabled{opacity:.45;pointer-events:none;filter:grayscale(.4)}
 [data-tpl="gaming-cyber"] .gc-btn-ghost{
-  display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:12px;
-  font-weight:800;color:#E9D5FF;cursor:pointer;
-  background:rgba(42,32,56,.4);border:1px solid rgba(139,92,246,.5);backdrop-filter:blur(6px);
+  display:inline-flex;align-items:center;justify-content:center;gap:9px;cursor:pointer;
+  height:52px;padding:0 24px;border-radius:999px;
+  border:1.5px solid var(--g-line-strong);color:var(--g-ink);font-weight:800;font-size:14px;
+  background:color-mix(in srgb,var(--g-panel) 55%,transparent);
   transition:border-color .2s,color .2s,box-shadow .2s,transform .2s;
 }
-[data-tpl="gaming-cyber"] .gc-btn-ghost:hover{border-color:rgba(6,182,212,.8);color:#fff;box-shadow:0 0 20px -8px rgba(6,182,212,.7);transform:translateY(-1px)}
+[data-tpl="gaming-cyber"] .gc-btn-ghost:hover{border-color:var(--g-pink);color:var(--g-hot);box-shadow:0 0 24px -10px var(--g-pink);transform:translateY(-1px)}
 [data-tpl="gaming-cyber"] .gc-btn-ghost:disabled{opacity:.45;pointer-events:none}
-/* ── hero ───────────────────────────────────────────────────────────── */
-[data-tpl="gaming-cyber"] .gc-hero{
-  border:1px solid rgba(139,92,246,.35);
-  box-shadow:0 30px 80px -40px rgba(0,0,0,.9),inset 0 0 60px rgba(18,14,24,.55);
-}
-[data-tpl="gaming-cyber"] .gc-hero-fallback{
-  background:
-    radial-gradient(600px 300px at 70% 20%,rgba(208,0,255,.3),transparent 60%),
-    radial-gradient(500px 260px at 20% 70%,rgba(6,182,212,.18),transparent 60%),
-    linear-gradient(160deg,#2A2038,#120E18 70%);
-}
-/* v30: VICE scrim — magenta sunset push on top, deep-void base below so the
-   giant display headline always pops over the key art. */
-[data-tpl="gaming-cyber"] .gc-hero-tint{
-  background:
-    radial-gradient(120% 95% at 82% -12%,rgba(208,0,255,.4),transparent 55%),
-    radial-gradient(85% 70% at 8% 112%,rgba(234,255,0,.1),transparent 52%),
-    linear-gradient(to top,rgba(11,0,20,.97) 0%,rgba(11,0,20,.6) 34%,rgba(11,0,20,.12) 60%,rgba(11,0,20,.45) 100%);
-}
-/* v30: perspective grid floor — now MAGENTA (Vice City energy) */
-[data-tpl="gaming-cyber"] .gc-grid-floor{
-  position:absolute;left:-22%;right:-22%;bottom:-14%;height:52%;pointer-events:none;
-  background-image:
-    linear-gradient(rgba(255,62,240,.65) 1.5px,transparent 1.5px),
-    linear-gradient(90deg,rgba(208,0,255,.45) 1.5px,transparent 1.5px);
-  background-size:46px 46px;
-  transform:perspective(560px) rotateX(60deg);transform-origin:top center;
-  -webkit-mask-image:linear-gradient(to bottom,transparent,#000 32%,#000 72%,transparent);
-  mask-image:linear-gradient(to bottom,transparent,#000 32%,#000 72%,transparent);
-}
-[data-tpl="gaming-cyber"] .gc-hero-hud{
-  position:absolute;top:0;left:0;right:0;z-index:14;pointer-events:none;
-  display:flex;align-items:center;gap:10px;padding:10px 14px;
-  background:linear-gradient(180deg,rgba(11,0,20,.8),transparent);
-}
-/* (v31: old photo-slider arrows/dots removed with the slider — the hero
-   centerpiece is now the code-drawn ARGB rig; see .gc-rig-* below) */
-/* ── stats tiles ────────────────────────────────────────────────────── */
-[data-tpl="gaming-cyber"] .gc-tile{
-  position:relative;display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:12px;
-  border:1px solid rgba(139,92,246,.25);
-  background:linear-gradient(180deg,rgba(42,32,56,.5),rgba(34,26,49,.6));
-}
-[data-tpl="gaming-cyber"] .gc-tile-ico{
-  display:grid;place-items:center;width:38px;height:38px;border-radius:10px;flex-shrink:0;
-  background:rgba(226,43,255,.14);border:1px solid rgba(226,43,255,.35);color:#F79CFF;
-}
-[data-tpl="gaming-cyber"] .gc-tile-v{font-size:15px;font-weight:900;color:#fff;font-variant-numeric:tabular-nums;line-height:1.15}
-[data-tpl="gaming-cyber"] .gc-tile-l{font-size:10px;color:#A79BC6;font-weight:600}
-/* ── category hex tiles ─────────────────────────────────────────────── */
-[data-tpl="gaming-cyber"] .gc-cat-hex{transition:transform .3s,filter .3s}
-[data-tpl="gaming-cyber"] .gc-cat:hover .gc-cat-hex{transform:scale(1.06) rotate(2deg);filter:drop-shadow(0 0 14px rgba(255,62,240,.6))}
-/* ── deal timer cells ───────────────────────────────────────────────── */
-[data-tpl="gaming-cyber"] .gc-timer-cell{
-  display:inline-block;min-width:30px;text-align:center;padding:1.5px 5px;border-radius:6px;
-  background:rgba(6,182,212,.12);border:1px solid rgba(6,182,212,.35);color:#67E8F9;
-  font-size:10.5px;font-weight:800;font-variant-numeric:tabular-nums;
-}
-[data-tpl="gaming-cyber"] .gc-timer-sep{color:rgba(103,232,249,.5);font-size:10.5px;font-weight:800}
-[data-tpl="gaming-cyber"] .gc-timer-cell-lg{min-width:42px;font-size:13px;padding:3px 7px}
-[data-tpl="gaming-cyber"] .gc-timer-sep-lg{font-size:13px}
-[data-tpl="gaming-cyber"] .gc-timer-ended{padding:2px 10px;border-radius:999px;background:rgba(167,155,198,.15);color:#A79BC6;font-size:10px;font-weight:800}
-/* ── in-stock emerald tag ───────────────────────────────────────────── */
-[data-tpl="gaming-cyber"] .gc-stock{
-  display:inline-flex;align-items:center;gap:5px;padding:2.5px 8px;border-radius:999px;
-  background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.4);color:#34D399;
-  font-size:9.5px;font-weight:800;
-}
-/* ── rank badges (hexagon) ──────────────────────────────────────────── */
-[data-tpl="gaming-cyber"] .gc-rank{
-  display:grid;place-items:center;width:40px;height:44px;flex-shrink:0;
-  clip-path:polygon(50% 0,95% 25%,95% 75%,50% 100%,5% 75%,5% 25%);
-  font-size:14px;font-weight:900;color:#fff;font-variant-numeric:tabular-nums;
-}
-[data-tpl="gaming-cyber"] .gc-rank-1{background:linear-gradient(160deg,#FF3EF0,#8B5CF6);filter:drop-shadow(0 0 12px rgba(255,62,240,.6))}
-[data-tpl="gaming-cyber"] .gc-rank-2{background:linear-gradient(160deg,#8B5CF6,#6D28D9);filter:drop-shadow(0 0 10px rgba(139,92,246,.45))}
-[data-tpl="gaming-cyber"] .gc-rank-3{background:linear-gradient(160deg,#06B6D4,#0E7490);filter:drop-shadow(0 0 10px rgba(6,182,212,.45))}
-[data-tpl="gaming-cyber"] .gc-rank-n{background:rgba(42,32,56,.85);color:#A79BC6}
-/* ── legendary (exclusive) showcase ─────────────────────────────────── */
-[data-tpl="gaming-cyber"] .gc-legendary{
-  position:relative;border-radius:20px;overflow:hidden;
-  border:1px solid rgba(226,43,255,.4);
-  background:
-    radial-gradient(520px 300px at 82% 20%,rgba(208,0,255,.18),transparent 62%),
-    radial-gradient(420px 260px at 12% 84%,rgba(6,182,212,.12),transparent 62%),
-    linear-gradient(165deg,rgba(42,32,56,.9),rgba(18,14,24,.95));
-}
-[data-tpl="gaming-cyber"] .gc-legend-ring{
-  position:absolute;inset:-6%;border-radius:50%;border:1.5px dashed rgba(255,62,240,.45);
-  animation:gc-spin 16s linear infinite;
-}
-@keyframes gc-spin{to{transform:rotate(360deg)}}
-/* ── announcement / system status strip ─────────────────────────────── */
-[data-tpl="gaming-cyber"] .gc-strip{
-  position:relative;display:flex;align-items:center;gap:10px;padding:8px 12px;
-  border-radius:12px;overflow:hidden;
-  border:1px solid rgba(226,43,255,.3);
-  background:linear-gradient(90deg,rgba(208,0,255,.13),rgba(139,92,246,.10));
-}
-[data-tpl="gaming-cyber"] .gc-strip-badge{
-  flex-shrink:0;display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;
-  background:rgba(226,43,255,.2);border:1px solid rgba(226,43,255,.5);color:#F79CFF;
-  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:9.5px;font-weight:900;letter-spacing:.16em;
-}
-/* ── sponsor chips / mission cards / FAQ ────────────────────────────── */
-[data-tpl="gaming-cyber"] .gc-sponsor{
-  display:inline-flex;align-items:center;gap:10px;flex-shrink:0;height:48px;padding:0 16px;border-radius:999px;
-  border:1px solid rgba(139,92,246,.3);background:rgba(34,26,49,.6);
-  font-size:12px;font-weight:800;color:#EFEAF9;letter-spacing:.03em;
-  transition:border-color .2s,color .2s,box-shadow .2s;
-}
-[data-tpl="gaming-cyber"] .gc-sponsor:hover{border-color:rgba(6,182,212,.8);color:#67E8F9;box-shadow:0 0 18px -8px rgba(6,182,212,.8)}
-[data-tpl="gaming-cyber"] .gc-mission{position:relative;display:block;overflow:hidden;border-radius:14px;border:1px solid rgba(139,92,246,.3)}
-[data-tpl="gaming-cyber"] .gc-faq-item{
-  border-radius:12px;border:1px solid rgba(139,92,246,.22);
-  background:linear-gradient(180deg,rgba(42,32,56,.5),rgba(34,26,49,.62));
-  transition:border-color .25s,box-shadow .25s;
-}
-[data-tpl="gaming-cyber"] .gc-faq-item[data-open="1"]{border-color:rgba(226,43,255,.5)}
-[data-tpl="gaming-cyber"][data-glow="on"] .gc-faq-item[data-open="1"]{box-shadow:0 0 26px -10px rgba(208,0,255,.5)}
-
-/* ═══════════ v28 · ARGB RAINBOW SYSTEM (kept, conics carry lime now) ═══ */
-@keyframes gc-rgb-flow{to{filter:hue-rotate(360deg)}}
-@keyframes gc-rgb-slide{0%{background-position:0% 50%}100%{background-position:200% 50%}}
-@keyframes gc-grad-shift{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
-@keyframes gc-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
-/* hero shell — animated RAINBOW conic ring wrapping the whole hero */
-[data-tpl="gaming-cyber"] .gc-hero-shell{
-  position:relative;padding:2.5px;border-radius:24px;
-  box-shadow:0 30px 80px -40px rgba(0,0,0,.9);
-}
-[data-tpl="gaming-cyber"][data-glow="on"] .gc-hero-shell::before{
-  content:"";position:absolute;inset:0;border-radius:inherit;z-index:0;
-  background:conic-gradient(#F43F5E,#FF3EF0,#D000FF,#8B5CF6,#06B6D4,#10B981,#EAFF00,#FF7A00,#F43F5E);
-  animation:gc-rgb-flow 10s linear infinite;
-}
-[data-tpl="gaming-cyber"][data-glow="on"] .gc-hero-shell:hover::before{animation-duration:3s}
-/* RGB edge — animated conic rainbow border for art frames / banners */
-[data-tpl="gaming-cyber"] .gc-rgb-edge{position:relative}
-[data-tpl="gaming-cyber"][data-glow="on"] .gc-rgb-edge::after{
-  content:"";position:absolute;inset:0;border-radius:inherit;padding:2px;z-index:4;pointer-events:none;
-  background:conic-gradient(#F43F5E,#FF3EF0,#D000FF,#8B5CF6,#06B6D4,#10B981,#EAFF00,#FF7A00,#F43F5E);
-  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
-  -webkit-mask-composite:xor;
-  mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
-  mask-composite:exclude;
-  animation:gc-rgb-flow 8s linear infinite;opacity:.8;
-}
-[data-tpl="gaming-cyber"][data-glow="on"] .gc-rgb-edge:hover::after{animation-duration:2.5s;opacity:1}
-/* section-head RGB underline scan */
-[data-tpl="gaming-cyber"] .gc-head{position:relative}
-[data-tpl="gaming-cyber"] .gc-head::after{
-  content:"";position:absolute;bottom:-5px;inset-inline-start:0;width:100%;height:3px;border-radius:999px;
-  background:linear-gradient(90deg,#F43F5E,#FF3EF0,#8B5CF6,#06B6D4,#10B981,#EAFF00,#F43F5E);
-  background-size:220% 100%;animation:gc-rgb-slide 6s linear infinite;
-  box-shadow:0 0 14px -2px rgba(255,62,240,.6);opacity:.95;
-}
-[data-tpl="gaming-cyber"] .mb-5 > p{margin-top:11px}
-/* hero CTA — animated rainbow gradient */
-[data-tpl="gaming-cyber"] .gc-btn-rgb{
-  background:linear-gradient(110deg,#F43F5E,#FF3EF0,#D000FF,#8B5CF6,#06B6D4,#10B981,#EAFF00,#F43F5E);
-  background-size:300% 100%;animation:gc-rgb-slide 5s linear infinite;
-  box-shadow:0 10px 30px -10px rgba(208,0,255,.85),0 0 26px -6px rgba(6,182,212,.5);
-  border:1px solid rgba(226,43,255,.6);
-}
-[data-tpl="gaming-cyber"] .gc-btn-rgb:hover{animation-duration:1.4s;filter:brightness(1.15) saturate(1.3)}
-/* window chrome top hairline — rainbow strip on every gc-win */
-[data-tpl="gaming-cyber"][data-glow="on"] .gc-win::after{
-  content:"";position:absolute;top:0;left:0;right:0;height:2px;z-index:6;pointer-events:none;
-  background:linear-gradient(90deg,#FF3EF0,#D000FF,#8B5CF6,#06B6D4,#10B981,#EAFF00,#FF3EF0);
-  background-size:200% 100%;animation:gc-rgb-slide 7s linear infinite;opacity:.75;
-}
-/* card RGB cycle — thicker, faster; hover = even faster */
-[data-tpl="gaming-cyber"][data-glow="on"] .gc-rgb::before{padding:2px;opacity:.75;animation-duration:4.5s}
-[data-tpl="gaming-cyber"][data-glow="on"] .gc-rgb:hover::before{animation-duration:1.2s}
-/* product photos glow (ARGB spill) */
-[data-tpl="gaming-cyber"][data-glow="on"] .gc-card .object-contain{
-  filter:drop-shadow(0 6px 18px rgba(208,0,255,.35)) drop-shadow(0 0 10px rgba(6,182,212,.25));
-}
-[data-tpl="gaming-cyber"][data-glow="on"] .gc-card:hover .object-contain{
-  filter:drop-shadow(0 10px 26px rgba(208,0,255,.55)) drop-shadow(0 0 16px rgba(6,182,212,.4));
-}
-/* timers / category hexes / hex badges / FAQ q-chip */
-[data-tpl="gaming-cyber"][data-glow="on"] .gc-timer-cell{box-shadow:0 0 12px -4px rgba(6,182,212,.6)}
-[data-tpl="gaming-cyber"] .gc-cat:hover .gc-cat-hex{filter:drop-shadow(0 0 20px rgba(255,62,240,.75)) drop-shadow(0 0 10px rgba(6,182,212,.45))}
-[data-tpl="gaming-cyber"] .gc-hex-grad{background-size:180% 180%;animation:gc-grad-shift 7s ease infinite}
-[data-tpl="gaming-cyber"] .gc-qchip{box-shadow:0 0 14px -6px rgba(226,43,255,.65)}
-[data-tpl="gaming-cyber"][data-glow="on"] .gc-corners i{filter:drop-shadow(0 0 5px rgba(6,182,212,.7))}
-/* ── «اسطوره‌های آرنا» anime mascot band ─────────────────────────────── */
-[data-tpl="gaming-cyber"] .gc-arena{
-  position:relative;border-radius:20px;overflow:hidden;
-  border:1px solid rgba(139,92,246,.4);
-  background:
-    radial-gradient(700px 380px at 85% 10%,rgba(208,0,255,.2),transparent 60%),
-    radial-gradient(560px 320px at 6% 92%,rgba(6,182,212,.15),transparent 60%),
-    linear-gradient(160deg,rgba(42,32,56,.85),rgba(18,14,24,.94));
-}
-[data-tpl="gaming-cyber"] .gc-arena-grid{display:grid;gap:24px;padding:24px;align-items:center}
-@media (min-width:1024px){
-  [data-tpl="gaming-cyber"] .gc-arena-grid{grid-template-columns:.92fr 1.08fr;padding:32px;gap:36px}
-}
-[data-tpl="gaming-cyber"] .gc-arena-art{position:relative}
-[data-tpl="gaming-cyber"] .gc-art-frame{
-  position:relative;aspect-ratio:4/3;border-radius:22px;overflow:hidden;z-index:1;
-  border:1px solid rgba(139,92,246,.45);
-  box-shadow:0 24px 60px -24px rgba(0,0,0,.9),0 0 34px -8px rgba(226,43,255,.45);
-}
-[data-tpl="gaming-cyber"][data-glow="on"] .gc-art-frame{
-  box-shadow:0 24px 64px -24px rgba(0,0,0,.9),0 0 44px -8px rgba(208,0,255,.6),0 0 26px -6px rgba(6,182,212,.4);
-}
-[data-tpl="gaming-cyber"] .gc-arena-mascot{
-  position:absolute;bottom:14px;inset-inline-start:14px;width:42%;max-width:230px;aspect-ratio:1/1;
-  border-radius:20px;overflow:hidden;z-index:2;transform:rotate(-3deg);
-  border:2px solid rgba(255,62,240,.6);
-  box-shadow:0 18px 44px -14px rgba(0,0,0,.85),0 0 34px -8px rgba(255,62,240,.7);
-  animation:gc-float 7s ease-in-out infinite;
-}
-[data-tpl="gaming-cyber"] .gc-float{animation:gc-float 6.5s ease-in-out infinite}
-/* category chips (arena band → gaming categories) */
-[data-tpl="gaming-cyber"] .gc-chip{
-  display:inline-flex;align-items:center;gap:7px;height:38px;padding:0 16px;border-radius:999px;
-  border:1px solid rgba(139,92,246,.5);background:rgba(42,32,56,.55);color:#EFEAF9;
-  font-size:12.5px;font-weight:800;transition:border-color .2s,color .2s,box-shadow .2s,transform .2s;
-}
-[data-tpl="gaming-cyber"] .gc-chip:hover{
-  border-color:rgba(255,62,240,.8);color:#F79CFF;transform:translateY(-2px);
-  box-shadow:0 0 20px -6px rgba(208,0,255,.75);
-}
-
-/* ═════════════════════════════════════════════════════════════════════
-   v30 · VICE-ARENA SIGNATURE SYSTEM — GTA × GameUp
-   (everything gated: [data-glow="on"] where it glows + reduced-motion
-   kill-switch at the bottom of this block + light-skin variants below)
-   ═════════════════════════════════════════════════════════════════════ */
-/* ── giant italic-black display headline (gradient white→magenta) ───── */
-/* NOTE: use background-image (NOT the background shorthand) everywhere a
-   clip-text gradient is (re)declared — the shorthand would reset
-   background-clip back to border-box and make the headline a gradient
-   RECTANGLE with invisible text (caught in light mode QA).            */
-[data-tpl="gaming-cyber"] .gc-display{
-  display:inline-block;
-  font-weight:900;font-style:italic;
-  letter-spacing:-.015em;line-height:1.08;
-  transform:skewX(-8deg);
-  background-image:linear-gradient(180deg,#FFFFFF 8%,#FFD6FF 48%,#F86BFF 78%,#D000FF 100%);
-  -webkit-background-clip:text;background-clip:text;color:transparent;
-  filter:drop-shadow(0 4px 26px rgba(208,0,255,.45)) drop-shadow(0 1px 2px rgba(0,0,0,.4));
-}
-[data-tpl="gaming-cyber"] .gc-ds-hero{font-size:clamp(32px,6.2vw,74px);line-height:1.04}
-[data-tpl="gaming-cyber"] .gc-ds-xl{font-size:clamp(24px,3.8vw,42px)}
-[data-tpl="gaming-cyber"] .gc-ds-lg{font-size:clamp(21px,3vw,32px)}
-[data-tpl="gaming-cyber"] .gc-ds-deal{font-size:clamp(26px,4.4vw,56px);line-height:1.05}
-/* ── acid-lime chip (bg lime + near-black text — NEVER lime text on dark) */
-[data-tpl="gaming-cyber"] .gc-lime-chip{
-  display:inline-flex;align-items:center;gap:7px;padding:5px 14px;border-radius:999px;
-  background:#EAFF00;color:#0B0014;
-  font-weight:900;font-size:10.5px;letter-spacing:.24em;text-transform:uppercase;
-  box-shadow:0 0 26px rgba(234,255,0,.35),0 6px 18px -8px rgba(0,0,0,.5);
-}
-[data-tpl="gaming-cyber"] .gc-lime-chip-lg{padding:7px 18px;font-size:12px}
-/* ── lime pill CTA (lime bg, BLACK bold text, plus-icon circle inside) ─ */
+/* lime pill CTA — lime bg, BLACK bold text, plus-icon circle (GTA VI) */
 [data-tpl="gaming-cyber"] .gc-btn-lime{
   display:inline-flex;align-items:center;gap:10px;cursor:pointer;
   height:52px;padding-inline:10px 24px;border-radius:999px;
   background:linear-gradient(180deg,#FBFF6A,#EAFF00);
   color:#0B0014;font-weight:900;font-size:14.5px;letter-spacing:-.01em;
-  box-shadow:0 12px 34px -10px rgba(234,255,0,.55),0 0 26px rgba(234,255,0,.22);
+  box-shadow:0 12px 32px -12px rgba(234,255,0,.5),0 0 22px rgba(234,255,0,.16);
   transition:transform .2s,box-shadow .2s,filter .2s;
 }
-[data-tpl="gaming-cyber"] .gc-btn-lime:hover{transform:translateY(-2px) scale(1.015);filter:brightness(1.05);box-shadow:0 16px 44px -10px rgba(234,255,0,.7),0 0 38px rgba(234,255,0,.3)}
+[data-tpl="gaming-cyber"] .gc-btn-lime:hover{transform:translateY(-2px) scale(1.015);filter:brightness(1.05);box-shadow:0 16px 40px -12px rgba(234,255,0,.65),0 0 30px rgba(234,255,0,.24)}
 [data-tpl="gaming-cyber"] .gc-btn-lime:active{transform:translateY(0) scale(.98)}
 [data-tpl="gaming-cyber"] .gc-btn-lime:disabled{opacity:.45;pointer-events:none;filter:grayscale(.4)}
 [data-tpl="gaming-cyber"] .gc-btn-lime-circle{
   display:grid;place-items:center;width:34px;height:34px;border-radius:999px;flex-shrink:0;
   background:#0B0014;color:#EAFF00;
 }
-[data-tpl="gaming-cyber"] .gc-btn-lime-sm{height:40px;padding-inline:7px 16px;font-size:12px;gap:7px}
-[data-tpl="gaming-cyber"] .gc-btn-lime-sm .gc-btn-lime-circle{width:26px;height:26px}
-/* ── ghost white-border pill (hero secondary) ────────────────────────── */
-[data-tpl="gaming-cyber"] .gc-btn-vice-ghost{
-  display:inline-flex;align-items:center;justify-content:center;gap:9px;cursor:pointer;
-  height:52px;padding:0 26px;border-radius:999px;
-  border:2px solid rgba(255,255,255,.8);color:#fff;font-weight:900;font-size:14px;
-  background:rgba(255,255,255,.07);backdrop-filter:blur(6px);
-  transition:background .2s,border-color .2s,box-shadow .2s,transform .2s;
+[data-tpl="gaming-cyber"] .gc-btn-lime-sm{height:44px;padding-inline:7px 18px;font-size:12.5px;gap:7px}
+[data-tpl="gaming-cyber"] .gc-btn-lime-sm .gc-btn-lime-circle{width:28px;height:28px}
+/* ═══ RGB keyframes (used by rig + chrome hairlines) ═══ */
+@keyframes gc-rgb-flow{to{filter:hue-rotate(360deg)}}
+@keyframes gc-rgb-slide{0%{background-position:0% 50%}100%{background-position:200% 50%}}
+@keyframes gc-grad-shift{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+@keyframes gc-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+/* ═══ section head — hex icon + mono code + big title + underline ═══ */
+[data-tpl="gaming-cyber"] .gc-shead{position:relative;margin-bottom:26px;padding-bottom:14px}
+[data-tpl="gaming-cyber"] .gc-shead::after{
+  content:"";position:absolute;bottom:0;inset-inline-start:0;height:2px;border-radius:999px;
+  width:min(340px,52%);
+  background:linear-gradient(90deg,#A855F7,#EC4899 55%,transparent 96%);
+  opacity:.85;
 }
-[data-tpl="gaming-cyber"] .gc-btn-vice-ghost:hover{background:rgba(255,255,255,.16);border-color:#fff;box-shadow:0 0 34px -8px rgba(255,255,255,.45);transform:translateY(-2px)}
-/* ── vertical "WELCOME TO THE ARENA" lime tab (GTA key-art tab) ──────── */
-[data-tpl="gaming-cyber"] .gc-vice-tab{
-  position:absolute;left:16px;top:15%;bottom:15%;z-index:16;pointer-events:none;
-  display:none;align-items:center;justify-content:center;
-  writing-mode:vertical-rl;text-orientation:mixed;
-  padding:20px 9px;border-radius:999px;
-  background:#EAFF00;color:#0B0014;
-  font-weight:900;font-size:10.5px;letter-spacing:.34em;text-transform:uppercase;
-  box-shadow:0 0 34px rgba(234,255,0,.42),0 10px 26px -10px rgba(0,0,0,.6);
+[data-tpl="gaming-cyber"] .gc-shead-ico{
+  display:grid;place-items:center;width:46px;height:50px;flex-shrink:0;
+  clip-path:polygon(50% 0,95% 25%,95% 75%,50% 100%,5% 75%,5% 25%);
+  background:linear-gradient(135deg,#A855F7,#EC4899);
+  color:#fff;box-shadow:0 10px 26px -12px rgba(168,85,247,.7);
 }
-@media (min-width:768px){
-  [data-tpl="gaming-cyber"] .gc-vice-tab{display:flex}
+[data-tpl="gaming-cyber"] .gc-shead-t{color:var(--g-ink);letter-spacing:-.01em}
+[data-tpl="gaming-cyber"] .gc-shead-s{color:var(--g-dim);font-size:13px;margin-top:9px;max-width:60ch;line-height:1.9}
+[data-tpl="gaming-cyber"] .gc-hex-grad{background-size:170% 170%;animation:gc-grad-shift 9s ease infinite}
+/* ═══ product card ═══ */
+[data-tpl="gaming-cyber"] .gc-card{
+  position:relative;display:flex;flex-direction:column;border-radius:16px;overflow:hidden;
+  border:1px solid var(--g-line);
+  background:linear-gradient(180deg,var(--g-panel),var(--g-panel) 60%,var(--g-bg));
+  transition:transform .25s,border-color .25s,box-shadow .25s;
 }
-/* ── neon swoosh curves (thin gradient SVG paths behind sections) ────── */
-[data-tpl="gaming-cyber"] .gc-swoosh{
-  position:absolute;inset-inline:-3%;bottom:5%;width:106%;height:44%;z-index:1;
-  pointer-events:none;opacity:.55;
+[data-tpl="gaming-cyber"] .gc-card:hover{transform:translateY(-4px);border-color:rgba(236,72,153,.5)}
+[data-tpl="gaming-cyber"][data-glow="on"] .gc-card:hover{
+  box-shadow:0 18px 44px -20px rgba(0,0,0,.55),0 0 26px -14px rgba(168,85,247,.55);
 }
-[data-tpl="gaming-cyber"] .gc-swoosh-flip{transform:scaleX(-1)}
-[data-tpl="gaming-cyber"][data-glow="on"] .gc-swoosh{filter:drop-shadow(0 0 6px rgba(168,85,247,.5))}
-/* ── rainbow underline bar (deal blocks / key titles) ────────────────── */
-[data-tpl="gaming-cyber"] .gc-underline-rainbow{
-  position:relative;height:4px;border-radius:999px;overflow:hidden;
-  background:linear-gradient(90deg,#F43F5E,#FF3EF0,#D000FF,#8B5CF6,#06B6D4,#10B981,#EAFF00,#F43F5E);
-  background-size:220% 100%;
-  box-shadow:0 0 16px -2px rgba(255,62,240,.6);
-  animation:gc-rgb-slide 6s linear infinite;
+[data-tpl="gaming-cyber"] .gc-card-title{color:var(--g-ink)}
+[data-tpl="gaming-cyber"] .gc-price{color:var(--g-hot);font-variant-numeric:tabular-nums}
+[data-tpl="gaming-cyber"] .gc-old{color:var(--g-faint);font-variant-numeric:tabular-nums}
+[data-tpl="gaming-cyber"] .gc-rating{color:var(--g-star)}
+[data-tpl="gaming-cyber"] .gc-brand{color:var(--g-dim)}
+/* glitch / RGB-split hover on product titles */
+[data-tpl="gaming-cyber"] .gc-glitch:hover .gc-glitch-t,
+[data-tpl="gaming-cyber"] .gc-glitch:focus-within .gc-glitch-t{
+  animation:gc-glitch .5s steps(2,jump-none) infinite;color:var(--g-ink);
 }
-/* ── ARGB STAGE — the product lighting system (pure CSS) ────────────── */
-/* stage: dark void base so the rainbow lights actually read */
+@keyframes gc-glitch{
+  0%,100%{text-shadow:none;transform:none}
+  18%{text-shadow:2px 0 rgba(236,72,153,.8),-2px 0 rgba(103,232,249,.8);transform:translateX(1px)}
+  36%{text-shadow:-2px 0 rgba(168,85,247,.8),2px 0 rgba(103,232,249,.8);transform:translateX(-1px)}
+  54%{text-shadow:1px 0 rgba(168,85,247,.8),-1px 0 rgba(103,232,249,.8)}
+}
+/* ═══ deal timer cells ═══ */
+[data-tpl="gaming-cyber"] .gc-timer-cell{
+  display:inline-block;min-width:30px;text-align:center;padding:1.5px 5px;border-radius:6px;
+  background:rgba(103,232,249,.1);border:1px solid rgba(103,232,249,.32);color:var(--g-cyan);
+  font-size:10.5px;font-weight:800;font-variant-numeric:tabular-nums;
+}
+[data-tpl="gaming-cyber"] .gc-timer-sep{color:rgba(103,232,249,.5);font-size:10.5px;font-weight:800}
+[data-tpl="gaming-cyber"] .gc-timer-cell-lg{min-width:42px;font-size:13px;padding:3px 7px}
+[data-tpl="gaming-cyber"] .gc-timer-sep-lg{font-size:13px}
+[data-tpl="gaming-cyber"] .gc-timer-ended{padding:2px 10px;border-radius:999px;background:rgba(167,155,198,.14);color:var(--g-dim);font-size:10px;font-weight:800}
+/* ═══ in-stock emerald tag ═══ */
+[data-tpl="gaming-cyber"] .gc-stock{
+  display:inline-flex;align-items:center;gap:5px;padding:2.5px 8px;border-radius:999px;
+  background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.4);color:var(--g-live);
+  font-size:9.5px;font-weight:800;
+}
+/* ═══ rank badges (hexagon leaderboard) ═══ */
+[data-tpl="gaming-cyber"] .gc-rank{
+  display:grid;place-items:center;width:40px;height:44px;flex-shrink:0;
+  clip-path:polygon(50% 0,95% 25%,95% 75%,50% 100%,5% 75%,5% 25%);
+  font-size:14px;font-weight:900;color:#fff;font-variant-numeric:tabular-nums;
+}
+[data-tpl="gaming-cyber"] .gc-rank-1{background:linear-gradient(160deg,#EC4899,#A855F7)}
+[data-tpl="gaming-cyber"] .gc-rank-2{background:linear-gradient(160deg,#A78BFA,#7C3AED)}
+[data-tpl="gaming-cyber"] .gc-rank-3{background:linear-gradient(160deg,#67E8F9,#0E7490)}
+[data-tpl="gaming-cyber"] .gc-rank-n{background:var(--g-panel2);color:var(--g-dim)}
+/* ═══ stats tiles ═══ */
+[data-tpl="gaming-cyber"] .gc-tile{
+  position:relative;display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:14px;
+  border:1px solid var(--g-line);
+  background:linear-gradient(180deg,var(--g-panel),var(--g-bg));
+}
+[data-tpl="gaming-cyber"] .gc-tile-ico{
+  display:grid;place-items:center;width:38px;height:38px;border-radius:10px;flex-shrink:0;
+  background:rgba(168,85,247,.13);border:1px solid rgba(168,85,247,.35);color:var(--g-violet);
+}
+[data-tpl="gaming-cyber"] .gc-tile-v{font-size:15px;font-weight:900;color:var(--g-ink);font-variant-numeric:tabular-nums;line-height:1.15}
+[data-tpl="gaming-cyber"] .gc-tile-l{font-size:10px;color:var(--g-dim);font-weight:600}
+/* ═══ category hex tiles ═══ */
+[data-tpl="gaming-cyber"] .gc-cat-hex{transition:transform .3s,filter .3s}
+[data-tpl="gaming-cyber"] .gc-cat:hover .gc-cat-hex{transform:scale(1.06) rotate(2deg);filter:drop-shadow(0 0 14px rgba(236,72,153,.5))}
+/* ═══ ARGB STAGE — product lighting (pure CSS, name-aware) ═══ */
 [data-tpl="gaming-cyber"] .gc-stage{
   position:relative;
-  background:radial-gradient(120% 120% at 50% 0%,#1C1230 0%,#0B0014 72%);
+  background:radial-gradient(120% 120% at 50% 0%,var(--g-panel2) 0%,var(--g-bg) 78%);
 }
-/* rotating conic rainbow RING around the product (mask donut) */
+/* rotating conic rainbow RING — quiet by default, wakes on hover */
 [data-tpl="gaming-cyber"] .gc-argb-ring{
   position:absolute;inset:6.5%;border-radius:999px;pointer-events:none;z-index:2;
-  background:conic-gradient(from 0deg,#F43F5E,#FF3EF0,#D000FF,#8B5CF6,#06B6D4,#10B981,#EAFF00,#FF7A00,#F43F5E);
+  background:conic-gradient(from 0deg,#F43F5E,#FF3EF0,#8B5CF6,#06B6D4,#10B981,#EAFF00,#FF7A00,#F43F5E);
   -webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 7px),#000 calc(100% - 6px));
   mask:radial-gradient(farthest-side,transparent calc(100% - 7px),#000 calc(100% - 6px));
-  opacity:.6;
+  opacity:0;transition:opacity .3s;
 }
-[data-tpl="gaming-cyber"][data-glow="on"] .gc-argb-ring{animation:gc-spin 8s linear infinite}
+[data-tpl="gaming-cyber"][data-glow="on"] .gc-argb-ring{animation:gc-spin 9s linear infinite}
 [data-tpl="gaming-cyber"][data-glow="on"] .gc-card:hover .gc-argb-ring,
-[data-tpl="gaming-cyber"][data-glow="on"] .gc-spot:hover .gc-argb-ring{animation-duration:2.5s;opacity:1}
+[data-tpl="gaming-cyber"][data-glow="on"] .gc-spot:hover .gc-argb-ring,
+[data-tpl="gaming-cyber"][data-glow="on"] .gc-fx-ring .gc-argb-ring{opacity:.75;animation-duration:3s}
+[data-tpl="gaming-cyber"][data-glow="on"] .gc-fx-ring .gc-argb-ring{
+  opacity:.9;filter:drop-shadow(0 0 10px rgba(255,62,240,.55));
+}
 /* pulsing rainbow UNDERGLOW (blurred conic ellipse under the product) */
 [data-tpl="gaming-cyber"] .gc-argb-glow{
   position:absolute;left:16%;right:16%;bottom:4%;height:13%;border-radius:999px;pointer-events:none;z-index:1;
   background:conic-gradient(from 90deg,#FF3EF0,#D000FF,#06B6D4,#EAFF00,#F43F5E,#FF3EF0);
-  filter:blur(16px);opacity:.32;
+  filter:blur(16px);opacity:0;transition:opacity .3s;
 }
+[data-tpl="gaming-cyber"][data-glow="on"] .gc-card:hover .gc-argb-glow,
+[data-tpl="gaming-cyber"][data-glow="on"] .gc-spot:hover .gc-argb-glow,
+[data-tpl="gaming-cyber"][data-glow="on"] .gc-fx-ring .gc-argb-glow{opacity:.4}
 [data-tpl="gaming-cyber"][data-glow="on"] .gc-argb-glow{
-  animation:gc-argb-pulse 3.2s ease-in-out infinite,gc-rgb-flow 6s linear infinite;
+  animation:gc-argb-pulse 3.4s ease-in-out infinite,gc-rgb-flow 6s linear infinite;
 }
-@keyframes gc-argb-pulse{0%,100%{opacity:.28;transform:scale(.92)}50%{opacity:.58;transform:scale(1.05)}}
-/* name-aware effects:
-   فن/Fan → the product image itself SPINS like a GIF (pause on hover);
-   کیبورد/Keyboard → RGB keys breathing (hue-rotate pulse);
-   ماوس/پد موس → the ring around the image glows + rotates faster.       */
+@keyframes gc-argb-pulse{0%,100%{transform:scale(.94)}50%{transform:scale(1.04)}}
+@keyframes gc-spin{to{transform:rotate(360deg)}}
+/* name-aware effects: فن→spin · کیبورد→hue · ماوس/پد→ring */
 [data-tpl="gaming-cyber"][data-glow="on"] .gc-fx-spin{animation:gc-fan-spin 4s linear infinite}
 [data-tpl="gaming-cyber"][data-glow="on"] .gc-card:hover .gc-fx-spin{animation-play-state:paused}
 @keyframes gc-fan-spin{to{transform:rotate(360deg)}}
@@ -535,436 +333,232 @@ const GC_CSS = `
   0%,100%{filter:hue-rotate(0deg) saturate(1.05) brightness(1)}
   50%{filter:hue-rotate(75deg) saturate(1.5) brightness(1.14)}
 }
-[data-tpl="gaming-cyber"][data-glow="on"] .gc-fx-ring .gc-argb-ring{
-  opacity:.95;animation-duration:5s;
-  filter:drop-shadow(0 0 12px rgba(255,62,240,.65));
+/* product photos glow (ARGB spill on hover) */
+[data-tpl="gaming-cyber"][data-glow="on"] .gc-card .object-contain{
+  filter:drop-shadow(0 6px 18px rgba(168,85,247,.3)) drop-shadow(0 0 10px rgba(103,232,249,.2));
 }
-[data-tpl="gaming-cyber"][data-glow="on"] .gc-fx-ring .gc-argb-glow{opacity:.5}
-/* ── DEAL ZONE — GTA big-number blocks ──────────────────────────────── */
-[data-tpl="gaming-cyber"] .gc-deal-zone{
-  position:relative;border-radius:24px;overflow:hidden;
-  border:1px solid rgba(226,43,255,.38);
-  background:
-    radial-gradient(880px 440px at 90% -6%,rgba(208,0,255,.22),transparent 60%),
-    radial-gradient(600px 320px at -4% 104%,rgba(234,255,0,.07),transparent 55%),
-    linear-gradient(165deg,rgba(42,32,56,.92),rgba(18,14,24,.97));
+[data-tpl="gaming-cyber"][data-glow="on"] .gc-card:hover .object-contain{
+  filter:drop-shadow(0 10px 26px rgba(236,72,153,.45)) drop-shadow(0 0 16px rgba(103,232,249,.3));
 }
-[data-tpl="gaming-cyber"] .gc-deal-art{
-  position:relative;overflow:hidden;border-radius:18px;
-  border:1px solid rgba(255,62,240,.4);
+/* ═══ v32 HEADER — sticky glass, 2 full rows ≥1024, drawer below ═══ */
+[data-tpl="gaming-cyber"] .gc-hdr{
+  position:sticky;top:0;z-index:40;
+  /* token remap so the chrome bits + mega panel ride the arena palette */
+  --background:var(--g-bg);--foreground:var(--g-ink);--card:var(--g-panel);
+  --border:var(--g-line);--muted:var(--g-panel2);--muted-foreground:var(--g-dim);
 }
-[data-tpl="gaming-cyber"] .gc-deal-art-txt{position:relative;z-index:3}
-[data-tpl="gaming-cyber"] .gc-deal-block{
-  position:relative;display:flex;flex-direction:column;gap:10px;
-  border-radius:18px;overflow:hidden;padding:14px;
-  border:1px solid rgba(139,92,246,.32);
-  background:linear-gradient(180deg,rgba(42,32,56,.68),rgba(34,26,49,.84));
-  backdrop-filter:blur(8px);
-  transition:transform .25s,border-color .25s,box-shadow .25s;
+/* glass layer on ::before — backdrop-filter here (NOT on the header
+   element) so the fixed mega panel never gets a containing block */
+[data-tpl="gaming-cyber"] .gc-hdr::before{
+  content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;
+  backdrop-filter:blur(14px) saturate(1.3);-webkit-backdrop-filter:blur(14px) saturate(1.3);
+  background:linear-gradient(180deg,rgba(26,21,39,.92),rgba(26,21,39,.82));
+  border-bottom:1px solid var(--g-line);
 }
-[data-tpl="gaming-cyber"] .gc-deal-block:hover{transform:translateY(-4px);border-color:rgba(226,43,255,.6)}
-[data-tpl="gaming-cyber"][data-glow="on"] .gc-deal-block:hover{
-  box-shadow:0 0 0 1px rgba(226,43,255,.3),0 20px 48px -18px rgba(208,0,255,.5);
+html:not(.dark) [data-tpl="gaming-cyber"] .gc-hdr::before{
+  background:linear-gradient(180deg,rgba(246,242,251,.92),rgba(246,242,251,.84));
 }
-[data-tpl="gaming-cyber"] .gc-deal-num{
-  font-weight:900;font-style:italic;line-height:.78;
-  font-size:clamp(56px,7.5vw,96px);
-  color:transparent;-webkit-text-stroke:2.5px rgba(255,62,240,.62);
-  letter-spacing:-.03em;transform:skewX(-8deg);
-  transition:-webkit-text-stroke-color .25s;
-  user-select:none;
+/* animated purple→pink hairline (kept RGB signature, matured) */
+[data-tpl="gaming-cyber"] .gc-hdr::after{
+  content:"";position:absolute;bottom:0;left:0;right:0;height:2px;pointer-events:none;
+  background:linear-gradient(90deg,#A855F7,#EC4899,#A855F7,#EC4899,#A855F7);
+  background-size:220% 100%;animation:gc-rgb-slide 12s linear infinite;
+  opacity:.55;filter:drop-shadow(0 0 5px rgba(168,85,247,.4));
 }
-[data-tpl="gaming-cyber"] .gc-deal-block:hover .gc-deal-num{-webkit-text-stroke-color:rgba(234,255,0,.7)}
-[data-tpl="gaming-cyber"] .gc-deal-num-sm{font-size:clamp(44px,6vw,64px);-webkit-text-stroke-width:2px}
-/* ── ARGB GEAR — wide rig banner + spotlight tiles ──────────────────── */
-[data-tpl="gaming-cyber"] .gc-rig-banner{
-  position:relative;display:block;overflow:hidden;border-radius:20px;
-  min-height:250px;
-  border:1px solid rgba(139,92,246,.4);
-  box-shadow:0 26px 70px -34px rgba(0,0,0,.9),0 0 40px -14px rgba(168,85,247,.4);
+[data-tpl="gaming-cyber"] .gc-hdr-row2{border-top:1px solid var(--g-line)}
+/* the nav strip inside the 2nd row — NO horizontal scrolling, ever */
+[data-tpl="gaming-cyber"] .gc-hdr-nav nav[aria-label="منوی اصلی"]{overflow:visible}
+[data-tpl="gaming-cyber"] .gc-hdr-nav nav[aria-label="منوی اصلی"] a,
+[data-tpl="gaming-cyber"] .gc-hdr-nav nav[aria-label="منوی اصلی"] button{min-height:44px}
+/* logo */
+[data-tpl="gaming-cyber"] .gc-logo{display:flex;align-items:center;gap:10px;flex-shrink:0}
+[data-tpl="gaming-cyber"] .gc-logo-mark{
+  position:relative;display:grid;place-items:center;width:40px;height:44px;flex-shrink:0;
+  clip-path:polygon(50% 0,95% 25%,95% 75%,50% 100%,5% 75%,5% 25%);
+  background:linear-gradient(135deg,#A855F7,#EC4899);
+  box-shadow:0 8px 22px -10px rgba(168,85,247,.8);
 }
-@media (min-width:640px){
-  [data-tpl="gaming-cyber"] .gc-rig-banner{min-height:320px}
+[data-tpl="gaming-cyber"] .gc-logo-mark img{width:74%;height:74%;object-fit:cover;border-radius:4px}
+[data-tpl="gaming-cyber"] .gc-logo-mono{
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-weight:900;font-size:15px;color:#fff;letter-spacing:.02em;line-height:1;
 }
-[data-tpl="gaming-cyber"] .gc-rig-banner .gc-banner-cta{
-  display:inline-flex;align-items:center;gap:9px;cursor:pointer;
-  height:46px;padding:0 22px;border-radius:999px;
-  border:2px solid rgba(255,255,255,.75);color:#fff;font-weight:900;font-size:13px;
-  background:rgba(255,255,255,.08);backdrop-filter:blur(6px);
-  transition:background .2s,box-shadow .2s,transform .2s;
-}
-[data-tpl="gaming-cyber"] .gc-rig-banner .gc-banner-cta:hover{background:rgba(255,255,255,.18);box-shadow:0 0 28px -6px rgba(255,255,255,.4);transform:translateY(-2px)}
-[data-tpl="gaming-cyber"] .gc-spot{
-  position:relative;display:flex;flex-direction:column;overflow:hidden;
-  border-radius:20px;border:1px solid rgba(139,92,246,.35);
-  background:linear-gradient(180deg,#171022,#0B0014);
-  transition:transform .25s,border-color .25s,box-shadow .25s;
-}
-[data-tpl="gaming-cyber"] .gc-spot:hover{transform:translateY(-4px);border-color:rgba(255,62,240,.6)}
-[data-tpl="gaming-cyber"][data-glow="on"] .gc-spot:hover{box-shadow:0 0 0 1px rgba(226,43,255,.3),0 20px 48px -18px rgba(208,0,255,.45)}
-[data-tpl="gaming-cyber"] .gc-spot-title{font-size:15px;font-weight:900;color:#fff;letter-spacing:-.01em}
-[data-tpl="gaming-cyber"] .gc-spot-sub{font-size:11.5px;line-height:1.7;color:#A79BC6}
-[data-tpl="gaming-cyber"] .gc-spot-ico{display:grid;place-items:center;width:44px;height:44px;border-radius:12px;flex-shrink:0;background:rgba(226,43,255,.15);color:#F79CFF}
-[data-tpl="gaming-cyber"] .gc-spot-arrow{color:#A79BC6;transition:color .2s}
-[data-tpl="gaming-cyber"] .gc-spot:hover .gc-spot-arrow{color:#F79CFF}
-/* spotlight tile animations: fan SPINS, keyboard hue-pulses */
-[data-tpl="gaming-cyber"][data-glow="on"] .gc-spot-spin{animation:gc-fan-spin 4s linear infinite}
-[data-tpl="gaming-cyber"][data-glow="on"] .gc-spot-hue{animation:gc-hue-breathe 3s ease-in-out infinite}
-/* ── CONNECT banner (GameUp-style purple→pink gradient) ─────────────── */
-[data-tpl="gaming-cyber"] .gc-connect{
-  position:relative;border-radius:24px;overflow:hidden;
-  border:1px solid rgba(236,72,153,.45);
-  background:linear-gradient(118deg,#2D1155 0%,#6D28D9 42%,#A855F7 66%,#EC4899 100%);
-  box-shadow:0 30px 84px -34px rgba(168,85,247,.65),inset 0 0 90px rgba(45,17,85,.5);
-}
-[data-tpl="gaming-cyber"] .gc-connect-cta{
-  display:inline-flex;align-items:center;gap:10px;cursor:pointer;
-  height:52px;padding:0 28px;border-radius:999px;
-  background:#1E1233;color:#fff;font-weight:900;font-size:14px;
-  border:1px solid rgba(255,255,255,.22);
-  box-shadow:0 0 20px rgba(168,85,247,.4),0 12px 30px -12px rgba(0,0,0,.6);
-  transition:box-shadow .2s,transform .2s,filter .2s;
-}
-[data-tpl="gaming-cyber"] .gc-connect-cta:hover{box-shadow:0 0 34px rgba(168,85,247,.75);transform:translateY(-2px);filter:brightness(1.1)}
-[data-tpl="gaming-cyber"] .gc-connect-chip{
-  display:inline-flex;align-items:center;gap:8px;padding:7px 14px;border-radius:999px;
-  background:rgba(11,0,20,.42);border:1px solid rgba(255,255,255,.18);color:#F3E8FF;
-  font-size:11.5px;font-weight:800;backdrop-filter:blur(6px);
-}
-/* ── FINAL CTA band (giant glowing monogram before the footer) ──────── */
-[data-tpl="gaming-cyber"] .gc-final{
-  position:relative;overflow:hidden;border-radius:24px;
-  border:1px solid rgba(226,43,255,.32);
-  background:
-    radial-gradient(760px 420px at 50% -22%,rgba(208,0,255,.32),transparent 60%),
-    radial-gradient(560px 300px at 8% 108%,rgba(234,255,0,.08),transparent 55%),
-    linear-gradient(180deg,rgba(42,32,56,.95),rgba(18,14,24,.98));
-}
-[data-tpl="gaming-cyber"] .gc-final-mono{
-  display:block;
-  font-weight:900;font-style:italic;line-height:.72;
-  font-size:clamp(108px,19vw,208px);
-  background-image:linear-gradient(180deg,#FF6BFF 4%,#E22BFF 46%,#8B5CF6 100%);
+[data-tpl="gaming-cyber"] .gc-logo-en{
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-weight:900;font-size:13.5px;letter-spacing:.22em;line-height:1.1;
+  background-image:linear-gradient(100deg,#A855F7,#EC4899);
   -webkit-background-clip:text;background-clip:text;color:transparent;
-  filter:drop-shadow(0 0 46px rgba(208,0,255,.55)) drop-shadow(0 10px 34px rgba(0,0,0,.5));
-  transform:skewX(-8deg);
-  user-select:none;
 }
-[data-tpl="gaming-cyber"] .gc-final-chip{
-  display:inline-flex;align-items:center;gap:8px;padding:8px 16px;border-radius:999px;
-  border:1px solid rgba(139,92,246,.45);background:rgba(34,26,49,.6);color:#EFEAF9;
-  font-size:12px;font-weight:800;backdrop-filter:blur(6px);
-  transition:border-color .2s,box-shadow .2s,transform .2s;
+[data-tpl="gaming-cyber"] .gc-logo-fa{font-size:10.5px;font-weight:700;color:var(--g-dim);line-height:1.4}
+/* burger */
+[data-tpl="gaming-cyber"] .gc-burger{
+  display:grid;place-items:center;width:44px;height:44px;border-radius:12px;flex-shrink:0;
+  border:1px solid var(--g-line);background:color-mix(in srgb,var(--g-panel) 55%,transparent);
+  color:var(--g-ink);cursor:pointer;transition:border-color .2s,color .2s;
 }
-[data-tpl="gaming-cyber"] .gc-final-chip:hover{border-color:rgba(234,255,0,.6);box-shadow:0 0 20px -6px rgba(234,255,0,.4);transform:translateY(-2px)}
-
-/* ══ v26fix · LIGHT SKIN (html:not(.dark)) — dark rules above stay intact ══
-   Lilac arena #F6F2FB / ink #2A1B40; magenta → #C026D3, vice → #A21CAC,
-   lime text-on-light → dark lime #4D7C0F (lime BG pills keep black ink). */
-html:not(.dark) [data-tpl="gaming-cyber"]{
-  --gc-bg:#F6F2FB;--gc-surface:#FFFFFF;--gc-card:#FFFFFF;
-  --gc-magenta:#C026D3;--gc-vice:#A21CAC;--gc-lime:#EAFF00;--gc-lime-ink:#0B0014;
-  --gc-violet:#7C3AED;--gc-cyan:#0E7490;--gc-emerald:#047857;
-  --gc-text:#2A1B40;--gc-dim:#5E5377;--gc-mono:#0E7490;
-  background:#F6F2FB;color:#2A1B40;
+[data-tpl="gaming-cyber"] .gc-burger:hover{border-color:var(--g-pink);color:var(--g-hot)}
+/* ═══ the drawer (<1024px) ═══ */
+[data-tpl="gaming-cyber"] .gc-drawer-back{
+  position:fixed;inset:0;z-index:55;pointer-events:auto;
+  background:rgba(11,7,18,.58);
+  animation:gc-back-in .22s ease both;
 }
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-root{
+[data-tpl="gaming-cyber"] .gc-drawer-back[data-closing="true"]{animation:gc-back-out .19s ease both}
+@keyframes gc-back-in{from{opacity:0}to{opacity:1}}
+@keyframes gc-back-out{from{opacity:1}to{opacity:0}}
+[data-tpl="gaming-cyber"] .gc-drawer{
+  position:fixed;top:0;bottom:0;inset-inline-start:0;z-index:60;
+  width:min(340px,86vw);display:flex;flex-direction:column;
+  background:var(--g-bg);border-inline-end:1px solid var(--g-line-strong);
+  box-shadow:-30px 0 70px -30px rgba(0,0,0,.7);
+  animation:gc-drawer-in .26s cubic-bezier(.2,.7,.3,1) both;
+  outline:none;
+}
+[data-tpl="gaming-cyber"] .gc-drawer[data-closing="true"]{animation:gc-drawer-out .19s ease both}
+@keyframes gc-drawer-in{from{transform:translateX(100%)}to{transform:translateX(0)}}
+@keyframes gc-drawer-out{from{transform:translateX(0)}to{transform:translateX(100%)}}
+[data-tpl="gaming-cyber"] .gc-drawer-head{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:14px 16px;border-bottom:1px solid var(--g-line);
   background:
-    radial-gradient(1100px 520px at 82% -4%,rgba(139,92,246,.1),transparent 62%),
-    radial-gradient(820px 460px at 6% 18%,rgba(192,38,211,.06),transparent 60%),
-    radial-gradient(900px 640px at 50% 108%,rgba(6,182,212,.06),transparent 62%),
-    #F6F2FB;
-  color:#2A1B40;
+    radial-gradient(300px 120px at 85% -20%,rgba(168,85,247,.22),transparent 70%),
+    var(--g-panel);
 }
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-code{color:#7A6B9E}
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-code-cyan{color:#0E7490}
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-code-magenta{color:#C026D3}
-/* window chrome → white HUD glass */
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-win{
-  border-color:rgba(124,58,237,.28);
-  background:linear-gradient(180deg,rgba(255,255,255,.92),rgba(248,244,253,.96));
-  box-shadow:0 22px 60px -30px rgba(42,27,64,.35);
+[data-tpl="gaming-cyber"] .gc-drawer-body{flex:1;overflow-y:auto;overscroll-behavior:contain;padding:18px 16px;display:flex;flex-direction:column;gap:22px}
+[data-tpl="gaming-cyber"] .gc-drawer-sec{display:flex;flex-direction:column;gap:6px}
+[data-tpl="gaming-cyber"] .gc-drawer-link{
+  display:flex;align-items:center;gap:12px;min-height:48px;padding:0 14px;
+  border-radius:14px;border:1px solid transparent;color:var(--g-ink);
+  font-size:14px;font-weight:800;transition:border-color .2s,background .2s,color .2s;
 }
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-win-bar{border-bottom-color:rgba(124,58,237,.22);background:rgba(246,242,251,.92)}
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-win-title{color:#2A1B40}
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-win-code{color:#7A6B9E}
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-live-badge{background:rgba(16,185,129,.12);border-color:rgba(4,120,87,.4);color:#047857}
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-corners i:nth-child(1){border-color:rgba(14,116,144,.7)}
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-corners i:nth-child(2){border-color:rgba(14,116,144,.4)}
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-corners i:nth-child(3){border-color:rgba(14,116,144,.4)}
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-corners i:nth-child(4){border-color:rgba(14,116,144,.7)}
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-glow-halo{box-shadow:0 0 34px -10px rgba(192,38,211,.35)}
-/* cards → white glass; ARGB stage → light pedestal */
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-card{
-  border-color:rgba(124,58,237,.22);
-  background:linear-gradient(180deg,rgba(255,255,255,.92),rgba(246,242,251,.96));
+[data-tpl="gaming-cyber"] .gc-drawer-link:hover{
+  border-color:var(--g-line);background:var(--g-panel2);color:var(--g-hot);
 }
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-card:hover{border-color:rgba(192,38,211,.5)}
-html:not(.dark) [data-tpl="gaming-cyber"][data-glow="on"] .gc-card:hover{box-shadow:0 0 0 1px rgba(192,38,211,.25),0 18px 44px -16px rgba(192,38,211,.3)}
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-stage{
-  background:radial-gradient(120% 120% at 50% 0%,#FFFFFF 0%,#EFE9F8 72%);
+[data-tpl="gaming-cyber"] .gc-drawer-cat{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:44px;
+  padding:0 14px;border-radius:12px;color:var(--g-dim);font-size:13px;font-weight:700;
+  transition:background .2s,color .2s;
 }
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-glitch:hover .gc-glitch-t,
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-glitch:focus-within .gc-glitch-t{color:#2A1B40}
-/* buttons — magenta gradient CTA stays (white text); ghost goes light */
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-btn{box-shadow:0 10px 26px -12px rgba(124,58,237,.5)}
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-btn:hover{box-shadow:0 14px 34px -12px rgba(124,58,237,.6)}
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-btn-ghost{background:rgba(255,255,255,.75);border-color:rgba(124,58,237,.4);color:#5B21B6}
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-btn-ghost:hover{color:#2A1B40;box-shadow:0 0 20px -8px rgba(14,116,144,.5)}
-/* hero — light scrim so headline ink reads over artwork */
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-hero{border-color:rgba(124,58,237,.3);box-shadow:0 30px 80px -40px rgba(42,27,64,.35),inset 0 0 60px rgba(246,242,251,.5)}
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-hero-fallback{
-  background:
-    radial-gradient(600px 300px at 70% 20%,rgba(192,38,211,.14),transparent 60%),
-    radial-gradient(500px 260px at 20% 70%,rgba(6,182,212,.12),transparent 60%),
-    linear-gradient(160deg,#FFFFFF,#F6F2FB 70%);
+[data-tpl="gaming-cyber"] .gc-drawer-cat:hover{background:var(--g-panel2);color:var(--g-ink)}
+[data-tpl="gaming-cyber"] .gc-drawer-close{
+  display:grid;place-items:center;width:44px;height:44px;border-radius:12px;flex-shrink:0;
+  border:1px solid var(--g-line);color:var(--g-ink);cursor:pointer;
+  transition:border-color .2s,color .2s;
 }
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-hero-tint{
-  background:
-    radial-gradient(120% 95% at 82% -12%,rgba(192,38,211,.2),transparent 55%),
-    linear-gradient(to top,rgba(246,242,251,.97) 0%,rgba(246,242,251,.82) 34%,rgba(246,242,251,.3) 62%,rgba(246,242,251,.5) 100%);
+[data-tpl="gaming-cyber"] .gc-drawer-close:hover{border-color:var(--g-pink);color:var(--g-hot)}
+/* ═══ HERO — GameUp composition, ALWAYS dark (photo-dark pattern) ═══ */
+[data-tpl="gaming-cyber"] .gc-hero-shell{
+  position:relative;padding:1.5px;border-radius:25px;
+  background:linear-gradient(135deg,rgba(168,85,247,.75),rgba(236,72,153,.55) 45%,rgba(103,232,249,.28) 85%);
+  box-shadow:0 34px 90px -50px rgba(168,85,247,.5);
 }
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-grid-floor{
-  background-image:
-    linear-gradient(rgba(162,28,172,.5) 1.5px,transparent 1.5px),
-    linear-gradient(90deg,rgba(192,38,211,.35) 1.5px,transparent 1.5px);
+[data-tpl="gaming-cyber"] .gc-hero{
+  position:relative;overflow:hidden;border-radius:24px;
+  background:#150F22;
+  box-shadow:inset 0 0 60px rgba(11,8,18,.35);
 }
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-hero-hud{background:linear-gradient(180deg,rgba(246,242,251,.92),transparent)}
-/* stats tiles */
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-tile{border-color:rgba(124,58,237,.22);background:linear-gradient(180deg,rgba(255,255,255,.85),rgba(246,242,251,.92))}
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-tile-ico{color:#C026D3}
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-tile-v{color:#2A1B40}
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-tile-l{color:#5E5377}
-/* timers / stock / ranks */
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-timer-cell{background:rgba(6,182,212,.1);border-color:rgba(14,116,144,.35);color:#0E7490}
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-timer-sep{color:rgba(14,116,144,.55)}
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-timer-ended{background:rgba(42,27,64,.07);color:#5E5377}
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-stock{color:#047857}
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-rank-n{background:rgba(42,27,64,.08);color:#5E5377}
-/* legendary / strip / sponsor / faq */
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-legendary{
-  background:
-    radial-gradient(520px 300px at 82% 20%,rgba(192,38,211,.1),transparent 62%),
-    radial-gradient(420px 260px at 12% 84%,rgba(6,182,212,.08),transparent 62%),
-    linear-gradient(165deg,rgba(255,255,255,.94),rgba(246,242,251,.97));
-}
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-strip{border-color:rgba(192,38,211,.28);background:linear-gradient(90deg,rgba(192,38,211,.07),rgba(139,92,246,.06))}
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-strip-badge{color:#C026D3}
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-sponsor{background:rgba(255,255,255,.85);color:#2A1B40}
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-sponsor:hover{color:#0E7490}
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-faq-item{border-color:rgba(124,58,237,.22);background:linear-gradient(180deg,rgba(255,255,255,.9),rgba(246,242,251,.93))}
-/* raw hex utilities → light equivalents */
-html:not(.dark) [data-tpl="gaming-cyber"] .text-\\[\\#A79BC6\\]{color:#5E5377}
-html:not(.dark) [data-tpl="gaming-cyber"] .text-\\[\\#F0ABFC\\]{color:#C026D3}
-html:not(.dark) [data-tpl="gaming-cyber"] .text-\\[\\#F79CFF\\]{color:#C026D3}
-html:not(.dark) [data-tpl="gaming-cyber"] .text-\\[\\#67E8F9\\]{color:#0E7490}
-html:not(.dark) [data-tpl="gaming-cyber"] .text-\\[\\#EFEAF9\\]{color:#2A1B40}
-html:not(.dark) [data-tpl="gaming-cyber"] .text-\\[\\#D946EF\\]{color:#C026D3}
-html:not(.dark) [data-tpl="gaming-cyber"] .text-\\[\\#E22BFF\\]{color:#C026D3}
-html:not(.dark) [data-tpl="gaming-cyber"] .text-\\[\\#E22BFF\\]\\/40{color:rgba(192,38,211,.45)}
-html:not(.dark) [data-tpl="gaming-cyber"] .text-\\[\\#D946EF\\]\\/40{color:rgba(192,38,211,.45)}
-html:not(.dark) [data-tpl="gaming-cyber"] .text-\\[\\#D946EF\\]\\/50{color:rgba(192,38,211,.5)}
-html:not(.dark) [data-tpl="gaming-cyber"] .text-\\[\\#C9BEE4\\]{color:#4A3D63}
-html:not(.dark) [data-tpl="gaming-cyber"] .text-\\[\\#06B6D4\\]{color:#0891B2}
-html:not(.dark) [data-tpl="gaming-cyber"] .text-\\[\\#8F7FC0\\]{color:#7A6B9E}
-html:not(.dark) [data-tpl="gaming-cyber"] .text-\\[\\#DCCFF4\\]{color:#3E3357}
-html:not(.dark) [data-tpl="gaming-cyber"] .text-\\[\\#C4B5FD\\]{color:#6D28D9}
-html:not(.dark) [data-tpl="gaming-cyber"] .text-\\[\\#8B5CF6\\]{color:#7C3AED}
-html:not(.dark) [data-tpl="gaming-cyber"] .text-\\[\\#8B5CF6\\]\\/60{color:rgba(124,58,237,.6)}
-html:not(.dark) [data-tpl="gaming-cyber"] .hover\\:text-\\[\\#F0ABFC\\]:hover{color:#C026D3}
-html:not(.dark) [data-tpl="gaming-cyber"] .hover\\:text-\\[\\#F79CFF\\]:hover{color:#C026D3}
-html:not(.dark) [data-tpl="gaming-cyber"] .hover\\:text-\\[\\#67E8F9\\]:hover{color:#0E7490}
-html:not(.dark) [data-tpl="gaming-cyber"] .group:hover .group-hover\\:text-\\[\\#F0ABFC\\]{color:#C026D3}
-html:not(.dark) [data-tpl="gaming-cyber"] .group:hover .group-hover\\:text-\\[\\#F79CFF\\]{color:#C026D3}
-html:not(.dark) [data-tpl="gaming-cyber"] .hover\\:bg-\\[\\#2E2345\\]\\/60:hover{background-color:rgba(255,255,255,.72)}
-html:not(.dark) [data-tpl="gaming-cyber"] .hover\\:border-\\[\\#D946EF\\]\\/50:hover{border-color:rgba(192,38,211,.5)}
-html:not(.dark) [data-tpl="gaming-cyber"] .hover\\:border-\\[\\#E22BFF\\]\\/60:hover{border-color:rgba(192,38,211,.55)}
-html:not(.dark) [data-tpl="gaming-cyber"] .bg-\\[\\#1A1025\\]\\/60{background-color:#F4EFFB}
-html:not(.dark) [data-tpl="gaming-cyber"] .bg-\\[\\#1A1025\\]\\/70{background-color:#F2EDF9}
-html:not(.dark) [data-tpl="gaming-cyber"] .bg-\\[\\#2E2345\\]\\/40{background-color:rgba(255,255,255,.65)}
-html:not(.dark) [data-tpl="gaming-cyber"] .bg-\\[\\#251B35\\]{background-color:#F3EEFA}
-html:not(.dark) [data-tpl="gaming-cyber"] .bg-\\[\\#D946EF\\]\\/15{background-color:rgba(192,38,211,.1)}
-html:not(.dark) [data-tpl="gaming-cyber"] .bg-\\[\\#D946EF\\]\\/20{background-color:rgba(192,38,211,.13)}
-html:not(.dark) [data-tpl="gaming-cyber"] .bg-\\[\\#E22BFF\\]\\/15{background-color:rgba(192,38,211,.1)}
-html:not(.dark) [data-tpl="gaming-cyber"] .bg-\\[\\#8B5CF6\\]\\/15{background-color:rgba(124,58,237,.1)}
-html:not(.dark) [data-tpl="gaming-cyber"] .bg-\\[\\#06B6D4\\]\\/15{background-color:rgba(6,182,212,.1)}
-html:not(.dark) [data-tpl="gaming-cyber"] .border-\\[\\#06B6D4\\]\\/25{border-color:rgba(14,116,144,.3)}
-html:not(.dark) [data-tpl="gaming-cyber"] .border-\\[\\#06B6D4\\]\\/30{border-color:rgba(14,116,144,.35)}
-html:not(.dark) [data-tpl="gaming-cyber"] .border-\\[\\#8B5CF6\\]\\/22{border-color:rgba(124,58,237,.25)}
-html:not(.dark) [data-tpl="gaming-cyber"] .border-\\[\\#8B5CF6\\]\\/20{border-color:rgba(124,58,237,.22)}
-html:not(.dark) [data-tpl="gaming-cyber"] .bg-amber-400\\/10{background-color:rgba(180,83,9,.1)}
-html:not(.dark) [data-tpl="gaming-cyber"] .text-amber-300{color:#B45309}
-html:not(.dark) [data-tpl="gaming-cyber"] .fill-amber-300{fill:#B45309}
-/* showcase overlay → lilac scrim (title ink via blanket below) */
-html:not(.dark) [data-tpl="gaming-cyber"] .from-\\[\\#1A1025\\]{--tw-gradient-from:rgba(246,242,251,.97)}
-html:not(.dark) [data-tpl="gaming-cyber"] .via-\\[\\#1A1025\\]\\/40{--tw-gradient-via:rgba(246,242,251,.45)}
-/* white/black utilities */
-html:not(.dark) [data-tpl="gaming-cyber"] .text-white{color:#2A1B40}
-html:not(.dark) [data-tpl="gaming-cyber"] .text-white\\/80{color:rgba(42,27,64,.85)}
-html:not(.dark) [data-tpl="gaming-cyber"] .bg-black\\/70{background-color:rgba(255,255,255,.9)}
-/* discount pill glow softened (pill keeps its magenta gradient) */
-html:not(.dark) [data-tpl="gaming-cyber"] .shadow-\\[0_0_16px_rgba\\(217\\,70\\,239\\,\\.5\\)\\]{--tw-shadow:0 0 16px rgba(192,38,211,.35);box-shadow:0 0 16px rgba(192,38,211,.35)}
-/* restores — text on surfaces that STAY colored in light mode */
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-hex-grad.text-white,
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-hex-grad .text-white{color:#fff}
-html:not(.dark) [data-tpl="gaming-cyber"] .from-\\[\\#D946EF\\].text-white{color:#fff}
-html:not(.dark) [data-tpl="gaming-cyber"] .from-\\[\\#E22BFF\\].text-white{color:#fff}
-html:not(.dark) [data-tpl="gaming-cyber"] .hover\\:bg-\\[\\#D946EF\\].hover\\:text-white:hover{color:#fff}
-html:not(.dark) [data-tpl="gaming-cyber"] .hover\\:bg-\\[\\#E22BFF\\].hover\\:text-white:hover{color:#fff}
-html:not(.dark) [data-tpl="gaming-cyber"] .bg-black\\/70.text-white{background-color:rgba(20,7,31,.6);color:#fff}
-html:not(.dark) [data-tpl="gaming-cyber"] .bg-rose-500.text-white,
-html:not(.dark) [data-tpl="gaming-cyber"] .bg-orange-500.text-white,
-html:not(.dark) [data-tpl="gaming-cyber"] .bg-violet-600.text-white,
-html:not(.dark) [data-tpl="gaming-cyber"] .bg-emerald-500.text-white,
-html:not(.dark) [data-tpl="gaming-cyber"] .bg-destructive.text-white{color:#fff}
-/* v28 · ARGB rainbow light skin — softened glows, ink text */
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-hero-shell{box-shadow:0 30px 80px -40px rgba(42,27,64,.4)}
-html:not(.dark) [data-tpl="gaming-cyber"][data-glow="on"] .gc-hero-shell::before{opacity:.85}
-html:not(.dark) [data-tpl="gaming-cyber"][data-glow="on"] .gc-rgb-edge::after{opacity:.6}
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-head::after{opacity:.5;box-shadow:0 0 10px rgba(192,38,211,.25)}
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-btn-rgb{box-shadow:0 10px 26px -12px rgba(124,58,237,.5)}
-html:not(.dark) [data-tpl="gaming-cyber"][data-glow="on"] .gc-win::after{opacity:.5}
-html:not(.dark) [data-tpl="gaming-cyber"][data-glow="on"] .gc-card .object-contain{
-  filter:drop-shadow(0 5px 14px rgba(192,38,211,.22)) drop-shadow(0 0 8px rgba(6,182,212,.15));
-}
-html:not(.dark) [data-tpl="gaming-cyber"][data-glow="on"] .gc-card:hover .object-contain{
-  filter:drop-shadow(0 9px 20px rgba(192,38,211,.32)) drop-shadow(0 0 12px rgba(6,182,212,.22));
-}
-html:not(.dark) [data-tpl="gaming-cyber"][data-glow="on"] .gc-timer-cell{box-shadow:0 0 10px -4px rgba(14,116,144,.5)}
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-cat:hover .gc-cat-hex{filter:drop-shadow(0 0 16px rgba(192,38,211,.5))}
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-qchip{box-shadow:0 0 12px -6px rgba(192,38,211,.5)}
-html:not(.dark) [data-tpl="gaming-cyber"][data-glow="on"] .gc-corners i{filter:drop-shadow(0 0 4px rgba(14,116,144,.5))}
-/* anime arena band → lilac glass */
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-arena{
-  border-color:rgba(124,58,237,.3);
-  background:
-    radial-gradient(700px 380px at 85% 10%,rgba(192,38,211,.09),transparent 60%),
-    radial-gradient(560px 320px at 6% 92%,rgba(6,182,212,.08),transparent 60%),
-    linear-gradient(160deg,rgba(255,255,255,.94),rgba(246,242,251,.97));
-}
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-art-frame{
-  border-color:rgba(124,58,237,.3);
-  box-shadow:0 20px 50px -26px rgba(42,27,64,.45),0 0 24px -10px rgba(192,38,211,.3);
-}
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-arena-mascot{
-  border-color:rgba(192,38,211,.5);
-  box-shadow:0 14px 36px -14px rgba(42,27,64,.5),0 0 24px -8px rgba(192,38,211,.5);
-}
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-chip{
-  background:rgba(255,255,255,.82);color:#2A1B40;border-color:rgba(124,58,237,.38);
-}
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-chip:hover{color:#C026D3;border-color:rgba(192,38,211,.55)}
-/* ═══ v30 · LIGHT SKIN — Vice-Arena signature system ═══
-   (lime pills keep lime-bg+ink-text; lime GLOW text never happens; photo
-   banners / spotlight tiles / CONNECT gradient STAY dark — their text is
-   custom-classed so the white blanket above can't touch them) */
-/* display headline → ink→dark-magenta gradient (light scrim hero) */
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-display{
-  background-image:linear-gradient(180deg,#2A1B40 8%,#6B21A8 55%,#A21CAC 100%);
-  filter:drop-shadow(0 3px 16px rgba(162,28,172,.28));
-}
-/* ...but over STAY-DARK surfaces keep the neon white→vice gradient */
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-rig-banner .gc-display,
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-connect .gc-display,
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-deal-art .gc-display{
-  background-image:linear-gradient(180deg,#FFFFFF 8%,#FFD6FF 48%,#F86BFF 78%,#D000FF 100%);
-  filter:drop-shadow(0 4px 26px rgba(208,0,255,.45)) drop-shadow(0 1px 2px rgba(0,0,0,.4));
-}
-/* lime chip / lime pill — identical in light (high contrast by design) */
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-lime-chip{box-shadow:0 0 18px rgba(180,131,10,.35),0 4px 14px -6px rgba(42,27,64,.3)}
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-btn-lime{box-shadow:0 10px 28px -10px rgba(77,124,15,.55),0 0 18px rgba(180,131,10,.2)}
-/* vice ghost pill → ink borders on the light scrim */
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-btn-vice-ghost{
-  border-color:rgba(42,27,64,.65);color:#2A1B40;background:rgba(255,255,255,.55);
-}
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-btn-vice-ghost:hover{
-  background:rgba(255,255,255,.8);border-color:#2A1B40;box-shadow:0 0 26px -8px rgba(42,27,64,.35);
-}
-/* swoosh / underline softened */
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-swoosh{opacity:.28}
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-underline-rainbow{opacity:.55;box-shadow:0 0 10px rgba(192,38,211,.22)}
-/* ARGB stage lights — softened but still visible on the light pedestal */
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-argb-ring{opacity:.45}
-html:not(.dark) [data-tpl="gaming-cyber"][data-glow="on"] .gc-fx-ring .gc-argb-ring{opacity:.75}
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-argb-glow{opacity:.2}
-/* deal zone → lilac glass; outlined numerals → dark magenta stroke */
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-deal-zone{
-  border-color:rgba(162,28,172,.3);
-  background:
-    radial-gradient(880px 440px at 90% -6%,rgba(162,28,172,.08),transparent 60%),
-    linear-gradient(165deg,rgba(255,255,255,.94),rgba(246,242,251,.97));
-}
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-deal-block{
-  border-color:rgba(124,58,237,.25);
-  background:linear-gradient(180deg,rgba(255,255,255,.9),rgba(246,242,251,.95));
-}
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-deal-block:hover{border-color:rgba(162,28,172,.5)}
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-deal-num{-webkit-text-stroke-color:rgba(162,28,172,.5)}
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-deal-block:hover .gc-deal-num{-webkit-text-stroke-color:rgba(77,124,15,.75)}
-/* rig banner + spotlight tiles + deal art STAY photo-dark → no light flip.
-   Only their glow is softened: */
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-rig-banner{box-shadow:0 26px 70px -34px rgba(42,27,64,.5),0 0 40px -14px rgba(168,85,247,.25)}
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-spot{box-shadow:0 18px 44px -22px rgba(42,27,64,.4)}
-/* restore HUD-cyan / timer cells / magenta text on STAY-DARK photo panels
-   (deal art + connect gradient) so light-skin flips can't hit them */
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-deal-art .gc-code-cyan,
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-connect .gc-code{color:#67E8F9}
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-deal-art .gc-timer-cell{background:rgba(6,182,212,.12);border-color:rgba(6,182,212,.35);color:#67E8F9}
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-deal-art .gc-timer-sep{color:rgba(103,232,249,.5)}
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-deal-art .text-\[\#F79CFF\]{color:#F79CFF}
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-connect .gc-live-badge,
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-deal-art .gc-live-badge{background:rgba(16,185,129,.14);border-color:rgba(16,185,129,.45);color:#34D399}
-/* CONNECT gradient banner stays gradient in light (GameUp does this too) —
-   only the outer glow is softened: */
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-connect{box-shadow:0 30px 84px -34px rgba(124,58,237,.45),inset 0 0 90px rgba(45,17,85,.4)}
-/* final CTA band → light glass; monogram → darker magenta glow */
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-final{
-  border-color:rgba(162,28,172,.28);
-  background:
-    radial-gradient(760px 420px at 50% -22%,rgba(162,28,172,.14),transparent 60%),
-    linear-gradient(180deg,rgba(255,255,255,.95),rgba(246,242,251,.98));
-}
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-final-mono{
-  background-image:linear-gradient(180deg,#C026D3 4%,#A21CAC 46%,#7C3AED 100%);
-  filter:drop-shadow(0 0 36px rgba(162,28,172,.35));
-}
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-final-chip{background:rgba(255,255,255,.8);color:#2A1B40}
-/* ═════════════════════════════════════════════════════════════════════
-   v31 · CODE-DRAWN ARGB RIG HERO (owner's #1 ask — 100% CSS/JSX art)
-   Tempered-glass tower · 5 RGB fans (rings hue-cycle with phase offsets,
-   the BLADES never spin — owner's explicit demand) · top LED strip ·
-   PSU underglow · ARGB desk mat with animated edge LEDs + code-drawn
-   mouse. Every animation is pure CSS, gated by [data-glow="on"] and
-   killed by the reduced-motion block at the bottom of this file.
-   ═════════════════════════════════════════════════════════════════════ */
-@keyframes gc-rig-breathe{0%,100%{opacity:.3;transform:scale(.92)}50%{opacity:.62;transform:scale(1.06)}}
-@keyframes gc-cue-drop{0%{transform:translateY(-1px);opacity:0}30%{opacity:1}70%{transform:translateY(8px);opacity:1}100%{transform:translateY(9px);opacity:0}}
-/* studio ambience — the hero panel STAYS dark in both skins (photo-dark
-   pattern) so the RGB rig always reads; text-side restores live below. */
 [data-tpl="gaming-cyber"] .gc-hero-bg{
   position:absolute;inset:0;pointer-events:none;
   background:
-    radial-gradient(58% 46% at 80% 8%,rgba(208,0,255,.26),transparent 70%),
-    radial-gradient(46% 40% at 14% 92%,rgba(6,182,212,.12),transparent 70%),
-    linear-gradient(180deg,#170F23 0%,#0D0916 58%,#130A1D 100%);
+    radial-gradient(58% 48% at 78% 6%,rgba(168,85,247,.3),transparent 70%),
+    radial-gradient(46% 40% at 10% 88%,rgba(236,72,153,.16),transparent 70%),
+    radial-gradient(40% 34% at 55% 102%,rgba(34,211,238,.1),transparent 70%),
+    linear-gradient(160deg,#1D1633 0%,#150F22 55%,#110C1C 100%);
 }
-[data-tpl="gaming-cyber"] .gc-hero-sub{margin-top:14px;max-width:34rem;font-size:14px;line-height:1.85;color:#C9BEE4}
+[data-tpl="gaming-cyber"] .gc-hero-grid{
+  position:absolute;inset:0;pointer-events:none;opacity:.55;
+  background-image:
+    linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px);
+  background-size:44px 44px;
+  -webkit-mask-image:radial-gradient(90% 75% at 72% 16%,#000 18%,transparent 74%);
+  mask-image:radial-gradient(90% 75% at 72% 16%,#000 18%,transparent 74%);
+}
+[data-tpl="gaming-cyber"] .gc-hero-vig{
+  position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(to top,rgba(11,8,18,.6),transparent 42%);
+}
+[data-tpl="gaming-cyber"] .gc-hero-hud{
+  position:absolute;top:0;left:0;right:0;z-index:14;pointer-events:none;
+  display:flex;align-items:center;gap:10px;padding:10px 16px;
+  background:linear-gradient(180deg,rgba(11,8,18,.72),transparent);
+}
+/* vertical lime tab (GTA key-art signature, slim) */
+[data-tpl="gaming-cyber"] .gc-hero-tab{
+  position:absolute;left:14px;top:16%;bottom:16%;z-index:16;pointer-events:none;
+  display:none;align-items:center;justify-content:center;
+  writing-mode:vertical-rl;text-orientation:mixed;
+  padding:18px 8px;border-radius:999px;
+  background:#EAFF00;color:#0B0014;
+  font-weight:900;font-size:9.5px;letter-spacing:.32em;text-transform:uppercase;
+  box-shadow:0 0 26px rgba(234,255,0,.35),0 10px 24px -10px rgba(0,0,0,.6);
+}
+@media (min-width:1024px){
+  [data-tpl="gaming-cyber"] .gc-hero-tab{display:flex}
+}
+[data-tpl="gaming-cyber"] .gc-hero-title{
+  font-size:clamp(30px,4.6vw,54px);font-weight:900;line-height:1.22;letter-spacing:-.02em;
+  color:#fff;text-wrap:balance;
+}
+[data-tpl="gaming-cyber"] .gc-hero-sub{margin-top:16px;max-width:34rem;font-size:14px;line-height:2;color:#C9BEE4}
 @media (min-width:640px){
-  [data-tpl="gaming-cyber"] .gc-hero-sub{font-size:15.5px;line-height:2}
+  [data-tpl="gaming-cyber"] .gc-hero-sub{font-size:15.5px}
 }
-/* ── the scene stage (fluid % — scales with its box) ─────────────────── */
+/* hero product pod (TARGET_LOCKED) — dark glass */
+[data-tpl="gaming-cyber"] .gc-pod{
+  border-radius:14px;overflow:hidden;
+  border:1px solid rgba(168,85,247,.35);
+  background:linear-gradient(180deg,rgba(36,30,51,.72),rgba(21,15,34,.8));
+  backdrop-filter:blur(8px);
+}
+[data-tpl="gaming-cyber"] .gc-pod-bar{
+  display:flex;align-items:center;gap:8px;padding:6px 10px;
+  border-bottom:1px solid rgba(168,85,247,.25);
+}
+/* scroll cue */
+[data-tpl="gaming-cyber"] .gc-scroll-cue{
+  position:absolute;bottom:10px;left:50%;transform:translateX(-50%);z-index:18;
+  display:flex;flex-direction:column;align-items:center;gap:3px;pointer-events:none;
+}
+[data-tpl="gaming-cyber"] .gc-scroll-cue-txt{
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:8.5px;font-weight:900;letter-spacing:.3em;color:rgba(167,155,198,.7);
+}
+[data-tpl="gaming-cyber"] .gc-scroll-cue-bar{position:relative;width:22px;height:15px;border-radius:999px;border:1.5px solid rgba(168,85,247,.5);overflow:hidden}
+[data-tpl="gaming-cyber"] .gc-scroll-cue-bar b{
+  position:absolute;left:50%;top:2px;width:4px;height:4px;margin-left:-2px;border-radius:999px;
+  background:#EAFF00;box-shadow:0 0 6px rgba(234,255,0,.8);
+}
+[data-tpl="gaming-cyber"][data-glow="on"] .gc-scroll-cue-bar b{animation:gc-cue-drop 1.8s ease-in-out infinite}
+@keyframes gc-cue-drop{0%{transform:translateY(-1px);opacity:0}30%{opacity:1}70%{transform:translateY(8px);opacity:1}100%{transform:translateY(9px);opacity:0}}
+/* ═══ v31 · CODE-DRAWN ARGB RIG HERO (owner's #1 ask — 100% CSS/JSX art)
+   Tempered-glass tower · 5 RGB fans (rings hue-cycle with phase offsets,
+   BLADES never spin) · top LED strip · PSU underglow · ARGB desk mat with
+   code-drawn mouse · flanking generated 3D headset cards · v32 adds
+   magenta/cyan RIM LIGHTS behind the chassis.                          */
+@keyframes gc-rig-breathe{0%,100%{opacity:.3;transform:scale(.92)}50%{opacity:.62;transform:scale(1.06)}}
 [data-tpl="gaming-cyber"] .gc-scene{position:relative;width:100%;height:100%}
 [data-tpl="gaming-cyber"] .gc-scene-amb{position:absolute;border-radius:50%;pointer-events:none;filter:blur(34px);opacity:.5}
 [data-tpl="gaming-cyber"] .gc-scene-amb-1{top:-6%;right:-6%;width:52%;height:44%;background:radial-gradient(circle,rgba(224,43,255,.5),transparent 70%)}
-[data-tpl="gaming-cyber"] .gc-scene-amb-2{bottom:2%;left:-4%;width:46%;height:38%;background:radial-gradient(circle,rgba(6,182,212,.38),transparent 70%)}
-/* floor shadow + glass reflection on the mat */
+[data-tpl="gaming-cyber"] .gc-scene-amb-2{bottom:2%;left:-4%;width:46%;height:38%;background:radial-gradient(circle,rgba(34,211,238,.4),transparent 70%)}
 [data-tpl="gaming-cyber"] .gc-rig-shadow{position:absolute;left:24%;right:24%;bottom:13%;height:7%;border-radius:50%;background:radial-gradient(ellipse at center,rgba(0,0,0,.62),transparent 70%);filter:blur(6px)}
-[data-tpl="gaming-cyber"] .gc-rig-reflect{position:absolute;left:35%;width:30%;bottom:8%;height:9%;border-radius:12px;background:linear-gradient(180deg,rgba(139,92,246,.30),rgba(6,182,212,.10) 55%,transparent);filter:blur(5px);opacity:.55}
-/* ── ARGB desk mat / mousepad — animated edge LEDs + dot texture ─────── */
+[data-tpl="gaming-cyber"] .gc-rig-reflect{position:absolute;left:35%;width:30%;bottom:8%;height:9%;border-radius:12px;background:linear-gradient(180deg,rgba(168,85,247,.3),rgba(34,211,238,.1) 55%,transparent);filter:blur(5px);opacity:.55}
+/* v32 rim lights — magenta (inline-start edge) + cyan (inline-end edge) */
+[data-tpl="gaming-cyber"] .gc-rig-rim-r{
+  position:absolute;top:-3%;bottom:-3%;right:-6%;width:14%;border-radius:50%;pointer-events:none;
+  background:linear-gradient(180deg,rgba(236,72,153,.6),rgba(168,85,247,.28));
+  filter:blur(15px);
+}
+[data-tpl="gaming-cyber"] .gc-rig-rim-c{
+  position:absolute;top:0;bottom:0;left:-6%;width:12%;border-radius:50%;pointer-events:none;
+  background:linear-gradient(180deg,rgba(103,232,249,.4),rgba(34,211,238,.12));
+  filter:blur(13px);
+}
+/* ARGB desk mat — animated edge LEDs + dot texture */
 [data-tpl="gaming-cyber"] .gc-rig-mat{
   position:absolute;left:4%;right:4%;bottom:3%;height:23%;border-radius:16px;
   background:
-    radial-gradient(circle at 22% 30%,rgba(226,43,255,.10),transparent 42%),
+    radial-gradient(circle at 22% 30%,rgba(236,72,153,.1),transparent 42%),
     radial-gradient(rgba(190,180,230,.075) 1px,transparent 1.7px),
     linear-gradient(180deg,#231A33,#150E1F);
   background-size:auto,15px 15px,auto;
@@ -982,8 +576,8 @@ html:not(.dark) [data-tpl="gaming-cyber"] .gc-final-chip{background:rgba(255,255
   -webkit-mask-composite:xor;
   mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
   mask-composite:exclude;
-  opacity:.9;filter:drop-shadow(0 0 7px rgba(255,62,240,.6));
-  animation:gc-rgb-flow 9s linear infinite;
+  opacity:.85;filter:drop-shadow(0 0 7px rgba(255,62,240,.6));
+  animation:gc-rgb-flow 10s linear infinite;
 }
 /* code-drawn mouse resting on the mat */
 [data-tpl="gaming-cyber"] .gc-rig-mouse{
@@ -1002,13 +596,12 @@ html:not(.dark) [data-tpl="gaming-cyber"] .gc-final-chip{background:rgba(255,255
   border-radius:50%;background:#F86BFF;box-shadow:0 0 10px 2px rgba(255,62,240,.75);
 }
 [data-tpl="gaming-cyber"][data-glow="on"] .gc-rig-mouse::after{animation:gc-rig-breathe 2.6s ease-in-out infinite}
-/* ── the tower — perspective wrapper + dark-metal chassis ────────────── */
+/* the tower — perspective wrapper + dark-metal chassis */
 [data-tpl="gaming-cyber"] .gc-rig-case3d{
-  position:absolute;left:50%;bottom:17%;width:34%;aspect-ratio:.5;z-index:3;
+  position:absolute;left:50%;bottom:17%;width:35%;aspect-ratio:.5;z-index:3;
   transform:translateX(-50%) perspective(950px) rotateY(8deg);
 }
-/* mobile — widen the tower a touch so the fan rings/LED strip stay legible;
-   bottom eases up so the taller case never pokes out of the scene box */
+/* mobile — widen the tower so the fan rings/LED strip stay legible */
 @media (max-width:639px){
   [data-tpl="gaming-cyber"] .gc-rig-case3d{width:38%;bottom:13%}
 }
@@ -1018,7 +611,7 @@ html:not(.dark) [data-tpl="gaming-cyber"] .gc-final-chip{background:rgba(255,255
   border:1px solid rgba(255,255,255,.16);
   box-shadow:
     inset 0 0 0 1px rgba(0,0,0,.55),
-    inset 0 14px 30px -18px rgba(255,255,255,.10),
+    inset 0 14px 30px -18px rgba(255,255,255,.1),
     0 30px 60px -24px rgba(0,0,0,.9);
 }
 /* PSU underglow spilling under the chassis onto the mat */
@@ -1039,14 +632,14 @@ html:not(.dark) [data-tpl="gaming-cyber"] .gc-final-chip{background:rgba(255,255
 /* RAM sticks — glow tips breathe on staggered phases (--ph) */
 [data-tpl="gaming-cyber"] .gc-rig-ram{
   position:absolute;left:14%;top:9%;width:4.6%;height:23%;border-radius:3px;
-  background:linear-gradient(180deg,#8B5CF6 0%,#3A2B52 55%,#1A1226 100%);
+  background:linear-gradient(180deg,#A855F7 0%,#3A2B52 55%,#1A1226 100%);
   border:1px solid rgba(255,255,255,.14);
-  box-shadow:0 0 12px -2px rgba(139,92,246,.55);
+  box-shadow:0 0 12px -2px rgba(168,85,247,.55);
 }
 [data-tpl="gaming-cyber"] .gc-rig-ram2{
   left:20.8%;
-  background:linear-gradient(180deg,#06B6D4 0%,#274055 55%,#12202E 100%);
-  box-shadow:0 0 12px -2px rgba(6,182,212,.55);
+  background:linear-gradient(180deg,#67E8F9 0%,#274055 55%,#12202E 100%);
+  box-shadow:0 0 12px -2px rgba(103,232,249,.55);
 }
 [data-tpl="gaming-cyber"][data-glow="on"] .gc-rig-ram{animation:gc-rig-breathe 3s ease-in-out infinite var(--ph,0s)}
 /* GPU block with running accent stripes */
@@ -1080,7 +673,7 @@ html:not(.dark) [data-tpl="gaming-cyber"] .gc-final-chip{background:rgba(255,255
   background:linear-gradient(90deg,#EAFF00,#FF3EF0);
   box-shadow:0 0 8px rgba(255,62,240,.6);
 }
-/* ── the RGB fans — rings hue-cycle with phase offsets, BLADES STATIC ── */
+/* the RGB fans — rings hue-cycle with phase offsets, BLADES STATIC */
 [data-tpl="gaming-cyber"] .gc-rig-fan{position:absolute;aspect-ratio:1;pointer-events:none}
 [data-tpl="gaming-cyber"] .gc-rig-fan-f1{right:7%;top:8%;width:25%}
 [data-tpl="gaming-cyber"] .gc-rig-fan-f2{right:7%;top:38.5%;width:25%}
@@ -1092,7 +685,7 @@ html:not(.dark) [data-tpl="gaming-cyber"] .gc-final-chip{background:rgba(255,255
   inset:7%;border-radius:50%;
   background:
     radial-gradient(circle,#0C0814 0 21%,transparent 22%),
-    repeating-conic-gradient(rgba(214,222,255,.14) 0deg 14deg,rgba(8,6,14,.30) 14deg 60deg);
+    repeating-conic-gradient(rgba(214,222,255,.14) 0deg 14deg,rgba(8,6,14,.3) 14deg 60deg);
   box-shadow:inset 0 0 12px rgba(0,0,0,.85),inset 0 0 4px rgba(255,255,255,.08);
 }
 [data-tpl="gaming-cyber"] .gc-rig-fan-glow{
@@ -1131,10 +724,10 @@ html:not(.dark) [data-tpl="gaming-cyber"] .gc-final-chip{background:rgba(255,255
 /* tempered-glass side panel — reflections + ambient RGB tint */
 [data-tpl="gaming-cyber"] .gc-rig-glass{
   position:absolute;inset:4px;border-radius:12px;pointer-events:none;z-index:9;
-  border:1px solid rgba(255,255,255,.20);
+  border:1px solid rgba(255,255,255,.2);
   background:
-    linear-gradient(118deg,rgba(255,255,255,.20) 0%,rgba(255,255,255,.03) 22%,transparent 42%),
-    linear-gradient(292deg,rgba(139,92,246,.13) 0%,transparent 38%);
+    linear-gradient(118deg,rgba(255,255,255,.2) 0%,rgba(255,255,255,.03) 22%,transparent 42%),
+    linear-gradient(292deg,rgba(168,85,247,.13) 0%,transparent 38%);
   box-shadow:inset 0 0 26px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.16);
 }
 [data-tpl="gaming-cyber"] .gc-rig-glass-tint{
@@ -1143,12 +736,12 @@ html:not(.dark) [data-tpl="gaming-cyber"] .gc-final-chip{background:rgba(255,255
   filter:blur(18px);opacity:.14;mix-blend-mode:overlay;
 }
 [data-tpl="gaming-cyber"][data-glow="on"] .gc-rig-glass-tint{animation:gc-rgb-flow 7s linear infinite}
-/* ── flanking headset showcase cards (generated 3D art) ─────────────── */
+/* flanking headset showcase cards (generated 3D art) */
 [data-tpl="gaming-cyber"] .gc-hs{position:absolute;width:27%;z-index:5}
 [data-tpl="gaming-cyber"] .gc-hs-1{top:0;right:-1%}
 [data-tpl="gaming-cyber"] .gc-hs-2{top:47%;left:-2%;width:24%}
 [data-tpl="gaming-cyber"] .gc-hs-halo{position:absolute;inset:-14%;border-radius:50%;filter:blur(26px);opacity:.55;pointer-events:none}
-[data-tpl="gaming-cyber"] .gc-hs-halo-pink{background:radial-gradient(circle,rgba(255,62,190,.55),transparent 70%)}
+[data-tpl="gaming-cyber"] .gc-hs-halo-pink{background:radial-gradient(circle,rgba(236,72,153,.55),transparent 70%)}
 [data-tpl="gaming-cyber"] .gc-hs-halo-green{background:radial-gradient(circle,rgba(52,211,82,.4),rgba(251,191,36,.25),transparent 72%)}
 [data-tpl="gaming-cyber"] .gc-hs-float{animation:gc-float 7s ease-in-out infinite;animation-delay:var(--ph,0s)}
 [data-tpl="gaming-cyber"] .gc-hs-art{
@@ -1162,105 +755,250 @@ html:not(.dark) [data-tpl="gaming-cyber"] .gc-final-chip{background:rgba(255,255
   background:rgba(11,0,20,.68);border:1px solid rgba(255,255,255,.22);color:#F3E8FF;
   font-size:9.5px;font-weight:800;backdrop-filter:blur(6px);
 }
-/* scroll cue */
-[data-tpl="gaming-cyber"] .gc-scroll-cue{
-  position:absolute;bottom:10px;left:50%;transform:translateX(-50%);z-index:18;
-  display:flex;flex-direction:column;align-items:center;gap:3px;pointer-events:none;
+/* ═══ system status strip (announcement marquee) ═══ */
+[data-tpl="gaming-cyber"] .gc-strip{
+  position:relative;display:flex;align-items:center;gap:10px;padding:8px 12px;
+  border-radius:14px;overflow:hidden;
+  border:1px solid var(--g-line);
+  background:linear-gradient(90deg,rgba(168,85,247,.09),rgba(236,72,153,.06),transparent);
 }
-[data-tpl="gaming-cyber"] .gc-scroll-cue-txt{
+[data-tpl="gaming-cyber"] .gc-strip-badge{
+  flex-shrink:0;display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;
+  background:rgba(168,85,247,.16);border:1px solid rgba(168,85,247,.42);color:var(--g-violet);
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:9.5px;font-weight:900;letter-spacing:.16em;
+}
+[data-tpl="gaming-cyber"] .gc-strip-msg{
   font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
-  font-size:8.5px;font-weight:900;letter-spacing:.3em;color:rgba(167,155,198,.75);
+  font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:.02em;font-size:12px;
+  color:var(--g-dim);
 }
-[data-tpl="gaming-cyber"] .gc-scroll-cue-bar{position:relative;width:22px;height:15px;border-radius:999px;border:1.5px solid rgba(139,92,246,.5);overflow:hidden}
-[data-tpl="gaming-cyber"] .gc-scroll-cue-bar b{
-  position:absolute;left:50%;top:2px;width:4px;height:4px;margin-left:-2px;border-radius:999px;
-  background:#EAFF00;box-shadow:0 0 6px rgba(234,255,0,.8);
+/* ═══ «آرنا» band — editorial split (arena* keys) ═══ */
+[data-tpl="gaming-cyber"] .gc-arena{
+  position:relative;border-radius:22px;overflow:hidden;
+  border:1px solid var(--g-line-strong);
+  background:
+    radial-gradient(700px 380px at 88% 8%,rgba(168,85,247,.16),transparent 60%),
+    radial-gradient(560px 320px at 4% 94%,rgba(34,211,238,.08),transparent 60%),
+    linear-gradient(160deg,var(--g-panel),var(--g-bg));
 }
-[data-tpl="gaming-cyber"][data-glow="on"] .gc-scroll-cue-bar b{animation:gc-cue-drop 1.8s ease-in-out infinite}
-/* light-skin restores — the hero panel stays a dark studio, so keep the
-   neon headline gradient + ghost pill + HUD bar exactly as dark mode */
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-hero .gc-display{
-  background-image:linear-gradient(180deg,#FFFFFF 8%,#FFD6FF 48%,#F86BFF 78%,#D000FF 100%);
-  filter:drop-shadow(0 4px 26px rgba(208,0,255,.45)) drop-shadow(0 1px 2px rgba(0,0,0,.4));
+[data-tpl="gaming-cyber"] .gc-arena-grid{display:grid;gap:24px;padding:24px;align-items:center}
+@media (min-width:1024px){
+  [data-tpl="gaming-cyber"] .gc-arena-grid{grid-template-columns:.92fr 1.08fr;padding:32px;gap:40px}
 }
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-hero .gc-btn-vice-ghost{
-  border-color:rgba(255,255,255,.8);color:#fff;background:rgba(255,255,255,.07);
+[data-tpl="gaming-cyber"] .gc-arena-art{position:relative}
+[data-tpl="gaming-cyber"] .gc-arena-frame{
+  position:relative;aspect-ratio:4/3;border-radius:22px;overflow:hidden;z-index:1;
+  border:1px solid rgba(168,85,247,.45);
+  box-shadow:0 24px 60px -24px rgba(0,0,0,.85),0 0 34px -10px rgba(168,85,247,.45);
 }
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-hero .gc-btn-vice-ghost:hover{
-  background:rgba(255,255,255,.16);border-color:#fff;box-shadow:0 0 34px -8px rgba(255,255,255,.45);
+[data-tpl="gaming-cyber"][data-glow="on"] .gc-arena-frame{
+  box-shadow:0 24px 64px -24px rgba(0,0,0,.85),0 0 44px -10px rgba(168,85,247,.6),0 0 26px -8px rgba(103,232,249,.35);
 }
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-hero .gc-hero-hud{background:linear-gradient(180deg,rgba(11,0,20,.8),transparent)}
-html:not(.dark) [data-tpl="gaming-cyber"] .gc-hero .gc-hero{border-color:rgba(124,58,237,.35)}
-
-/* ═══ v31 · GAMING CHROME POLISH (header variant 7 · footer variant 6) ═══
-   Scoped to the gaming template root so NO other template is touched.
-   Pure-CSS accents only — structure/data sources stay identical.       */
-/* thin animated RGB accent line under the ticket header box */
-[data-tpl="gaming-cyber"] [data-chrome-header] > div{position:relative}
-[data-tpl="gaming-cyber"] [data-chrome-header] > div::after{
-  content:"";position:absolute;left:12px;right:12px;bottom:-2px;height:2px;border-radius:999px;
-  background:linear-gradient(90deg,#F43F5E,#FF3EF0,#D000FF,#8B5CF6,#06B6D4,#10B981,#EAFF00,#FF7A00,#F43F5E);
-  background-size:220% 100%;
-  animation:gc-rgb-slide 14s linear infinite;
-  opacity:.75;filter:drop-shadow(0 0 5px rgba(255,62,240,.5));
-  pointer-events:none;
+[data-tpl="gaming-cyber"] .gc-arena-mascot{
+  position:absolute;bottom:14px;inset-inline-start:14px;width:42%;max-width:230px;aspect-ratio:1/1;
+  border-radius:20px;overflow:hidden;z-index:2;transform:rotate(-3deg);
+  border:2px solid rgba(236,72,153,.6);
+  box-shadow:0 18px 44px -14px rgba(0,0,0,.85),0 0 34px -8px rgba(236,72,153,.6);
+  animation:gc-float 7s ease-in-out infinite;
 }
-/* ticker — mono digits + neon gradient text */
-[data-tpl="gaming-cyber"] [data-chrome-header] .taj-marquee .whitespace-nowrap{
+/* category chips */
+[data-tpl="gaming-cyber"] .gc-chip{
+  display:inline-flex;align-items:center;gap:7px;height:38px;padding:0 16px;border-radius:999px;
+  border:1px solid var(--g-line-strong);background:color-mix(in srgb,var(--g-panel) 60%,transparent);
+  color:var(--g-ink);font-size:12.5px;font-weight:800;
+  transition:border-color .2s,color .2s,box-shadow .2s,transform .2s;
+}
+[data-tpl="gaming-cyber"] .gc-chip:hover{
+  border-color:var(--g-pink);color:var(--g-hot);transform:translateY(-2px);
+  box-shadow:0 0 20px -8px var(--g-pink);
+}
+/* ═══ GEAR — wide banner + spotlight tiles + gear cards ═══ */
+[data-tpl="gaming-cyber"] .gc-banner{
+  position:relative;display:block;overflow:hidden;border-radius:20px;
+  min-height:250px;
+  border:1px solid rgba(168,85,247,.4);
+  box-shadow:0 26px 70px -34px rgba(0,0,0,.9),0 0 40px -14px rgba(168,85,247,.4);
+}
+@media (min-width:640px){
+  [data-tpl="gaming-cyber"] .gc-banner{min-height:320px}
+}
+[data-tpl="gaming-cyber"] .gc-banner-cta{
+  display:inline-flex;align-items:center;gap:9px;cursor:pointer;
+  height:48px;padding:0 22px;border-radius:999px;
+  border:2px solid rgba(255,255,255,.75);color:#fff;font-weight:900;font-size:13px;
+  background:rgba(255,255,255,.08);backdrop-filter:blur(6px);
+  transition:background .2s,box-shadow .2s,transform .2s;
+}
+[data-tpl="gaming-cyber"] .gc-banner-cta:hover{background:rgba(255,255,255,.18);box-shadow:0 0 28px -6px rgba(255,255,255,.4);transform:translateY(-2px)}
+[data-tpl="gaming-cyber"] .gc-spot{
+  position:relative;display:flex;flex-direction:column;overflow:hidden;
+  border-radius:20px;border:1px solid var(--g-line);
+  background:linear-gradient(180deg,var(--g-panel),var(--g-bg));
+  transition:transform .25s,border-color .25s,box-shadow .25s;
+}
+[data-tpl="gaming-cyber"] .gc-spot:hover{transform:translateY(-4px);border-color:rgba(236,72,153,.55)}
+[data-tpl="gaming-cyber"][data-glow="on"] .gc-spot:hover{box-shadow:0 0 0 1px rgba(236,72,153,.28),0 20px 48px -20px rgba(168,85,247,.5)}
+[data-tpl="gaming-cyber"] .gc-spot-stage{
+  position:relative;overflow:hidden;
+  background:radial-gradient(120% 120% at 50% 0%,#241B38 0%,#0E0918 78%);
+}
+[data-tpl="gaming-cyber"] .gc-spot-title{font-size:15px;font-weight:900;color:var(--g-ink);letter-spacing:-.01em}
+[data-tpl="gaming-cyber"] .gc-spot-sub{font-size:11.5px;line-height:1.7;color:var(--g-dim)}
+[data-tpl="gaming-cyber"] .gc-spot-ico{display:grid;place-items:center;width:44px;height:44px;border-radius:12px;flex-shrink:0;background:rgba(168,85,247,.14);color:var(--g-violet)}
+[data-tpl="gaming-cyber"] .gc-spot-arrow{color:var(--g-faint);transition:color .2s}
+[data-tpl="gaming-cyber"] .gc-spot:hover .gc-spot-arrow{color:var(--g-hot)}
+/* spotlight tile fx: fan SPINS, keyboard hue-pulses */
+[data-tpl="gaming-cyber"][data-glow="on"] .gc-spot-spin{animation:gc-fan-spin 4s linear infinite}
+[data-tpl="gaming-cyber"][data-glow="on"] .gc-spot-hue{animation:gc-hue-breathe 3s ease-in-out infinite}
+/* ═══ DEAL ZONE — cinematic band + big-number blocks ═══ */
+[data-tpl="gaming-cyber"] .gc-deal-zone{
+  position:relative;border-radius:24px;overflow:hidden;
+  border:1px solid var(--g-line-strong);
+  background:
+    radial-gradient(880px 440px at 90% -6%,rgba(236,72,153,.15),transparent 60%),
+    radial-gradient(600px 320px at -4% 104%,rgba(234,255,0,.05),transparent 55%),
+    linear-gradient(165deg,var(--g-panel),var(--g-bg));
+}
+[data-tpl="gaming-cyber"] .gc-deal-art{
+  position:relative;overflow:hidden;border-radius:18px;
+  border:1px solid rgba(236,72,153,.45);
+}
+[data-tpl="gaming-cyber"] .gc-deal-art-txt{position:relative;z-index:3}
+[data-tpl="gaming-cyber"] .gc-deal-block{
+  position:relative;display:flex;flex-direction:column;gap:10px;
+  border-radius:18px;overflow:hidden;padding:14px;
+  border:1px solid var(--g-line-strong);
+  background:linear-gradient(180deg,var(--g-panel),var(--g-bg));
+  transition:transform .25s,border-color .25s,box-shadow .25s;
+}
+[data-tpl="gaming-cyber"] .gc-deal-block:hover{transform:translateY(-4px);border-color:rgba(236,72,153,.55)}
+[data-tpl="gaming-cyber"][data-glow="on"] .gc-deal-block:hover{
+  box-shadow:0 0 0 1px rgba(236,72,153,.25),0 20px 48px -18px rgba(168,85,247,.45);
+}
+[data-tpl="gaming-cyber"] .gc-deal-num{
   font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
-  font-weight:900;font-variant-numeric:tabular-nums;letter-spacing:.02em;
-  background-image:linear-gradient(90deg,#D946EF,#EAFF00 45%,#67E8F9);
-  -webkit-background-clip:text;background-clip:text;color:transparent;
+  font-weight:900;line-height:.78;
+  font-size:clamp(54px,7vw,88px);
+  color:transparent;-webkit-text-stroke:2.5px rgba(236,72,153,.5);
+  letter-spacing:-.02em;user-select:none;
+  transition:-webkit-text-stroke-color .25s;
 }
-html:not(.dark) [data-tpl="gaming-cyber"] [data-chrome-header] .taj-marquee .whitespace-nowrap{
-  background-image:linear-gradient(90deg,#A21CAC,#4D7C0F 45%,#0E7490);
+[data-tpl="gaming-cyber"] .gc-deal-block:hover .gc-deal-num{-webkit-text-stroke-color:rgba(180,131,10,.65)}
+html:not(.dark) [data-tpl="gaming-cyber"] .gc-deal-block:hover .gc-deal-num{-webkit-text-stroke-color:rgba(77,124,15,.7)}
+html:not(.dark) [data-tpl="gaming-cyber"] .gc-deal-num{-webkit-text-stroke-color:rgba(124,58,237,.4)}
+/* static gradient underline bar (deal blocks) */
+[data-tpl="gaming-cyber"] .gc-underline{
+  position:relative;height:3px;border-radius:999px;overflow:hidden;
+  background:linear-gradient(90deg,#A855F7,#EC4899 60%,transparent);
+  opacity:.8;
 }
-/* search — neon focus ring */
-[data-tpl="gaming-cyber"] [data-chrome-header] form[role="search"]{
-  border-color:rgba(139,92,246,.4);
+/* ═══ JOIN band (GameUp purple→pink gradient, join* keys) ═══ */
+[data-tpl="gaming-cyber"] .gc-connect{
+  position:relative;border-radius:24px;overflow:hidden;
+  border:1px solid rgba(236,72,153,.45);
+  background:linear-gradient(118deg,#2D1155 0%,#6D28D9 40%,#A855F7 64%,#EC4899 100%);
+  box-shadow:0 30px 84px -38px rgba(168,85,247,.6),inset 0 0 90px rgba(45,17,85,.5);
+}
+[data-tpl="gaming-cyber"] .gc-connect-cta{
+  display:inline-flex;align-items:center;gap:10px;cursor:pointer;
+  height:52px;padding:0 28px;border-radius:999px;
+  background:#1E1233;color:#fff;font-weight:900;font-size:14px;
+  border:1px solid rgba(255,255,255,.22);
+  box-shadow:0 0 20px rgba(168,85,247,.4),0 12px 30px -12px rgba(0,0,0,.6);
+  transition:box-shadow .2s,transform .2s,filter .2s;
+}
+[data-tpl="gaming-cyber"] .gc-connect-cta:hover{box-shadow:0 0 34px rgba(168,85,247,.75);transform:translateY(-2px);filter:brightness(1.1)}
+[data-tpl="gaming-cyber"] .gc-connect-chip{
+  display:inline-flex;align-items:center;gap:8px;padding:7px 14px;border-radius:999px;
+  background:rgba(11,0,20,.42);border:1px solid rgba(255,255,255,.18);color:#F3E8FF;
+  font-size:11.5px;font-weight:800;backdrop-filter:blur(6px);
+}
+/* ═══ mission board tiles ═══ */
+[data-tpl="gaming-cyber"] .gc-mission{
+  position:relative;display:block;overflow:hidden;border-radius:16px;
+  border:1px solid rgba(168,85,247,.35);
+  transition:transform .25s,box-shadow .25s,border-color .25s;
+}
+[data-tpl="gaming-cyber"] .gc-mission:hover{transform:translateY(-3px);border-color:rgba(236,72,153,.55)}
+[data-tpl="gaming-cyber"][data-glow="on"] .gc-mission:hover{box-shadow:0 18px 44px -20px rgba(0,0,0,.7),0 0 30px -14px rgba(168,85,247,.55)}
+[data-tpl="gaming-cyber"] .gc-legend-ring{
+  position:absolute;inset:-6%;border-radius:50%;border:1.5px dashed rgba(236,72,153,.45);
+  animation:gc-spin 16s linear infinite;
+}
+[data-tpl="gaming-cyber"] .gc-mission-chip{
+  display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;
+  background:rgba(11,8,18,.55);border:1px solid rgba(103,232,249,.35);color:#67E8F9;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:9px;font-weight:900;letter-spacing:.2em;backdrop-filter:blur(6px);
+}
+/* ═══ sponsor chips ═══ */
+[data-tpl="gaming-cyber"] .gc-sponsor{
+  display:inline-flex;align-items:center;gap:10px;flex-shrink:0;height:48px;padding:0 16px;border-radius:999px;
+  border:1px solid var(--g-line);background:var(--g-panel);
+  font-size:12px;font-weight:800;color:var(--g-ink);letter-spacing:.03em;
+  transition:border-color .2s,color .2s,box-shadow .2s;
+}
+[data-tpl="gaming-cyber"] .gc-sponsor:hover{border-color:var(--g-cyan);color:var(--g-cyan);box-shadow:0 0 18px -8px var(--g-cyan)}
+/* ═══ FAQ console ═══ */
+[data-tpl="gaming-cyber"] .gc-faq-item{
+  border-radius:12px;border:1px solid var(--g-line);
+  background:linear-gradient(180deg,var(--g-panel),var(--g-bg));
   transition:border-color .25s,box-shadow .25s;
 }
-[data-tpl="gaming-cyber"] [data-chrome-header] form[role="search"]:focus-within{
-  border-color:rgba(255,62,240,.75);
-  box-shadow:0 0 0 3px rgba(208,0,255,.18),0 0 22px -6px rgba(208,0,255,.65);
+[data-tpl="gaming-cyber"] .gc-faq-item[data-open="1"]{border-color:rgba(236,72,153,.5)}
+[data-tpl="gaming-cyber"][data-glow="on"] .gc-faq-item[data-open="1"]{box-shadow:0 0 26px -12px rgba(168,85,247,.55)}
+[data-tpl="gaming-cyber"] .gc-qchip{
+  border-radius:8px;background:rgba(168,85,247,.14);color:var(--g-violet);
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:10px;font-weight:900;letter-spacing:.14em;
 }
-html:not(.dark) [data-tpl="gaming-cyber"] [data-chrome-header] form[role="search"]:focus-within{
-  border-color:rgba(162,28,172,.65);
-  box-shadow:0 0 0 3px rgba(192,38,211,.14),0 0 18px -6px rgba(192,38,211,.55);
+/* ═══ FINAL CTA band ═══ */
+[data-tpl="gaming-cyber"] .gc-final{
+  position:relative;overflow:hidden;border-radius:24px;
+  border:1px solid var(--g-line-strong);
+  background:
+    radial-gradient(760px 420px at 50% -22%,rgba(168,85,247,.16),transparent 60%),
+    linear-gradient(180deg,var(--g-panel),var(--g-bg));
 }
-/* action buttons — neon hover glow */
-[data-tpl="gaming-cyber"] [data-chrome-header] a[href="/account"],
-[data-tpl="gaming-cyber"] [data-chrome-header] a[href="/cart"],
-[data-tpl="gaming-cyber"] [data-chrome-header] a[href="/login"]{
-  transition:box-shadow .25s,transform .25s;
+[data-tpl="gaming-cyber"] .gc-final-mono{
+  position:absolute;inset-inline-end:-2%;top:-12%;
+  font-size:clamp(140px,22vw,280px);font-weight:900;line-height:1;user-select:none;pointer-events:none;
+  background-image:linear-gradient(180deg,rgba(168,85,247,.3),rgba(236,72,153,.06));
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 0 40px rgba(168,85,247,.25));
 }
-[data-tpl="gaming-cyber"] [data-chrome-header] a[href="/account"]:hover,
-[data-tpl="gaming-cyber"] [data-chrome-header] a[href="/cart"]:hover,
-[data-tpl="gaming-cyber"] [data-chrome-header] a[href="/login"]:hover{
-  box-shadow:0 0 16px -4px rgba(168,85,247,.7),0 0 0 1px rgba(168,85,247,.3);
+[data-tpl="gaming-cyber"] .gc-final-chip{
+  display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:999px;
+  border:1px solid var(--g-line-strong);background:color-mix(in srgb,var(--g-panel) 60%,transparent);
+  color:var(--g-dim);font-size:11.5px;font-weight:700;
+  transition:border-color .2s,color .2s,transform .2s;
 }
-/* footer — slim animated RGB top border */
+[data-tpl="gaming-cyber"] .gc-final-chip:hover{border-color:rgba(234,255,0,.5);color:var(--g-ink);transform:translateY(-2px)}
+/* ═══ neon swoosh curves ═══ */
+[data-tpl="gaming-cyber"] .gc-swoosh{
+  position:absolute;inset-inline:-3%;bottom:5%;width:106%;height:44%;z-index:1;
+  pointer-events:none;opacity:.5;
+}
+[data-tpl="gaming-cyber"] .gc-swoosh-flip{transform:scaleX(-1)}
+[data-tpl="gaming-cyber"][data-glow="on"] .gc-swoosh{filter:drop-shadow(0 0 6px rgba(168,85,247,.5))}
+/* ═══ FOOTER polish (chrome footer variant 6 + social) ═══ */
 [data-tpl="gaming-cyber"] [data-chrome-footer]{position:relative}
 [data-tpl="gaming-cyber"] [data-chrome-footer]::before{
   content:"";position:absolute;top:0;left:0;right:0;height:2px;z-index:5;
-  background:linear-gradient(90deg,#F43F5E,#FF3EF0,#D000FF,#8B5CF6,#06B6D4,#10B981,#EAFF00,#FF7A00,#F43F5E);
+  background:linear-gradient(90deg,#A855F7,#EC4899,#A855F7,#EC4899,#A855F7);
   background-size:220% 100%;
   animation:gc-rgb-slide 14s linear infinite;opacity:.8;
-  filter:drop-shadow(0 0 5px rgba(255,62,240,.45));
+  filter:drop-shadow(0 0 5px rgba(168,85,247,.45));
   pointer-events:none;
 }
-/* footer column rhythm — hairline dividers + roomier gutters (md+) */
 @media (min-width:768px){
   [data-tpl="gaming-cyber"] [data-chrome-footer] .grid > :not(:first-child){
     border-inline-start:1px solid rgba(139,92,246,.16);
     padding-inline-start:1.6rem;
   }
 }
-/* footer section-heading dots — neon bloom */
 [data-tpl="gaming-cyber"] [data-chrome-footer] .taj-breathe{
   box-shadow:0 0 9px 1px rgba(139,92,246,.65);
 }
-/* footer social icons (real links from /api/store-info) — hover glow */
 [data-tpl="gaming-cyber"] .gc-soc{transition:transform .2s,box-shadow .2s,border-color .2s,color .2s}
 [data-tpl="gaming-cyber"] .gc-soc:hover{
   transform:translateY(-2px);
@@ -1270,29 +1008,28 @@ html:not(.dark) [data-tpl="gaming-cyber"] [data-chrome-header] form[role="search
 [data-tpl="gaming-cyber"] .gc-soc:hover,[data-tpl="gaming-cyber"] .gc-soc:hover *{color:#C4B5FD}
 html:not(.dark) [data-tpl="gaming-cyber"] .gc-soc:hover,
 html:not(.dark) [data-tpl="gaming-cyber"] .gc-soc:hover *{color:#7C3AED}
-
-/* ═══ v28 + v30 · prefers-reduced-motion — EVERY loop stops (static,
-   still colorful gradients — just no movement) ═══ */
+/* ═══ kill the global per-article RGB aura (v32 maturity pass — the
+   rainbow breathing on EVERY card was the "childish" bit) ═══ */
+html.dark .store-shell[data-chrome-template="gaming-cyber"] article{animation:none}
+.argb-mode [data-tpl="gaming-cyber"] article{animation:none}
+/* ═══ prefers-reduced-motion — EVERY loop stops (static, still colorful) ═══ */
 @media (prefers-reduced-motion: reduce){
   [data-tpl="gaming-cyber"] .gc-float,
   [data-tpl="gaming-cyber"] .gc-arena-mascot,
-  [data-tpl="gaming-cyber"] .gc-head::after,
-  [data-tpl="gaming-cyber"] .gc-btn-rgb,
-  [data-tpl="gaming-cyber"] .gc-hex-grad,
-  [data-tpl="gaming-cyber"] .gc-underline-rainbow,
   [data-tpl="gaming-cyber"] .gc-legend-ring,
-  [data-tpl="gaming-cyber"][data-glow="on"] .gc-rgb::before,
-  [data-tpl="gaming-cyber"][data-glow="on"] .gc-rgb-edge::after,
-  [data-tpl="gaming-cyber"][data-glow="on"] .gc-win::after,
-  [data-tpl="gaming-cyber"][data-glow="on"] .gc-hero-shell::before,
+  [data-tpl="gaming-cyber"] .gc-hex-grad,
+  [data-tpl="gaming-cyber"] .gc-live-dot,
+  [data-tpl="gaming-cyber"] .gc-hs-float,
+  [data-tpl="gaming-cyber"] .gc-drawer,
+  [data-tpl="gaming-cyber"] .gc-drawer-back,
+  [data-tpl="gaming-cyber"] .gc-hdr::after,
+  [data-tpl="gaming-cyber"] [data-chrome-footer]::before,
   [data-tpl="gaming-cyber"][data-glow="on"] .gc-argb-ring,
   [data-tpl="gaming-cyber"][data-glow="on"] .gc-argb-glow,
   [data-tpl="gaming-cyber"][data-glow="on"] .gc-fx-spin,
   [data-tpl="gaming-cyber"][data-glow="on"] .gc-fx-hue,
   [data-tpl="gaming-cyber"][data-glow="on"] .gc-spot-spin,
   [data-tpl="gaming-cyber"][data-glow="on"] .gc-spot-hue,
-  /* v31 rig hero + chrome accents */
-  [data-tpl="gaming-cyber"] .gc-hs-float,
   [data-tpl="gaming-cyber"][data-glow="on"] .gc-rig-fan-ring,
   [data-tpl="gaming-cyber"][data-glow="on"] .gc-rig-fan-glow,
   [data-tpl="gaming-cyber"][data-glow="on"] .gc-rig-ram,
@@ -1302,12 +1039,7 @@ html:not(.dark) [data-tpl="gaming-cyber"] .gc-soc:hover *{color:#7C3AED}
   [data-tpl="gaming-cyber"][data-glow="on"] .gc-rig-glass-tint,
   [data-tpl="gaming-cyber"][data-glow="on"] .gc-rig-mat::before,
   [data-tpl="gaming-cyber"][data-glow="on"] .gc-rig-mouse::after,
-  [data-tpl="gaming-cyber"][data-glow="on"] .gc-scroll-cue-bar b,
-  [data-tpl="gaming-cyber"] [data-chrome-header] > div::after,
-  [data-tpl="gaming-cyber"] [data-chrome-footer]::before{animation:none}
-  [data-tpl="gaming-cyber"][data-glow="on"] .gc-hero-shell:hover::before,
-  [data-tpl="gaming-cyber"][data-glow="on"] .gc-rgb-edge:hover::after,
-  [data-tpl="gaming-cyber"][data-glow="on"] .gc-rgb:hover::before{animation:none}
+  [data-tpl="gaming-cyber"][data-glow="on"] .gc-scroll-cue-bar b{animation:none}
 }
 `;
 
@@ -1349,8 +1081,7 @@ function useAddToCart() {
 }
 
 /* ── v25 hydration-safe countdown — SSR dashes, ticking after mount;
- * target = global timerEndsAt override OR per-product discountEndsAt
- * (ISO). Zero → «پایان تخفیف». */
+ * target = global timerEndsAt override OR per-product discountEndsAt. */
 function HudCountdown({ iso, big = false }: { iso: string; big?: boolean }) {
   const [left, setLeft] = useState<number | null>(null);
   useEffect(() => {
@@ -1461,16 +1192,16 @@ function HudHead({
   live?: boolean;
 }) {
   return (
-    <div className="mb-6">
-      <div className="flex items-center gap-3">
-        <span className="gc-hex gc-hex-grad grid h-11 w-12 shrink-0 place-items-center" aria-hidden>
-          <Icon className="h-5 w-5 text-white" />
+    <div className="gc-shead">
+      <div className="flex items-center gap-3.5">
+        <span className="gc-hex gc-hex-grad gc-shead-ico" aria-hidden>
+          <Icon className="h-5 w-5" />
         </span>
         <div className="min-w-0 flex-1">
           <p dir="ltr" className="gc-code text-right">{`// ${code}`}</p>
-          <h2 id={id} className="gc-head mt-0.5 flex flex-wrap items-center gap-x-2.5 text-2xl font-black tracking-wide text-white sm:text-3xl lg:text-4xl">
+          <h2 id={id} className="gc-shead-t mt-1 flex flex-wrap items-center gap-x-2.5 text-2xl font-black sm:text-3xl">
             {href ? (
-              <Link href={href} className="transition-colors hover:text-[#F79CFF]">
+              <Link href={href} className="transition-colors hover:text-[var(--g-hot)]">
                 {title}
               </Link>
             ) : (
@@ -1480,7 +1211,7 @@ function HudHead({
               <Link
                 href={href}
                 aria-label={`مشاهده ${title}`}
-                className="grid h-6 w-6 place-items-center rounded-full bg-[#E22BFF]/15 text-[#F79CFF] transition-colors hover:bg-[#E22BFF] hover:text-white"
+                className="grid h-6 w-6 place-items-center rounded-full bg-[rgba(168,85,247,.15)] text-[var(--g-violet)] transition-colors hover:bg-[#EC4899] hover:text-white"
               >
                 <ChevronLeft className="h-3.5 w-3.5" aria-hidden />
               </Link>
@@ -1494,26 +1225,21 @@ function HudHead({
           </span>
         )}
       </div>
-      {subtitle && <p className="mt-2 text-[13px] text-[#A79BC6]">{subtitle}</p>}
+      {subtitle && <p className="gc-shead-s">{subtitle}</p>}
     </div>
   );
 }
 
-/* ── v30 · ARGB name-aware lighting picker ───────────────────────────
- * Reads the product's name (+ brand) and returns pure-CSS fx classes:
- *   فن/Fan → gc-fx-spin (image SPINS like a GIF) · کیبورد/Keyboard →
- *   gc-fx-hue (RGB keys breathing) · ماوس/پد موس → gc-fx-ring (glow ring)
- * Animations live in CSS gated by [data-glow="on"] + reduced-motion;
- * when glow is OFF the classes simply aren't applied at all.          */
+/* ── v30 · ARGB name-aware lighting picker (pure-CSS fx classes) ───── */
 function argbFx(p: TemplateProduct): { stage: string; img: string } {
   const hay = `${p.name} ${p.brand?.name ?? ""}`;
   if (/فن(?![یای])|فن\s|فن$|Fan|FAN|پنکه/i.test(hay)) return { stage: "", img: "gc-fx-spin" };
-  if (/کیبورد|Keyboard|KEYBOARD|کیبورد/i.test(hay)) return { stage: "", img: "gc-fx-hue" };
+  if (/کیبورد|Keyboard|KEYBOARD/i.test(hay)) return { stage: "", img: "gc-fx-hue" };
   if (/پد\s?موس|ماوس|Mousepad|Mouse|MOUSE|موس/i.test(hay)) return { stage: "gc-fx-ring", img: "" };
   return { stage: "", img: "" };
 }
 
-/* ── GAMEUP product card — ARGB stage + RGB border + glitch title ──── */
+/* ── ARENA product card — ARGB stage + glitch title + lime-free CTA ── */
 function CyberCard({
   product, timerOn, glowOn, dealTarget,
 }: {
@@ -1545,9 +1271,9 @@ function CyberCard({
     <motion.article
       whileHover={{ y: -4 }}
       transition={{ type: "spring", stiffness: 320, damping: 24 }}
-      className={cn("gc-card group", glowOn && "gc-rgb")}
+      className="gc-card group"
     >
-      {/* v30: ARGB STAGE — rotating rainbow ring + pulsing underglow + name-aware fx */}
+      {/* ARGB STAGE — quiet ring, wakes on hover + name-aware fx */}
       <Link
         href={`/products/${product.slug}`}
         className={cn("gc-stage relative block aspect-square overflow-hidden", glowOn && fx.stage)}
@@ -1570,13 +1296,13 @@ function CyberCard({
               loading="lazy"
             />
           ) : (
-            <span className="grid h-full place-items-center text-[#E22BFF]/40">
+            <span className="grid h-full place-items-center text-[rgba(168,85,247,.4)]">
               <Package className="h-12 w-12" aria-hidden />
             </span>
           )}
         </span>
         {hasDeal && (
-          <span className="absolute start-3 top-3 z-20 rounded-full bg-gradient-to-l from-[#E22BFF] to-[#8B5CF6] px-2.5 py-1 text-[10px] font-black text-white shadow-[0_0_16px_rgba(217,70,239,.5)]">
+          <span className="absolute start-3 top-3 z-20 rounded-full bg-gradient-to-l from-[#EC4899] to-[#A855F7] px-2.5 py-1 text-[10px] font-black text-white">
             {product.discountPercent.toLocaleString("fa-IR")}٪ OFF
           </span>
         )}
@@ -1593,34 +1319,34 @@ function CyberCard({
       </Link>
 
       <div className="flex flex-1 flex-col gap-2 p-3.5">
-        <p className="flex items-center gap-1.5 text-[10.5px] font-semibold text-[#A79BC6]">
-          <BadgeCheck className="h-3.5 w-3.5 text-[#8B5CF6]" aria-hidden />
+        <p className="gc-brand flex items-center gap-1.5 text-[10.5px] font-semibold">
+          <BadgeCheck className="h-3.5 w-3.5 text-[var(--g-violet)]" aria-hidden />
           {product.brand.name}
         </p>
         <Link href={`/products/${product.slug}`} className="gc-glitch min-h-12">
-          <span className="gc-glitch-t block text-[13px] font-bold leading-6 text-[#EFEAF9] line-clamp-2 transition-colors group-hover:text-[#F79CFF]">
+          <span className="gc-glitch-t gc-card-title block text-[13px] font-bold leading-6 line-clamp-2 transition-colors group-hover:text-[var(--g-hot)]">
             {product.name}
           </span>
         </Link>
         {product.rating > 0 && (
-          <span className="flex items-center gap-1 text-[11px] font-bold text-amber-300">
-            <Star className="h-3.5 w-3.5 fill-amber-300" aria-hidden />
+          <span className="gc-rating flex items-center gap-1 text-[11px] font-bold">
+            <Star className="h-3.5 w-3.5 fill-current" aria-hidden />
             {product.rating.toLocaleString("fa-IR")}
-            {product.reviewCount > 0 && <span className="font-normal text-[#A79BC6]">({product.reviewCount.toLocaleString("fa-IR")} نظر)</span>}
+            {product.reviewCount > 0 && <span className="font-normal text-[var(--g-faint)]">({product.reviewCount.toLocaleString("fa-IR")} نظر)</span>}
           </span>
         )}
 
         <div className="mt-auto space-y-2 pt-1">
           {hasDeal && (
-            <p className="text-[11px] leading-4 text-[#A79BC6] line-through tabular-nums">{formatPrice(product.price)}</p>
+            <p className="gc-old text-[11px] leading-4 line-through">{formatPrice(product.price)}</p>
           )}
-          <p className="text-sm font-black text-[#F79CFF] tabular-nums">
+          <p className="gc-price text-sm font-black">
             {formatPrice(product.effectivePrice)}
-            <span className="ms-1 text-[10px] font-medium text-[#A79BC6]">تومان</span>
+            <span className="ms-1 text-[10px] font-medium text-[var(--g-faint)]">تومان</span>
           </p>
           {timerIso && (
-            <div className="flex items-center gap-1.5 rounded-lg border border-[#06B6D4]/25 bg-[#1A1025]/60 px-2 py-1.5">
-              <Timer className="h-3.5 w-3.5 shrink-0 text-[#06B6D4]" aria-hidden />
+            <div className="flex items-center gap-1.5 rounded-lg border border-[rgba(103,232,249,.22)] bg-[rgba(20,15,32,.5)] px-2 py-1.5">
+              <Timer className="h-3.5 w-3.5 shrink-0 text-[var(--g-cyan)]" aria-hidden />
               <HudCountdown iso={timerIso} />
             </div>
           )}
@@ -1646,23 +1372,14 @@ function CyberCard({
   );
 }
 
-/* ── v31 · RIG HERO — the centerpiece is 100% CODE-DRAWN: a tempered-glass
- * ARGB tower standing on an ARGB desk mat (animated edge LEDs) with a
- * code-drawn mouse, flanked by the two generated 3D headset artworks.
- * The old rotating photo slider is GONE (admin slides dropped from the
- * hero). Fan BLADES never spin — only the RGB glow hue-cycles/breathes
- * with per-fan phase offsets. Persian copy + CTAs + parallax kept. */
+/* ── v31 · RIG HERO art (owner's signature) ────────────────────────── */
 const BUNNY_SRC = "/images/gaming/argb-bunny-pink.png";
 const BUNNY_ALT = "هد گیمینگ ARGB صورتی با گوش‌های خرگوشی و حلقه‌های نور رنگین‌کمانی";
 const TACTICAL_SRC = "/images/gaming/argb-tactical-black.png";
 const TACTICAL_ALT = "هد گیمینگ تاکتیکال مشکی با نوارهای نور ARGB سبز و کهربایی";
-/* v31: vice-girl art stays only as the DEAL ZONE side illustration (it is
- * no longer the hero centerpiece — see the rig hero above). */
-const VICE_SRC = "/images/gaming/vice-girl.png";
 
-/* one RGB fan — conic rainbow ring hue-cycles on a per-fan phase offset
- * (--ph negative delay), blurred glow breathes behind; the BLADES are
- * static by design (owner: fans must not spin). Pure CSS, aria-hidden. */
+/* one RGB fan — conic rainbow ring hue-cycles on a per-fan phase offset,
+ * blurred glow breathes behind; the BLADES are static by design. */
 function RigFan({ className, ph }: { className?: string; ph: string }) {
   return (
     <span aria-hidden className={cn("gc-rig-fan", className)} style={{ "--ph": ph } as React.CSSProperties}>
@@ -1676,11 +1393,13 @@ function RigFan({ className, ph }: { className?: string; ph: string }) {
 
 /* the code-drawn tower: metal chassis, glass panel, mobo hints, RAM,
  * GPU block, PSU shroud, 3 front + 2 internal RGB fans, top LED strip,
- * PSU underglow + an ambient RGB tint reacting on the glass. */
+ * PSU underglow, ambient RGB glass tint + v32 magenta/cyan rim lights. */
 function RigCase() {
   return (
     <div className="gc-rig-case3d" aria-hidden>
       <span className="gc-rig-underglow" />
+      <span className="gc-rig-rim-r" />
+      <span className="gc-rig-rim-c" />
       <div className="gc-rig-frame">
         <span className="gc-rig-mobo" />
         <span className="gc-rig-ram" style={{ "--ph": "-1.1s" } as React.CSSProperties} />
@@ -1706,9 +1425,7 @@ function RigCase() {
   );
 }
 
-/* flanking headset showcase card — generated 3D art in a floating frame
- * with its own ARGB halo (pink for the bunny set, green/amber for the
- * tactical one) + a small Persian tag. */
+/* flanking headset showcase card — generated 3D art in a floating frame. */
 function HeadsetCard({
   src, alt, name, tone, className, ph,
 }: {
@@ -1770,6 +1487,222 @@ function RigScene({
   );
 }
 
+/* ═══ v32 · GAMING HEADER — rebuilt (owner bug: nav needed swiping) ══
+ * ≥1024px: logo + search + avatar + cart + theme toggle on row 1 and the
+ * FULL nav row (ChromeHeaderNav → mega-menu trigger + zoomfade style)
+ * on row 2 — everything visible at once, zero overflow-x. <1024px: the
+ * burger opens a drawer with search + nav links + categories. Sticky
+ * glass header (blur on ::before so the fixed mega panel never gets a
+ * containing block) + animated purple→pink hairline. Admin overrides
+ * (chromeOverridesMap) honored for search/account/cart/theme/megaMenu. */
+function GamingHeader({ data, cfg }: { data: HomeData; cfg: HeaderCfg }) {
+  const ov = cfg.id ? data.store.chromeOverridesMap?.[cfg.id]?.header : undefined;
+  const showSearch = (ov?.showSearch ?? cfg.showSearch) !== false;
+  const showAccount = (ov?.showAccount ?? cfg.showAccount) !== false;
+  const showCart = (ov?.showCart ?? cfg.showCart) !== false;
+  const showThemeToggle = (ov?.showThemeToggle ?? cfg.showThemeToggle) !== false;
+  const megaMenu = ov?.megaMenu ?? cfg.megaMenu ?? true;
+  const accent = pickEnum(CHROME_ACCENTS, ov?.accent, "violet") ?? "violet";
+  const a: ChromeAccentClasses = ACCENT_CLASSES[accent];
+
+  const [open, setOpen] = useState(false);
+  const [closing, setClosing] = useState(false);
+  const burgerRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const pathname = usePathname();
+
+  const close = useCallback(() => {
+    if (closing) return;
+    setClosing(true);
+    window.setTimeout(() => {
+      setOpen(false);
+      setClosing(false);
+    }, 190);
+  }, [closing]);
+
+  /* scroll-lock + ESC + focus management while the drawer is open */
+  useEffect(() => {
+    if (!open) return;
+    document.body.style.overflow = "hidden";
+    panelRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") close();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = "";
+      window.removeEventListener("keydown", onKey);
+      burgerRef.current?.focus();
+    };
+  }, [open, close]);
+
+  /* any route change hard-closes the drawer — render-time adjustment (the
+   * sanctioned adjust-state-when-prop-changes pattern, same as
+   * ChromeHeaderNav) so a pending drawer never survives navigation. */
+  const [prevPathname, setPrevPathname] = useState(pathname);
+  if (prevPathname !== pathname) {
+    setPrevPathname(pathname);
+    setOpen(false);
+    setClosing(false);
+  }
+
+  const about = (data.infoLinks ?? []).find((l) => l.slug === "about");
+  const en = (data.store.storeNameEn || "TAJ").toUpperCase();
+
+  return (
+    <>
+      {/* NOTE: deliberately NO data-chrome-header attr — the global argb-mode
+          rules target [data-chrome-header]::before and would fight this
+          header's own glass layer; this header owns its hairline instead. */}
+      <header className="gc-hdr w-full">
+        <div className="mx-auto w-full max-w-[1360px] px-4">
+          {/* ROW 1 — logo + search + account + cart + theme (all at once) */}
+          <div className="flex h-[62px] items-center gap-3">
+            <button
+              ref={burgerRef}
+              type="button"
+              className="gc-burger lg:hidden"
+              aria-label={open ? "بستن منو" : "باز کردن منو"}
+              aria-expanded={open}
+              onClick={() => setOpen(true)}
+            >
+              <Menu className="h-5 w-5" aria-hidden />
+            </button>
+            <Link href="/" aria-label={`صفحه اصلی ${data.store.storeName}`} className="gc-logo">
+              <span className="gc-logo-mark" aria-hidden>
+                {data.store.logo ? (
+                  <img src={data.store.logo} alt="" />
+                ) : (
+                  <span className="gc-logo-mono">{en.charAt(0)}</span>
+                )}
+              </span>
+              <span className="flex flex-col leading-none">
+                <span dir="ltr" className="gc-logo-en">{en}</span>
+                <span className="gc-logo-fa mt-1 hidden sm:block">{data.store.storeName}</span>
+              </span>
+            </Link>
+            {showSearch && (
+              <div className="hidden min-w-0 flex-1 lg:block">
+                <ChromeSearch mode="wide" a={a} className="h-11" />
+              </div>
+            )}
+            <div className={cn("flex items-center gap-2", showSearch ? "ms-auto lg:ms-0" : "ms-auto")}>
+              {showAccount && <ChromeAccount a={a} />}
+              {showCart && <ChromeCart a={a} cartStyle={cfg.cartStyle} />}
+              {showThemeToggle && <ChromeThemeToggle a={a} />}
+            </div>
+          </div>
+          {/* ROW 2 — the FULL nav row (never overflows: ~420px content in ≥992px) */}
+          <div className="gc-hdr-row2 hidden items-center py-0.5 lg:flex">
+            <ChromeHeaderNav
+              data={data}
+              a={a}
+              showCategories={megaMenu}
+              menuStyle={cfg.menuStyle}
+              className="gc-hdr-nav w-full"
+            />
+          </div>
+        </div>
+      </header>
+
+      {/* DRAWER (<1024px) — search + primary links + categories */}
+      {open && (
+        <>
+          <div
+            className="gc-drawer-back"
+            data-closing={closing ? "true" : undefined}
+            onClick={close}
+            aria-hidden
+          />
+          <div
+            ref={panelRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="منوی فروشگاه"
+            tabIndex={-1}
+            className="gc-drawer"
+            data-closing={closing ? "true" : undefined}
+          >
+            <div className="gc-drawer-head">
+              <span className="gc-logo">
+                <span className="gc-logo-mark" aria-hidden>
+                  {data.store.logo ? (
+                    <img src={data.store.logo} alt="" />
+                  ) : (
+                    <span className="gc-logo-mono">{en.charAt(0)}</span>
+                  )}
+                </span>
+                <span className="flex flex-col leading-none">
+                  <span dir="ltr" className="gc-logo-en">{en}</span>
+                  <span className="gc-logo-fa mt-1">{data.store.storeName}</span>
+                </span>
+              </span>
+              <button type="button" className="gc-drawer-close" onClick={close} aria-label="بستن منو">
+                <X className="h-5 w-5" aria-hidden />
+              </button>
+            </div>
+            <div className="gc-drawer-body">
+              {showSearch && <ChromeSearch mode="wide" a={a} className="h-11" />}
+              <nav className="gc-drawer-sec" aria-label="منوی اصلی">
+                <p dir="ltr" className="gc-code text-right">{`// MAIN_MENU`}</p>
+                <Link href="/" onClick={close} className="gc-drawer-link">
+                  <Gamepad2 className="h-4.5 w-4.5 text-[var(--g-violet)]" aria-hidden />
+                  خانه
+                  <ChevronLeft className="ms-auto h-4 w-4 text-[var(--g-faint)]" aria-hidden />
+                </Link>
+                <Link href="/products" onClick={close} className="gc-drawer-link">
+                  <Layers className="h-4.5 w-4.5 text-[var(--g-violet)]" aria-hidden />
+                  فروشگاه
+                  <ChevronLeft className="ms-auto h-4 w-4 text-[var(--g-faint)]" aria-hidden />
+                </Link>
+                {about && (
+                  <Link href={`/info/${about.slug}`} onClick={close} className="gc-drawer-link">
+                    <BadgeCheck className="h-4.5 w-4.5 text-[var(--g-violet)]" aria-hidden />
+                    {about.title}
+                    <ChevronLeft className="ms-auto h-4 w-4 text-[var(--g-faint)]" aria-hidden />
+                  </Link>
+                )}
+                <Link href="/contact" onClick={close} className="gc-drawer-link">
+                  <Radio className="h-4.5 w-4.5 text-[var(--g-violet)]" aria-hidden />
+                  تماس با ما
+                  <ChevronLeft className="ms-auto h-4 w-4 text-[var(--g-faint)]" aria-hidden />
+                </Link>
+                <Link href="/products?discount=1" onClick={close} className="gc-drawer-link">
+                  <Flame className="h-4.5 w-4.5 text-[var(--g-hot)]" aria-hidden />
+                  تخفیف‌ها
+                  <ChevronLeft className="ms-auto h-4 w-4 text-[var(--g-faint)]" aria-hidden />
+                </Link>
+              </nav>
+              {data.categories.length > 0 && (
+                <div className="gc-drawer-sec">
+                  <p dir="ltr" className="gc-code text-right">{`// CATEGORIES`}</p>
+                  <nav aria-label="دسته‌بندی‌ها">
+                    {data.categories.slice(0, 10).map((c) => (
+                      <Link key={c.id} href={`/products?category=${c.slug}`} onClick={close} className="gc-drawer-cat">
+                        <span className="truncate">{c.name}</span>
+                        <span className="shrink-0 text-[10.5px] font-bold tabular-nums text-[var(--g-faint)]">
+                          {c.productCount.toLocaleString("fa-IR")} کالا
+                        </span>
+                      </Link>
+                    ))}
+                  </nav>
+                </div>
+              )}
+              <Link href="/products" onClick={close} className="gc-btn-lime w-full">
+                <span className="gc-btn-lime-circle" aria-hidden>
+                  <Plus className="h-4 w-4" strokeWidth={3} />
+                </span>
+                شروع خرید
+              </Link>
+            </div>
+          </div>
+        </>
+      )}
+    </>
+  );
+}
+
+/* ── HERO — GameUp composition around the code-drawn rig scene ────── */
 function CyberHero({
   data, parallax, scan, glow,
 }: {
@@ -1793,17 +1726,16 @@ function CyberHero({
   const heroProduct =
     [...data.exclusive, ...data.featured, ...data.bestsellers].find((p) => p.inStock) ?? null;
 
-  /* v5-f: this template's OWN content (Admin → ظاهر → محتوای اختصاصی قالب) —
-   * hero copy + CTA label + extra link chips override the designed defaults;
-   * every empty key keeps the v31 design (surgical data-source swap only). */
+  /* v5-f: this template's OWN content — hero copy + CTA label + extra link
+   * chips override the designed defaults (saved → DEFAULT → literal). */
   const tpl: TemplateContentData = data.templateContent ?? {};
   const texts = tpl.texts ?? {};
-  const heroTitle = texts.heroTitle?.trim() || "آرنای خرید گیمرهای حرفه‌ای";
+  const defaults = DEFAULT_TEMPLATE_CONTENT["gaming-cyber"]?.texts ?? {};
+  const T = (k: string, fb: string) => texts[k]?.trim() || defaults[k]?.trim() || fb;
+  const heroTitle = T("heroTitle", "آرنای خرید گیمرهای حرفه‌ای");
   const heroSubtitle =
-    texts.heroSubtitle?.trim() ||
-    tpl.brand?.tagline?.trim() ||
-    "ریگ ARGB رویایی‌ات را همین‌جا بچین — کیس شیشه‌ای، فن‌های نورانی و کارت گرافیک قدرتمند؛ با قیمت رقابتی و ارسال سریع.";
-  const ctaLabel = texts.ctaLabel?.trim() || "ورود به آرنا";
+    T("heroSubtitle", tpl.brand?.tagline?.trim() || "ریگ ARGB رویایی‌ات را همین‌جا بچین — کیس شیشه‌ای، فن‌های نورانی و کارت گرافیک قدرتمند؛ با قیمت رقابتی و ارسال سریع.");
+  const ctaLabel = T("ctaLabel", "ورود به آرنا");
   const tplLinks = (tpl.links ?? []).filter((l) => l.label?.trim() && l.url?.trim()).slice(0, 3);
 
   return (
@@ -1817,86 +1749,83 @@ function CyberHero({
         my.set((e.clientY - r.top) / r.height);
       }}
     >
-      {/* animated RAINBOW ring wrapping the whole hero (gc-hero-shell) */}
-      <div className={cn("gc-hero-shell", glow && "gc-glow-halo")}>
-        <div className="gc-hero relative overflow-hidden rounded-3xl">
+      {/* static purple→pink gradient shell (matured RGB signature) */}
+      <div className="gc-hero-shell">
+        <div className="gc-hero">
           {/* dark studio ambience — stays dark in both skins so the rig pops */}
           <div aria-hidden className="gc-hero-bg" />
-
-          {/* MAGENTA perspective grid floor */}
-          <div aria-hidden className="gc-grid-floor" />
+          <div aria-hidden className="gc-hero-grid" />
+          <div aria-hidden className="gc-hero-vig" />
 
           {/* retro scanlines */}
           {scan && <div aria-hidden className="gc-scanlines absolute inset-0 z-10" />}
 
           {/* HUD frame: corner brackets + top hud bar + vertical lime tab */}
           <Corners />
-          <span aria-hidden dir="ltr" className="gc-vice-tab">Welcome to the Arena</span>
+          <span aria-hidden dir="ltr" className="gc-hero-tab">Welcome to the Arena</span>
           <div aria-hidden className="gc-hero-hud">
             <span className="gc-dots">
               <i /><i /><i />
             </span>
-            <span dir="ltr" className="font-mono text-[10px] font-bold tracking-[.2em] text-[#67E8F9]">TAJ://RIG_ARENA</span>
-            <span dir="ltr" className="ms-auto font-mono text-[10px] font-bold tabular-nums text-[#8F7FC0]">
-              RGB_ONLINE
-            </span>
+            <span dir="ltr" className="gc-code gc-code-cyan">TAJ://RIG_ARENA</span>
+            <span dir="ltr" className="ms-auto gc-code">RGB_ONLINE</span>
             <span className="gc-live-badge">
               <i className="gc-live-dot" aria-hidden />
               LIVE
             </span>
           </div>
 
-          {/* text (physical right in RTL) + code-drawn rig scene (physical left) */}
-          <div className="relative z-20 grid gap-6 p-6 pb-14 pt-12 sm:p-9 sm:pb-16 lg:grid-cols-[0.94fr_1.06fr] lg:items-center lg:gap-2 lg:p-10 xl:gap-6">
+          {/* text (inline-start / physical right in RTL) + rig scene (left) */}
+          <div className="relative z-20 grid gap-6 p-6 pb-14 pt-12 sm:p-9 sm:pb-16 lg:grid-cols-[0.96fr_1.04fr] lg:items-center lg:gap-2 lg:p-10 xl:gap-6">
             <motion.div style={{ x: par ? uiX : 0 }}>
-              <span dir="ltr" className="gc-lime-chip mb-4">Welcome to the Arena</span>
-              <h2 className="gc-display gc-ds-hero max-w-2xl">{heroTitle}</h2>
+              <p dir="ltr" className="gc-code gc-code-hot text-right">{`// PRO_GEAR · ${glow ? "RGB_ENABLED" : "RGB_STANDBY"}`}</p>
+              <h2 className="gc-hero-title mt-3 max-w-2xl">{heroTitle}</h2>
               <p className="gc-hero-sub">{heroSubtitle}</p>
-              <div className="mt-7 flex flex-wrap items-center gap-3.5">
+              <div className="mt-8 flex flex-wrap items-center gap-3.5">
                 <Link href="/products" className="gc-btn-lime">
                   <span className="gc-btn-lime-circle" aria-hidden>
                     <Plus className="h-5 w-5" strokeWidth={3} />
                   </span>
                   {ctaLabel}
                 </Link>
-                <Link href="/products?discount=1" className="gc-btn-vice-ghost">
-                  <Flame className="h-4.5 w-4.5 text-[#67E8F9]" aria-hidden />
+                <Link href="/products?discount=1" className="gc-btn-ghost">
+                  <Flame className="h-4.5 w-4.5 text-[var(--g-cyan)]" aria-hidden />
                   پیشنهادهای شگفت‌انگیز
                 </Link>
                 {/* v5-f: the template's own links render as extra ghost CTAs */}
                 {tplLinks.map((l) => (
-                  <Link key={`${l.label}-${l.url}`} href={l.url} className="gc-btn-vice-ghost">
-                    <Zap className="h-4.5 w-4.5 text-[#67E8F9]" aria-hidden />
+                  <Link key={`${l.label}-${l.url}`} href={l.url} className="gc-btn-ghost">
+                    <Zap className="h-4.5 w-4.5 text-[var(--g-cyan)]" aria-hidden />
                     {l.label}
                   </Link>
                 ))}
               </div>
 
-              {/* floating product pod — TARGET_LOCKED HUD window under the CTAs */}
+              {/* floating product pod — TARGET_LOCKED glass row under the CTAs */}
               {heroProduct && (
                 <motion.div
                   initial={{ opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.4, duration: 0.5 }}
-                  className="mt-8 hidden max-w-[300px] lg:block"
+                  className="mt-8 hidden max-w-[320px] lg:block"
                 >
-                  <div className={cn("gc-win", glow && "gc-rgb")}>
-                    <div className="gc-win-bar gc-win-bar-sm">
+                  <div className={cn("gc-pod", glow && "shadow-[0_0_30px_-12px_rgba(168,85,247,.6)]")}>
+                    <div className="gc-pod-bar">
                       <span className="gc-dots" aria-hidden>
                         <i /><i /><i />
                       </span>
-                      <span dir="ltr" className="gc-win-code gc-win-code-flush">TARGET_LOCKED</span>
+                      <span dir="ltr" className="gc-code">TARGET_LOCKED</span>
                       <span className="gc-live-badge gc-live-badge-sm">
                         <i className="gc-live-dot gc-live-dot-sm" aria-hidden />
                         HOT
                       </span>
                     </div>
                     <Link href={`/products/${heroProduct.slug}`} className="flex items-center gap-3 p-3">
-                      <span className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-[#1A1025]/70 p-1">
+                      <span className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-[rgba(18,12,30,.7)] p-1">
                         {heroProduct.mainImage ? (
                           <Image src={heroProduct.mainImage} alt={heroProduct.name} fill sizes="64px" className="object-contain p-1" />
                         ) : (
-                          <Package className="m-auto h-6 w-6 text-[#E22BFF]" aria-hidden />
+                          <Package className="m-auto h-6 w-6 text-[#A855F7]" aria-hidden />
                         )}
                       </span>
                       <span className="min-w-0 flex-1">
@@ -1906,7 +1835,7 @@ function CyberHero({
                           <span className="text-[9px] font-medium text-[#A79BC6]"> تومان</span>
                         </span>
                       </span>
-                      <Zap className="h-4 w-4 shrink-0 text-[#06B6D4]" aria-hidden />
+                      <Zap className="h-4 w-4 shrink-0 text-[#67E8F9]" aria-hidden />
                     </Link>
                   </div>
                 </motion.div>
@@ -1930,10 +1859,10 @@ function CyberHero({
   );
 }
 
-/* ── v30 · neon swoosh — thin gradient SVG curves sweeping behind ──── */
+/* ── neon swoosh — thin gradient SVG curves sweeping behind ──────── */
 const SWOOSH_STOPS: Record<"purple" | "vice", Array<[number, string, number]>> = {
-  vice: [[0, "#D000FF", 0], [0.45, "#E22BFF", 0.9], [0.75, "#EAFF00", 0.35], [1, "#EAFF00", 0]],
-  purple: [[0, "#8B5CF6", 0], [0.45, "#A855F7", 0.9], [0.75, "#EC4899", 0.55], [1, "#EC4899", 0]],
+  vice: [[0, "#EC4899", 0], [0.45, "#A855F7", 0.85], [0.75, "#EAFF00", 0.3], [1, "#EAFF00", 0]],
+  purple: [[0, "#A855F7", 0], [0.45, "#A855F7", 0.9], [0.75, "#EC4899", 0.5], [1, "#EC4899", 0]],
 };
 function Swoosh({ flip = false, className, variant = "purple" }: { flip?: boolean; className?: string; variant?: "purple" | "vice" }) {
   const gid = `gcsw-${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
@@ -1959,7 +1888,7 @@ function Swoosh({ flip = false, className, variant = "purple" }: { flip?: boolea
   );
 }
 
-/* ── system status strip (announcement / ticker marquee) ───────────── */
+/* ── system status strip (announcement / ticker marquee) ──────────── */
 function SysStrip({ data }: { data: HomeData }) {
   const msgs = resolveTickerMessages(data.store);
   if (msgs.length === 0) return null;
@@ -1975,15 +1904,15 @@ function SysStrip({ data }: { data: HomeData }) {
           <div className="taj-marquee items-center gap-8 py-0.5" style={{ "--t-dur": `${dur}s` } as React.CSSProperties}>
             {[0, 1].map((copy) =>
               msgs.map((m, i) => (
-                <span key={`${copy}-${i}`} aria-hidden={copy === 1} className="flex shrink-0 items-center gap-3 text-[12px] font-bold text-[#DCCFF4]">
+                <span key={`${copy}-${i}`} aria-hidden={copy === 1} className="gc-strip-msg flex shrink-0 items-center gap-3">
                   {m.link ? (
-                    <Link href={m.link} className="transition-colors hover:text-[#67E8F9]">
+                    <Link href={m.link} className="transition-colors hover:text-[var(--g-cyan)]">
                       {m.text}
                     </Link>
                   ) : (
                     m.text
                   )}
-                  <span className="text-[#8B5CF6]/60" aria-hidden>◆</span>
+                  <span className="text-[var(--g-faint)]" aria-hidden>◆</span>
                 </span>
               ))
             )}
@@ -1994,7 +1923,7 @@ function SysStrip({ data }: { data: HomeData }) {
   );
 }
 
-/* ── FAQ accordion item (support console) ──────────────────────────── */
+/* ── FAQ accordion item (support console) ─────────────────────────── */
 function HudFaq({ h, p, n }: { h: string; p: string; n: number }) {
   const [open, setOpen] = useState(n === 0);
   return (
@@ -2005,26 +1934,33 @@ function HudFaq({ h, p, n }: { h: string; p: string; n: number }) {
         aria-expanded={open}
         className="flex min-h-11 w-full items-center gap-3 p-4 text-start"
       >
-        <span dir="ltr" className="gc-qchip shrink-0 rounded-lg bg-[#E22BFF]/15 px-2 py-1 font-mono text-[10px] font-black tracking-widest text-[#F79CFF]">
+        <span dir="ltr" className="gc-qchip shrink-0 px-2 py-1">
           {`Q${String(n + 1).padStart(2, "0")}`}
         </span>
-        <span className="flex-1 text-[13px] font-bold leading-6 text-[#EFEAF9]">{h}</span>
+        <span className="flex-1 text-[13px] font-bold leading-6 text-[var(--g-ink)]">{h}</span>
         <ChevronLeft
-          className={cn("h-4 w-4 shrink-0 text-[#A79BC6] transition-transform duration-300", open && "-rotate-90")}
+          className={cn("h-4 w-4 shrink-0 text-[var(--g-dim)] transition-transform duration-300", open && "-rotate-90")}
           aria-hidden
         />
       </button>
       <div className={cn("grid transition-all duration-300", open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0")}>
         <div className="overflow-hidden">
-          <p className="border-t border-dashed border-[#8B5CF6]/20 px-4 pb-4 pt-3 text-[12.5px] leading-7 text-[#A79BC6]">{p}</p>
+          <p className="border-t border-dashed border-[rgba(124,58,237,.2)] px-4 pb-4 pt-3 text-[12.5px] leading-7 text-[var(--g-dim)]">{p}</p>
         </div>
       </div>
     </div>
   );
 }
 
-/* ── v28 · «اسطوره‌های آرنا» — anime mascot showcase band ─────────── */
-function ArenaLegends({ data, glow, scan }: { data: HomeData; glow: boolean; scan: boolean }) {
+/* ── «آرنا» band — editorial split (arenaTitle/arenaSubtitle/arenaImage) */
+function ArenaBand({ data, scan }: { data: HomeData; scan: boolean }) {
+  const texts = data.templateContent?.texts ?? {};
+  const defaults = DEFAULT_TEMPLATE_CONTENT["gaming-cyber"]?.texts ?? {};
+  const T = (k: string, fb: string) => texts[k]?.trim() || defaults[k]?.trim() || fb;
+  const title = T("arenaTitle", "اسطوره‌های آرنا");
+  const subtitle = T("arenaSubtitle", "کلکسیون گیمینگ تاج — با نور ARGB مثل هیچ‌جای دیگر");
+  const image = T("arenaImage", "/images/gaming/anime-rig.png");
+
   const muse = data.brands.find((b) => b.slug === "muse");
   const chips = ["keyboard", "mouse", "pc-parts", "headphones", "monitor"].flatMap((slug) => {
     const c = data.categories.find((x) => x.slug === slug);
@@ -2033,23 +1969,18 @@ function ArenaLegends({ data, glow, scan }: { data: HomeData; glow: boolean; sca
   return (
     <section className="mx-auto w-full max-w-[1360px] px-4" aria-labelledby="gc-arena">
       <Reveal>
-        <HudHead
-          id="gc-arena"
-          icon={Swords}
-          code="ARENA_LEGENDS"
-          title="اسطوره‌های آرنا"
-          subtitle="کلکسیون گیمینگ تاج — با نور ARGB مثل هیچ‌جای دیگر"
-        />
-        <div className={cn("gc-arena", glow && "gc-rgb-edge")}>
-          {scan && <span aria-hidden className="gc-scanlines absolute inset-0 opacity-50" />}
+        <HudHead id="gc-arena" icon={Swords} code="ARENA_LEGENDS" title={title} subtitle={subtitle} />
+        <div className="gc-arena">
+          {scan && <span aria-hidden className="gc-scanlines absolute inset-0 opacity-40" />}
           <Corners />
+          <Swoosh className="z-[1]" />
           <div className="gc-arena-grid">
-            {/* art column — anime rig frame + floating mascot card */}
+            {/* art column — arenaImage frame + floating mascot card */}
             <div className="gc-arena-art">
-              <div className="gc-art-frame">
+              <div className="gc-arena-frame">
                 <Image
-                  src="/images/gaming/anime-rig.png"
-                  alt="دختر گیمر انیمه‌ای تکیه داده به کیس ARGB درخشان"
+                  src={image}
+                  alt="دختر گیمر انیمه‌ای تکیه داده به کیس ARGB درخشان — کلکسیون آرنا"
                   fill
                   sizes="(max-width: 640px) 88vw, 520px"
                   className="object-cover"
@@ -2071,16 +2002,16 @@ function ArenaLegends({ data, glow, scan }: { data: HomeData; glow: boolean; sca
               </div>
             </div>
             {/* copy column */}
-            <div className="min-w-0">
-              <p dir="ltr" className="gc-code gc-code-magenta">{`//${muse ? " BRAND=MUSE ·" : ""} ARGB_COLLECTION`}</p>
-              <h3 className="mt-2 text-2xl font-black leading-10 text-white sm:text-3xl">
+            <div className="relative z-[2] min-w-0">
+              <p dir="ltr" className="gc-code gc-code-hot text-right">{`//${muse ? " BRAND=MUSE ·" : ""} ARGB_COLLECTION`}</p>
+              <h3 className="mt-2.5 text-2xl font-black leading-10 text-[var(--g-ink)] sm:text-3xl">
                 کلکسیون گیمینگ با نور ARGB — مثل هیچ‌جای دیگر
               </h3>
-              <p className="mt-3 text-[13px] leading-7 text-[#C9BEE4]">
+              <p className="mt-4 text-[13.5px] leading-8 text-[var(--g-dim)]">
                 از کیبورد مکانیکال و کیس شیشه‌ای MUSE تا صندلی RGB و مانیتور منحنی ۱۶۵ هرتز؛
                 همه‌چیز برای ساختن ریگی که در تاریکی می‌درخشد و در آرنا حکومت می‌کند.
               </p>
-              <div className="mt-5 flex flex-wrap gap-2">
+              <div className="mt-6 flex flex-wrap gap-2">
                 {chips.map((c) => (
                   <Link key={c.id} href={`/products?category=${c.slug}`} className="gc-chip">
                     <Gamepad2 className="h-3.5 w-3.5" aria-hidden />
@@ -2094,7 +2025,7 @@ function ArenaLegends({ data, glow, scan }: { data: HomeData; glow: boolean; sca
                   </Link>
                 )}
               </div>
-              <div className="mt-6">
+              <div className="mt-7">
                 <Link href="/products" className="gc-btn-lime">
                   <span className="gc-btn-lime-circle" aria-hidden>
                     <Zap className="h-4.5 w-4.5" strokeWidth={2.5} />
@@ -2110,216 +2041,27 @@ function ArenaLegends({ data, glow, scan }: { data: HomeData; glow: boolean; sca
   );
 }
 
-/* ── v30 · GTA big-number DEAL BLOCK — giant outlined ۰۱/۰۲ numeral +
- * huge italic title + lime pill + rainbow underline + HudCountdown;
- * reuses the flash-deal data + global timerEndsAt, same as CyberCard. */
-function GtaDealBlock({
-  product, index, timerOn, dealTarget, glow,
+/* ─ـ GEAR / ARGB showcase — gearTitle/gearSubtitle/gearImage + tpl
+ * showcase override + spot tiles + real catalog gear cards ── */
+function GearShowcase({
+  data, gear, timerOn, glow, dealTarget, tplShowcases,
 }: {
-  product: TemplateProduct;
-  index: number;
-  timerOn: boolean;
-  dealTarget: string | null;
-  glow: boolean;
-}) {
-  const addToCart = useAddToCart();
-  const [busy, setBusy] = useState(false);
-  const [done, setDone] = useState(false);
-  const hasDeal = product.discountPercent > 0;
-  const timerIso = timerOn && hasDeal ? (dealTarget ?? product.discountEndsAt ?? null) : null;
-  const num = `۰${(index + 1).toLocaleString("fa-IR")}`;
-
-  const onAdd = async () => {
-    if (busy || done || !product.inStock) return;
-    setBusy(true);
-    const ok = await addToCart(product);
-    setBusy(false);
-    if (ok) {
-      setDone(true);
-      window.setTimeout(() => setDone(false), 1100);
-    }
-  };
-
-  return (
-    <article className={cn("gc-deal-block", glow && "gc-rgb")} aria-label={`تخفیف ${product.name}`}>
-      {/* content first (inline-start in RTL) … numeral pinned inline-end (physical left, GTA-style) */}
-      <div className="relative z-10 flex items-start gap-4">
-        <Link href={`/products/${product.slug}`} className="relative block h-20 w-20 shrink-0 overflow-hidden rounded-2xl bg-[#1A1025]/70" aria-hidden>
-          {product.mainImage ? (
-            <Image src={product.mainImage} alt="" fill sizes="80px" className="object-contain p-2" loading="lazy" />
-          ) : (
-            <Package className="absolute inset-0 m-auto h-8 w-8 text-[#E22BFF]/50" />
-          )}
-        </Link>
-        <div className="min-w-0 flex-1">
-          <p className="flex items-center gap-1.5 text-[10.5px] font-semibold text-[#A79BC6]">
-            <BadgeCheck className="h-3.5 w-3.5 text-[#8B5CF6]" aria-hidden />
-            {product.brand.name}
-          </p>
-          <Link href={`/products/${product.slug}`} className="gc-glitch mt-1 block">
-            <span className="gc-glitch-t block text-lg font-black leading-8 text-white line-clamp-2 transition-colors hover:text-[#F79CFF]">
-              {product.name}
-            </span>
-          </Link>
-          {hasDeal && (
-            <span className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-gradient-to-l from-[#E22BFF] to-[#8B5CF6] px-2.5 py-0.5 text-[10px] font-black text-white">
-              {product.discountPercent.toLocaleString("fa-IR")}٪ OFF
-            </span>
-          )}
-        </div>
-      </div>
-
-      <span aria-hidden className="gc-deal-num pointer-events-none absolute end-3 top-2 z-0">{num}</span>
-
-      {/* price + timer + CTA */}
-      <div className="relative z-10 flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
-        <div className="min-w-0">
-          {hasDeal && product.price > product.effectivePrice && (
-            <p className="text-[11.5px] leading-4 text-[#A79BC6] line-through tabular-nums">{formatPrice(product.price)}</p>
-          )}
-          <p className="text-xl font-black text-[#F79CFF] tabular-nums">
-            {formatPrice(product.effectivePrice)}
-            <span className="ms-1 text-[10px] font-medium text-[#A79BC6]">تومان</span>
-          </p>
-        </div>
-        {timerIso && (
-          <span className="flex items-center gap-1.5 rounded-lg border border-[#06B6D4]/25 bg-[#1A1025]/60 px-2 py-1.5">
-            <Timer className="h-3.5 w-3.5 shrink-0 text-[#06B6D4]" aria-hidden />
-            <HudCountdown iso={timerIso} />
-          </span>
-        )}
-      </div>
-
-      <div className="relative z-10 flex items-center gap-2.5">
-        <button
-          type="button"
-          onClick={onAdd}
-          disabled={!product.inStock || busy}
-          className="gc-btn-lime gc-btn-lime-sm"
-          aria-label={`افزودن ${product.name} به سبد خرید`}
-        >
-          <span className="gc-btn-lime-circle" aria-hidden>
-            {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : done ? <Check className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" strokeWidth={3} />}
-          </span>
-          {!product.inStock ? "ناموجود" : done ? "افزوده شد" : busy ? "..." : "افزودن به سبد"}
-        </button>
-        <Link
-          href={`/products/${product.slug}`}
-          className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-[#8B5CF6]/45 text-[#C4B5FD] transition-colors hover:border-[#E22BFF]/60 hover:text-[#F79CFF]"
-          aria-label={`مشاهده ${product.name}`}
-        >
-          <ChevronLeft className="h-4 w-4" aria-hidden />
-        </Link>
-      </div>
-      <span aria-hidden className="gc-underline-rainbow block" />
-    </article>
-  );
-}
-
-/* ── v30 · DEAL ZONE — GTA big-number section: floating vice-girl side art
- * + global countdown + numbered deal blocks. Data = data.discounted. */
-function DealZone({
-  deals, timerOn, dealTarget, glow, scan,
-}: {
-  deals: TemplateProduct[];
-  timerOn: boolean;
-  dealTarget: string | null;
-  glow: boolean;
-  scan: boolean;
-}) {
-  if (deals.length === 0) return null;
-  const globalIso = timerOn ? (dealTarget ?? deals[0].discountEndsAt ?? null) : null;
-  const maxOff = Math.max(...deals.map((p) => p.discountPercent), 0);
-  const art = (
-    <>
-      <Image
-        src={VICE_SRC}
-        alt="دختر انیمه‌ای وسترن کنار سوپرکار نئونی — منطقه تخفیف آرنا"
-        fill
-        sizes="(max-width: 1024px) 92vw, 420px"
-        className="object-cover"
-        loading="lazy"
-      />
-      <span aria-hidden className="absolute inset-0 bg-gradient-to-t from-[#0B0014]/95 via-[#0B0014]/35 to-[#D000FF]/25" />
-    </>
-  );
-  const artContent = (
-    <div className="gc-deal-art-txt flex h-full flex-col justify-between gap-4 p-5">
-      <span dir="ltr" className="gc-lime-chip w-fit">Deal Zone</span>
-      <div>
-        <p dir="ltr" className="gc-code gc-code-cyan mb-2">{`// FLASH_SALE · MAX_${maxOff.toLocaleString("fa-IR")}OFF`}</p>
-        <p className="gc-display gc-ds-deal">تخفیف می‌سوزه</p>
-        {globalIso ? (
-          <p className="mt-3 flex items-center gap-2 text-[#F79CFF]">
-            <Flame className="h-4 w-4" aria-hidden />
-            <HudCountdown iso={globalIso} big />
-          </p>
-        ) : (
-          <p className="mt-3 text-[12px] font-bold text-[#C9BEE4]">
-            تا {maxOff.toLocaleString("fa-IR")}٪ تخفیف روی تجهیزات گیمینگ
-          </p>
-        )}
-      </div>
-    </div>
-  );
-  return (
-    <section className="mx-auto w-full max-w-[1360px] px-4" aria-labelledby="gc-deals">
-      <Reveal>
-        <HudHead
-          id="gc-deals"
-          icon={Flame}
-          code="DEAL_ZONE"
-          title="منطقه تخفیف"
-          href="/products?discount=1"
-          live={timerOn}
-          subtitle={timerOn ? (dealTarget ? "شمارش معکوس سراسری تخفیف‌ها فعال است" : "تایمر که صفر شود، تخفیف می‌سوزد") : "تخفیف‌های داغ آرنا"}
-        />
-        <div className="gc-deal-zone">
-          <Swoosh variant="vice" className="z-0" />
-          {scan && <span aria-hidden className="gc-scanlines absolute inset-0 opacity-40" />}
-          <Corners />
-          <div className="relative grid gap-5 p-4 sm:p-6 lg:grid-cols-[0.85fr_1.35fr] lg:gap-6">
-            {/* floating anime side art — full column on desktop, slim banner on mobile */}
-            <div className="gc-deal-art relative hidden min-h-[420px] lg:block">
-              {art}
-              {artContent}
-            </div>
-            <div className="gc-deal-art relative h-48 lg:hidden">
-              {art}
-              {artContent}
-            </div>
-            {/* GTA big-number blocks */}
-            <div className="relative grid content-start gap-4 sm:grid-cols-2">
-              {deals.slice(0, 4).map((p, i) => (
-                <GtaDealBlock key={p.id} product={p} index={i} timerOn={timerOn} dealTarget={dealTarget} glow={glow} />
-              ))}
-            </div>
-          </div>
-        </div>
-      </Reveal>
-    </section>
-  );
-}
-
-/* ── v30 · ARGB GEAR SHOWCASE — wide argb-rig banner (RGB edge) + two
- * SPOTLIGHT tiles (argb-fan SPINS, argb-keyboard hue-pulses — pure CSS),
- * then the REAL catalog gaming gear cards on their own ARGB stages. */
-function ArgbShowcase({
-  gear, timerOn, glow, dealTarget, tplShowcases,
-}: {
+  data: HomeData;
   gear: TemplateProduct[];
   timerOn: boolean;
   glow: boolean;
   dealTarget: string | null;
-  /** v5-f: the template's OWN showcase entries — when non-empty they replace
-   *  the designed spotlight tiles (admin image/title/link win). */
+  /** v5-f: the template's OWN showcase entries — when non-empty they
+   *  replace the designed spotlight tiles (admin image/title/link win). */
   tplShowcases?: TemplateShowcase[];
 }) {
-  /* v31: the two GENERATED 3D headset artworks join the spotlight tiles
-   * (vice-girl/anime-hero are retired from the template's references —
-   * the files stay on disk untouched).
-   * v5-f: the template's own showcases (Admin → ظاهر → محتوای اختصاصی قالب)
-   * REPLACE the designed tiles when present. */
+  const texts = data.templateContent?.texts ?? {};
+  const defaults = DEFAULT_TEMPLATE_CONTENT["gaming-cyber"]?.texts ?? {};
+  const T = (k: string, fb: string) => texts[k]?.trim() || defaults[k]?.trim() || fb;
+  const title = T("gearTitle", "تجهیزات ARGB");
+  const subtitle = T("gearSubtitle", "نور آرین‌کمانی روی میز گیمینگ شما — کیبورد، کیس، ماوس‌پد، صندلی و…");
+  const image = T("gearImage", "/images/gaming/argb-rig.png");
+
   const tplSpots = (tplShowcases ?? []).filter((s) => s.image?.trim());
   const spots: Array<{ src: string; alt: string; icon: React.ElementType; title: string; sub: string; href: string; fx: string }> = tplSpots.length > 0
     ? tplSpots.map((s, i) => ({
@@ -2333,11 +2075,11 @@ function ArgbShowcase({
       }))
     : [
     {
-      src: "/images/gaming/argb-bunny-pink.png", alt: "هد گیمینگ ARGB صورتی با گوش‌های خرگوشی و حلقه‌های نور رنگین‌کمانی",
+      src: BUNNY_SRC, alt: BUNNY_ALT,
       icon: Headphones, title: "هد ARGB صورتی", sub: "گوش خرگوشی + حلقه‌های نور رقصان", href: "/products?q=هدفون", fx: "gc-spot-hue",
     },
     {
-      src: "/images/gaming/argb-tactical-black.png", alt: "هد گیمینگ تاکتیکال مشکی با نوارهای نور ARGB سبز و کهربایی",
+      src: TACTICAL_SRC, alt: TACTICAL_ALT,
       icon: Headphones, title: "هد تاکتیکال مشکی", sub: "سبک رزمی، نور سبز و کهربایی", href: "/products?q=هدفون", fx: "",
     },
     {
@@ -2356,15 +2098,15 @@ function ArgbShowcase({
           id="gc-argb"
           icon={Zap}
           code="ARGB_GEAR"
-          title="تجهیزات ARGB"
+          title={title}
           href="/products?brand=muse"
           live
-          subtitle="نور آرین‌کمانی روی میز گیمینگ شما — کیبورد، کیس، ماوس‌پد، صندلی و…"
+          subtitle={subtitle}
         />
-        {/* wide rig banner (photo stays dark in both skins) */}
-        <Link href="/products?brand=muse" className={cn("gc-rig-banner group", glow && "gc-rgb-edge")} aria-label="ریگ ARGB مکانی — مشاهده تجهیزات">
+        {/* wide gear banner (gearImage — photo stays dark in both skins) */}
+        <Link href="/products?brand=muse" className="gc-banner group" aria-label="ریگ ARGB مکانی — مشاهده تجهیزات">
           <Image
-            src="/images/gaming/argb-rig.png"
+            src={image}
             alt="ریگ گیمینگ ARGB با شش فن نورانی و نورپردازی آرین‌کمانی"
             fill
             sizes="(max-width: 640px) 92vw, 1360px"
@@ -2374,8 +2116,12 @@ function ArgbShowcase({
           <Swoosh className="z-[2]" />
           <span aria-hidden className="absolute inset-0 z-[3] bg-gradient-to-l from-[#0B0014]/95 via-[#0B0014]/55 to-transparent" />
           <span className="relative z-[4] flex h-full min-h-[inherit] flex-col justify-end p-6 sm:p-8">
-            <span dir="ltr" className="gc-lime-chip mb-4 w-fit">Live ARGB</span>
-            <span className="gc-display gc-ds-xl max-w-lg">ریگ ARGB رویایی‌ات، همین‌جاست</span>
+            <span dir="ltr" className="gc-code gc-code-cyan mb-3 w-fit rounded-full border border-[rgba(103,232,249,.3)] bg-[rgba(11,8,18,.5)] px-3 py-1.5 backdrop-blur">
+              LIVE ARGB
+            </span>
+            <span className="text-2xl font-black tracking-tight text-white sm:text-4xl">
+              ریگ ARGB رویایی‌ات، همین‌جاست
+            </span>
             <span className="mt-3 max-w-md text-[13px] leading-7 text-[#D6C9EE]">
               شش فن نورانی، کیس شیشه‌ای و نورپردازی هماهنگ — میز گیمینگی که در تاریکی حکومت می‌کند.
             </span>
@@ -2391,8 +2137,8 @@ function ArgbShowcase({
         {/* spotlight tiles — headsets + fan + keyboard (pure CSS, gated) */}
         <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {spots.map((s) => (
-            <Link key={s.title} href={s.href} className={cn("gc-spot group", glow && "gc-rgb")}>
-              <div className="gc-stage relative aspect-square overflow-hidden sm:aspect-[16/9]">
+            <Link key={s.title} href={s.href} className="gc-spot group">
+              <div className="gc-spot-stage relative aspect-square overflow-hidden sm:aspect-[16/9]">
                 {glow && (
                   <>
                     <span aria-hidden className="gc-argb-ring" />
@@ -2437,32 +2183,247 @@ function ArgbShowcase({
   );
 }
 
-/* ── v30 · CONNECT banner (GameUp-style purple→pink gradient) ────────
- * Upgrades the old AI-copilot glass band: stream-girl art one side,
- * «به آرنای تاج بپیوند» headline, dark-purple glowing rounded-full CTA
- * — and KEEPS the chat-opening behavior (useChatStore).              */
-function ConnectBand({ data }: { data: HomeData }) {
-  const firstName = (data.store.storeName ?? "آرنا").trim().split(/\s+/)[0] || "آرنا";
+/* ── GTA big-number DEAL BLOCK — outlined ۰۱/۰۲ numeral + timer ──── */
+function GtaDealBlock({
+  product, index, timerOn, dealTarget, glow,
+}: {
+  product: TemplateProduct;
+  index: number;
+  timerOn: boolean;
+  dealTarget: string | null;
+  glow: boolean;
+}) {
+  const addToCart = useAddToCart();
+  const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState(false);
+  const hasDeal = product.discountPercent > 0;
+  const timerIso = timerOn && hasDeal ? (dealTarget ?? product.discountEndsAt ?? null) : null;
+  const num = `۰${(index + 1).toLocaleString("fa-IR")}`;
+
+  const onAdd = async () => {
+    if (busy || done || !product.inStock) return;
+    setBusy(true);
+    const ok = await addToCart(product);
+    setBusy(false);
+    if (ok) {
+      setDone(true);
+      window.setTimeout(() => setDone(false), 1100);
+    }
+  };
+
   return (
-    <section className="mx-auto w-full max-w-[1360px] px-4" aria-labelledby="gc-connect">
+    <article className="gc-deal-block" aria-label={`تخفیف ${product.name}`}>
+      {/* content first (inline-start in RTL) … numeral pinned inline-end */}
+      <div className="relative z-10 flex items-start gap-4">
+        <Link href={`/products/${product.slug}`} className="relative block h-20 w-20 shrink-0 overflow-hidden rounded-2xl bg-[rgba(20,15,32,.55)]" aria-hidden>
+          {product.mainImage ? (
+            <Image src={product.mainImage} alt="" fill sizes="80px" className="object-contain p-2" loading="lazy" />
+          ) : (
+            <Package className="absolute inset-0 m-auto h-8 w-8 text-[rgba(168,85,247,.5)]" />
+          )}
+        </Link>
+        <div className="min-w-0 flex-1">
+          <p className="gc-brand flex items-center gap-1.5 text-[10.5px] font-semibold">
+            <BadgeCheck className="h-3.5 w-3.5 text-[var(--g-violet)]" aria-hidden />
+            {product.brand.name}
+          </p>
+          <Link href={`/products/${product.slug}`} className="gc-glitch mt-1 block">
+            <span className="gc-glitch-t block text-lg font-black leading-8 text-[var(--g-ink)] line-clamp-2 transition-colors hover:text-[var(--g-hot)]">
+              {product.name}
+            </span>
+          </Link>
+          {hasDeal && (
+            <span className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-gradient-to-l from-[#EC4899] to-[#A855F7] px-2.5 py-0.5 text-[10px] font-black text-white">
+              {product.discountPercent.toLocaleString("fa-IR")}٪ OFF
+            </span>
+          )}
+        </div>
+      </div>
+
+      <span aria-hidden className="gc-deal-num pointer-events-none absolute end-3 top-2 z-0">{num}</span>
+
+      {/* price + timer */}
+      <div className="relative z-10 flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
+        <div className="min-w-0">
+          {hasDeal && product.price > product.effectivePrice && (
+            <p className="gc-old text-[11.5px] leading-4 line-through">{formatPrice(product.price)}</p>
+          )}
+          <p className="gc-price text-xl font-black">
+            {formatPrice(product.effectivePrice)}
+            <span className="ms-1 text-[10px] font-medium text-[var(--g-faint)]">تومان</span>
+          </p>
+        </div>
+        {timerIso && (
+          <span className="flex items-center gap-1.5 rounded-lg border border-[rgba(103,232,249,.22)] bg-[rgba(20,15,32,.5)] px-2 py-1.5">
+            <Timer className="h-3.5 w-3.5 shrink-0 text-[var(--g-cyan)]" aria-hidden />
+            <HudCountdown iso={timerIso} />
+          </span>
+        )}
+      </div>
+
+      <div className="relative z-10 flex items-center gap-2.5">
+        <button
+          type="button"
+          onClick={onAdd}
+          disabled={!product.inStock || busy}
+          className="gc-btn-lime gc-btn-lime-sm"
+          aria-label={`افزودن ${product.name} به سبد خرید`}
+        >
+          <span className="gc-btn-lime-circle" aria-hidden>
+            {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : done ? <Check className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" strokeWidth={3} />}
+          </span>
+          {!product.inStock ? "ناموجود" : done ? "افزوده شد" : busy ? "..." : "افزودن به سبد"}
+        </button>
+        <Link
+          href={`/products/${product.slug}`}
+          className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-[rgba(124,58,237,.4)] text-[var(--g-violet)] transition-colors hover:border-[var(--g-pink)] hover:text-[var(--g-hot)]"
+          aria-label={`مشاهده ${product.name}`}
+        >
+          <ChevronLeft className="h-4 w-4" aria-hidden />
+        </Link>
+      </div>
+      <span aria-hidden className="gc-underline block" />
+    </article>
+  );
+}
+
+/* ── DEAL ZONE — cinematic band (dealTitle/dealSubtitle/dealImage)
+ * + global countdown + numbered deal blocks. Data = data.discounted. ── */
+function DealZone({
+  data, deals, timerOn, dealTarget, glow, scan,
+}: {
+  data: HomeData;
+  deals: TemplateProduct[];
+  timerOn: boolean;
+  dealTarget: string | null;
+  glow: boolean;
+  scan: boolean;
+}) {
+  if (deals.length === 0) return null;
+  const texts = data.templateContent?.texts ?? {};
+  const defaults = DEFAULT_TEMPLATE_CONTENT["gaming-cyber"]?.texts ?? {};
+  const T = (k: string, fb: string) => texts[k]?.trim() || defaults[k]?.trim() || fb;
+  const timerSub = timerOn ? (dealTarget ? "شمارش معکوس سراسری تخفیف‌ها فعال است" : "تایمر که صفر شود، تخفیف می‌سوزد") : "تخفیف‌های داغ آرنا";
+  const title = T("dealTitle", "منطقه تخفیف");
+  const subtitle = T("dealSubtitle", timerSub);
+  const image = T("dealImage", "/images/gaming/vice-girl.png");
+
+  const globalIso = timerOn ? (dealTarget ?? deals[0].discountEndsAt ?? null) : null;
+  const maxOff = Math.max(...deals.map((p) => p.discountPercent), 0);
+  const art = (
+    <>
+      <Image
+        src={image}
+        alt="دختر انیمه‌ای وسترن کنار سوپرکار نئونی — منطقه تخفیف آرنا"
+        fill
+        sizes="(max-width: 1024px) 92vw, 420px"
+        className="object-cover"
+        loading="lazy"
+      />
+      <span aria-hidden className="absolute inset-0 bg-gradient-to-t from-[#0B0014]/95 via-[#0B0014]/35 to-[rgba(168,85,247,.22)]" />
+    </>
+  );
+  const artContent = (
+    <div className="gc-deal-art-txt flex h-full flex-col justify-between gap-4 p-5">
+      <span dir="ltr" className="w-fit rounded-full bg-[#EAFF00] px-3.5 py-1.5 font-mono text-[9.5px] font-black tracking-[.22em] text-[#0B0014]">
+        DEAL ZONE
+      </span>
+      <div>
+        <p dir="ltr" className="gc-code gc-code-cyan mb-2">{`// FLASH_SALE · MAX_${maxOff.toLocaleString("fa-IR")}OFF`}</p>
+        <p className="text-3xl font-black leading-tight tracking-tight text-white sm:text-4xl">تخفیف می‌سوزه</p>
+        {globalIso ? (
+          <p className="mt-3 flex items-center gap-2 text-[#F79CFF]">
+            <Flame className="h-4 w-4" aria-hidden />
+            <HudCountdown iso={globalIso} big />
+          </p>
+        ) : (
+          <p className="mt-3 text-[12px] font-bold text-[#C9BEE4]">
+            تا {maxOff.toLocaleString("fa-IR")}٪ تخفیف روی تجهیزات گیمینگ
+          </p>
+        )}
+      </div>
+    </div>
+  );
+  return (
+    <section className="mx-auto w-full max-w-[1360px] px-4" aria-labelledby="gc-deals">
+      <Reveal>
+        <HudHead
+          id="gc-deals"
+          icon={Flame}
+          code="DEAL_ZONE"
+          title={title}
+          href="/products?discount=1"
+          live={timerOn}
+          subtitle={subtitle}
+        />
+        <div className="gc-deal-zone">
+          <Swoosh variant="vice" className="z-0" />
+          {scan && <span aria-hidden className="gc-scanlines absolute inset-0 opacity-35" />}
+          <Corners />
+          <div className="relative grid gap-5 p-4 sm:p-6 lg:grid-cols-[0.85fr_1.35fr] lg:gap-6">
+            {/* floating anime side art — full column on desktop, slim banner on mobile */}
+            <div className="gc-deal-art relative hidden min-h-[420px] lg:block">
+              {art}
+              {artContent}
+            </div>
+            <div className="gc-deal-art relative h-48 lg:hidden">
+              {art}
+              {artContent}
+            </div>
+            {/* GTA big-number blocks */}
+            <div className="relative grid content-start gap-4 sm:grid-cols-2">
+              {deals.slice(0, 4).map((p, i) => (
+                <GtaDealBlock key={p.id} product={p} index={i} timerOn={timerOn} dealTarget={dealTarget} glow={glow} />
+              ))}
+            </div>
+          </div>
+        </div>
+      </Reveal>
+    </section>
+  );
+}
+
+/* ── JOIN band — «به آرنای تاج بپیوندید» copilot/AI (join* keys) ────
+ * joinCtaUrl empty or "#chat" (the designed default) opens the AI chat
+ * widget; any other value renders a Link. aiWidgetImage = side art.    */
+function JoinBand({ data }: { data: HomeData }) {
+  const texts = data.templateContent?.texts ?? {};
+  const defaults = DEFAULT_TEMPLATE_CONTENT["gaming-cyber"]?.texts ?? {};
+  const T = (k: string, fb: string) => texts[k]?.trim() || defaults[k]?.trim() || fb;
+  const firstName = (data.store.storeName ?? "آرنا").trim().split(/\s+/)[0] || "آرنا";
+  const title = T("joinTitle", `به آرنای ${firstName} بپیوند`);
+  const body = T("joinText", "کوپایلوت هوشمند تاج به انبار و قیمت‌های واقعی وصل است؛ ریگ کامل بچین، تجهیزات را مقایسه کن یا سفارشت را پیگیری کن — همه با یک چت، ۲۴ ساعته.");
+  const ctaLabel = T("joinCtaLabel", "شروع چت با کوپایلوت");
+  const ctaUrlRaw = T("joinCtaUrl", "");
+  const aiImage = T("aiWidgetImage", "/images/gaming/stream-girl.png");
+  const chatDefault = ctaUrlRaw === "" || ctaUrlRaw === "#chat";
+
+  const cta = (
+    <>
+      <Sparkles className="h-4.5 w-4.5" aria-hidden />
+      {ctaLabel}
+    </>
+  );
+
+  return (
+    <section className="mx-auto w-full max-w-[1360px] px-4" aria-labelledby="gc-join">
       <Reveal>
         <div className="gc-connect">
           <Swoosh className="z-[2]" />
           <div className="relative z-[3] grid items-center gap-6 lg:grid-cols-[1.1fr_0.9fr]">
             {/* copy + CTA (inline-start / physical right in RTL) */}
             <div className="p-6 sm:p-9">
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3.5">
                 <span className="gc-hex gc-hex-grad grid h-11 w-12 shrink-0 place-items-center" aria-hidden>
                   <Sparkles className="h-5 w-5 text-white" />
                 </span>
                 <div>
-                  <p dir="ltr" className="gc-code text-right text-[#E9D5FF]">{"// AI_COPILOT · CONNECT"}</p>
-                  <h2 id="gc-connect" className="gc-display gc-ds-xl mt-0.5">به آرنای {firstName} بپیوند</h2>
+                  <p dir="ltr" className="gc-code text-right text-[#E9D5FF]">{"// AI_COPILOT · JOIN"}</p>
+                  <h2 id="gc-join" className="mt-1 text-2xl font-black tracking-tight text-white sm:text-3xl">{title}</h2>
                 </div>
               </div>
-              <p className="mt-4 max-w-lg text-[13.5px] leading-7 text-[#F3E8FF]">
-                کوپایلوت هوشمند تاج به انبار و قیمت‌های واقعی وصل است؛ ریگ کامل بچین، تجهیزات را مقایسه کن یا
-                سفارشت را پیگیری کن — همه با یک چت، ۲۴ ساعته.
+              <p className="mt-4 max-w-lg text-[13.5px] leading-8 text-[#F3E8FF]">
+                {body}
               </p>
               <div className="mt-5 flex flex-wrap gap-2.5">
                 {[
@@ -2471,19 +2432,26 @@ function ConnectBand({ data }: { data: HomeData }) {
                   <span key={f.t} className="gc-connect-chip"><f.icon className="h-3.5 w-3.5" aria-hidden />{f.t}</span>
                 ))}
               </div>
-              <button
-                type="button"
-                onClick={() => useChatStore.getState().setOpen(true)}
-                className="gc-connect-cta mt-6"
-              >
-                <Sparkles className="h-4.5 w-4.5" aria-hidden />
-                شروع چت با کوپایلوت
-              </button>
+              <div className="mt-6">
+                {chatDefault ? (
+                  <button
+                    type="button"
+                    onClick={() => useChatStore.getState().setOpen(true)}
+                    className="gc-connect-cta"
+                  >
+                    {cta}
+                  </button>
+                ) : (
+                  <Link href={ctaUrlRaw} className="gc-connect-cta">
+                    {cta}
+                  </Link>
+                )}
+              </div>
             </div>
-            {/* anime art side — fades into the gradient */}
+            {/* aiWidgetImage — the AI copilot art, fading into the gradient */}
             <div className="relative hidden h-full min-h-[300px] lg:block" aria-hidden>
               <Image
-                src="/images/gaming/stream-girl.png"
+                src={aiImage}
                 alt=""
                 fill
                 sizes="480px"
@@ -2503,22 +2471,22 @@ function ConnectBand({ data }: { data: HomeData }) {
   );
 }
 
-/* ── v30 · FINAL CTA band — giant glowing monogram + lime CTA before footer ── */
+/* ── FINAL CTA band — gradient monogram + lime CTA before footer ──── */
 function FinalCtaBand({ data }: { data: HomeData }) {
   const mono = (data.store.storeName ?? "T").trim().charAt(0) || "T";
   return (
     <section className="mx-auto w-full max-w-[1360px] px-4" aria-labelledby="gc-final">
       <Reveal>
-        <div className="gc-final px-6 pb-10 pt-8 text-center sm:pb-12 sm:pt-10">
+        <div className="gc-final px-6 pb-10 pt-9 text-center sm:pb-12 sm:pt-11">
           <Swoosh flip className="z-0" />
           <Corners />
           <span aria-hidden className="gc-final-mono">{mono}</span>
-          <p dir="ltr" className="gc-code mt-1 tracking-[.3em]">{(data.store.storeNameEn || "TAJ").toUpperCase()}</p>
-          <h2 id="gc-final" className="gc-display gc-ds-xl mt-4">آرنا منتظرته</h2>
-          <p className="mx-auto mt-3 max-w-xl text-[13px] leading-7 text-[#A79BC6]">
+          <p dir="ltr" className="gc-code relative z-[2] tracking-[.3em]">{(data.store.storeNameEn || "TAJ").toUpperCase()}</p>
+          <h2 id="gc-final" className="relative z-[2] mt-4 text-2xl font-black tracking-tight text-[var(--g-ink)] sm:text-4xl">آرنا منتظرته</h2>
+          <p className="relative z-[2] mx-auto mt-3 max-w-xl text-[13px] leading-8 text-[var(--g-dim)]">
             تجهیزات ARGB، ریگ‌های رویایی و تخفیف‌های داغ — یک کلیک تا میز گیمینگ رویایی‌ات فاصله داری.
           </p>
-          <div className="mt-7 flex flex-wrap items-center justify-center gap-3.5">
+          <div className="relative z-[2] mt-7 flex flex-wrap items-center justify-center gap-3.5">
             <Link href="/products" className="gc-btn-lime">
               <span className="gc-btn-lime-circle" aria-hidden>
                 <Plus className="h-5 w-5" strokeWidth={3} />
@@ -2526,13 +2494,13 @@ function FinalCtaBand({ data }: { data: HomeData }) {
               شروع خرید
             </Link>
           </div>
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-2.5">
+          <div className="relative z-[2] mt-8 flex flex-wrap items-center justify-center gap-2.5">
             {[
               { icon: ShieldCheck, t: "ضمانت اصالت کالا" }, { icon: Truck, t: "ارسال سریع به سراسر ایران" },
               { icon: Headphones, t: "پشتیبانی ۲۴/۷" }, { icon: Gamepad2, t: "تجهیزات ARGB اورجینال" },
             ].map((c) => (
               <span key={c.t} className="gc-final-chip">
-                <c.icon className="h-4 w-4 text-[#8B5CF6]" aria-hidden />
+                <c.icon className="h-4 w-4 text-[var(--g-violet)]" aria-hidden />
                 {c.t}
               </span>
             ))}
@@ -2598,10 +2566,10 @@ export function GamingCyberTemplate({ data }: { data: HomeData }) {
     );
   });
 
-  /* v5-f: mission-board tiles — the template's OWN slides (Admin → ظاهر →
-   * محتوای اختصاصی قالب) join the boards; when the template carries its own
-   * SHOWCASES they already star in the ARGB spotlight tiles above, so the
-   * (already-swapped) showcase row steps aside to avoid the same art twice. */
+  /* v5-f: mission-board tiles — the template's OWN slides join the boards;
+   * when the template carries its own SHOWCASES they already star in the
+   * ARGB spotlight tiles above, so the (already-swapped) showcase row
+   * steps aside to avoid the same art twice. */
   const tplContent: TemplateContentData = data.templateContent ?? {};
   const tplMissionTiles = (tplContent.slides ?? [])
     .filter((s) => s.image?.trim())
@@ -2627,10 +2595,10 @@ export function GamingCyberTemplate({ data }: { data: HomeData }) {
       className="w-full"
     >
       <style>{GC_CSS}</style>
-      <TemplateHeader data={data} cfg={{ ...chrome.header, accent: "violet" }} />
+      <GamingHeader data={data} cfg={chrome.header} />
       <h1 className="sr-only">{`${data.store.storeName} — گیمینگ و سایبر`}</h1>
 
-      <div className="gc-root w-full space-y-12 pb-14 sm:space-y-14">
+      <div className="gc-root w-full space-y-14 pb-14 sm:space-y-16">
         {/* ═══ SYSTEM STATUS STRIP (announcement) ═══ */}
         <SysStrip data={data} />
 
@@ -2647,7 +2615,7 @@ export function GamingCyberTemplate({ data }: { data: HomeData }) {
           </section>
         )}
 
-        {/* ═══ HERO — VICE ARENA rig scene (code-drawn ARGB tower) ═══ */}
+        {/* ═══ HERO — TAJ ARENA rig scene (code-drawn ARGB tower) ═══ */}
         <CyberHero data={data} parallax={parallaxOn} scan={scanOn} glow={glowOn} />
 
         {/* ═══ STATS TILES — dashboard shell ═══ */}
@@ -2663,7 +2631,7 @@ export function GamingCyberTemplate({ data }: { data: HomeData }) {
                     <span className="gc-tile-v block">{s.value.toLocaleString("fa-IR")}</span>
                     <span className="gc-tile-l block truncate">{s.label}</span>
                   </span>
-                  <span dir="ltr" className="ms-auto hidden font-mono text-[9px] font-bold tracking-widest text-[#8F7FC0] sm:block">
+                  <span dir="ltr" className="gc-code ms-auto hidden sm:block">
                     {s.code}
                   </span>
                 </div>
@@ -2672,10 +2640,7 @@ export function GamingCyberTemplate({ data }: { data: HomeData }) {
           </Reveal>
         </section>
 
-        {/* ═══ v28 · ARENA LEGENDS — anime mascot band ═══ */}
-        <ArenaLegends data={data} glow={glowOn} scan={scanOn} />
-
-        {/* ═══ CATEGORY RAIL — hex tiles ═══ */}
+        {/* ═CATEGORY RAIL — hex tiles ═══ */}
         {data.categories.length > 0 && (
           <section className="mx-auto w-full max-w-[1360px] px-4" aria-labelledby="gc-cats">
             <Reveal>
@@ -2686,7 +2651,7 @@ export function GamingCyberTemplate({ data }: { data: HomeData }) {
                     key={c.id}
                     href={`/products?category=${c.slug}`}
                     role="listitem"
-                    className="gc-cat w-32 shrink-0 snap-start rounded-xl p-2 text-center transition-colors hover:bg-[#2E2345]/60 sm:w-36"
+                    className="gc-cat w-32 shrink-0 snap-start rounded-xl p-2 text-center transition-colors hover:bg-[var(--g-panel2)] sm:w-36"
                   >
                     <span className="gc-cat-hex relative mx-auto block h-28 w-28 sm:h-32 sm:w-32">
                       <span className="gc-hex gc-hex-grad absolute inset-0" aria-hidden />
@@ -2701,12 +2666,12 @@ export function GamingCyberTemplate({ data }: { data: HomeData }) {
                             loading="lazy"
                           />
                         ) : (
-                          <Gamepad2 className="mx-auto h-8 w-8 text-[#E22BFF]" aria-hidden />
+                          <Gamepad2 className="mx-auto h-8 w-8 text-[#A855F7]" aria-hidden />
                         )}
                       </span>
                     </span>
-                    <span className="mt-2 block truncate text-xs font-black text-[#EFEAF9]">{c.name}</span>
-                    <span className="mt-0.5 block text-[10px] font-semibold text-[#A79BC6] tabular-nums">
+                    <span className="mt-2 block truncate text-xs font-black text-[var(--g-ink)]">{c.name}</span>
+                    <span className="mt-0.5 block text-[10px] font-semibold text-[var(--g-dim)] tabular-nums">
                       {c.productCount.toLocaleString("fa-IR")} کالا
                     </span>
                   </Link>
@@ -2716,9 +2681,13 @@ export function GamingCyberTemplate({ data }: { data: HomeData }) {
           </section>
         )}
 
-        {/* ═══ v30 · ARGB GEAR — rig banner + spinning spotlight + gear ═══ */}
-        {argbGear.length > 0 && (
-          <ArgbShowcase
+        {/* ═══ ARENA — اسطوره‌های آرنا (arena* keys) ═══ */}
+        <ArenaBand data={data} scan={scanOn} />
+
+        {/* ═══ GEAR — تجهیزات ARGB (gear* keys + tplShowcases) ═══ */}
+        {(argbGear.length > 0 || (data.templateContent?.showcases?.length ?? 0) > 0) && (
+          <GearShowcase
+            data={data}
             gear={argbGear}
             timerOn={timerOn}
             glow={glowOn}
@@ -2727,9 +2696,9 @@ export function GamingCyberTemplate({ data }: { data: HomeData }) {
           />
         )}
 
-        {/* ═══ v30 · DEAL ZONE — GTA big-number blocks ═══ */}
+        {/* ═══ DEAL ZONE — GTA big-number blocks (deal* keys) ═══ */}
         {deals.length > 0 && (
-          <DealZone deals={deals} timerOn={timerOn} dealTarget={dealTarget} glow={glowOn} scan={scanOn} />
+          <DealZone data={data} deals={deals} timerOn={timerOn} dealTarget={dealTarget} glow={glowOn} scan={scanOn} />
         )}
 
         {/* ═══ EXCLUSIVE — legendary loot cinematic card ═══ */}
@@ -2738,8 +2707,8 @@ export function GamingCyberTemplate({ data }: { data: HomeData }) {
             <Reveal>
               <HudHead id="gc-exclusive" icon={Swords} code="LEGENDARY_LOOT" title="آیتم‌های افسانه‌ای" subtitle="انحصاریِ لابی — فقط در تاج" />
               {data.exclusive[0] && (
-                <div className={cn("gc-legendary", glowOn && "gc-rgb")}>
-                  {scanOn && <span aria-hidden className="gc-scanlines absolute inset-0 opacity-60" />}
+                <div className="gc-arena">
+                  {scanOn && <span aria-hidden className="gc-scanlines absolute inset-0 opacity-40" />}
                   <Corners />
                   <div className="relative grid items-center gap-6 p-5 sm:p-8 lg:grid-cols-[0.9fr_1.1fr]">
                     {/* media with rotating HUD ring */}
@@ -2756,7 +2725,7 @@ export function GamingCyberTemplate({ data }: { data: HomeData }) {
                           loading="lazy"
                         />
                       ) : (
-                        <Package className="absolute inset-0 m-auto h-20 w-20 text-[#E22BFF]/50" aria-hidden />
+                        <Package className="absolute inset-0 m-auto h-20 w-20 text-[rgba(168,85,247,.5)]" aria-hidden />
                       )}
                       <span className="gc-hex gc-hex-grad absolute start-0 top-4 grid h-11 w-12 place-items-center font-mono text-[9px] font-black tracking-widest text-white" aria-hidden>
                         S-TIER
@@ -2764,19 +2733,19 @@ export function GamingCyberTemplate({ data }: { data: HomeData }) {
                     </div>
                     {/* content */}
                     <div className="min-w-0">
-                      <p dir="ltr" className="gc-code gc-code-magenta">{`// ${data.exclusive[0].brand.name} · RARITY=S`}</p>
-                      <h3 className="gc-glitch mt-1.5 text-2xl font-black leading-9 text-white sm:text-3xl">
+                      <p dir="ltr" className="gc-code gc-code-hot text-right">{`// ${data.exclusive[0].brand.name} · RARITY=S`}</p>
+                      <h3 className="gc-glitch mt-1.5 text-2xl font-black leading-9 text-[var(--g-ink)] sm:text-3xl">
                         <span className="gc-glitch-t">{data.exclusive[0].name}</span>
                       </h3>
                       <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] font-bold">
                         {data.exclusive[0].rating > 0 && (
-                          <span className="flex items-center gap-1 rounded-full bg-amber-400/10 px-2.5 py-1 text-amber-300">
-                            <Star className="h-3.5 w-3.5 fill-amber-300" aria-hidden />
+                          <span className="gc-rating flex items-center gap-1 rounded-full bg-[rgba(251,191,36,.1)] px-2.5 py-1">
+                            <Star className="h-3.5 w-3.5 fill-current" aria-hidden />
                             {data.exclusive[0].rating.toLocaleString("fa-IR")}
                           </span>
                         )}
                         {data.exclusive[0].soldCount > 0 && (
-                          <span className="flex items-center gap-1 rounded-full bg-[#8B5CF6]/15 px-2.5 py-1 text-[#C4B5FD]">
+                          <span className="flex items-center gap-1 rounded-full bg-[rgba(167,139,250,.14)] px-2.5 py-1 text-[var(--g-violet)]">
                             <Trophy className="h-3.5 w-3.5" aria-hidden />
                             {data.exclusive[0].soldCount.toLocaleString("fa-IR")} فروش
                           </span>
@@ -2790,13 +2759,13 @@ export function GamingCyberTemplate({ data }: { data: HomeData }) {
                       </div>
                       <div className="mt-5 flex flex-wrap items-end gap-3">
                         {data.exclusive[0].discountPercent > 0 && (
-                          <span className="text-sm text-[#A79BC6] line-through tabular-nums">
+                          <span className="gc-old text-sm line-through">
                             {formatPrice(data.exclusive[0].price)}
                           </span>
                         )}
-                        <span className="text-2xl font-black text-[#F79CFF] tabular-nums">
+                        <span className="gc-price text-2xl font-black">
                           {formatPrice(data.exclusive[0].effectivePrice)}
-                          <span className="ms-1 text-xs font-medium text-[#A79BC6]">تومان</span>
+                          <span className="ms-1 text-xs font-medium text-[var(--g-faint)]">تومان</span>
                         </span>
                       </div>
                       <div className="mt-6 flex flex-wrap gap-3">
@@ -2817,23 +2786,23 @@ export function GamingCyberTemplate({ data }: { data: HomeData }) {
                       key={p.id}
                       role="listitem"
                       href={`/products/${p.slug}`}
-                      className={cn("gc-card w-56 shrink-0 snap-start p-3", glowOn && "gc-rgb")}
+                      className="gc-card w-56 shrink-0 snap-start p-3"
                     >
                       <span className="flex items-center gap-3">
-                        <span className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-[#1A1025]/70 p-1">
+                        <span className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-[rgba(20,15,32,.55)] p-1">
                           {p.mainImage ? (
                             <Image src={p.mainImage} alt={p.name} fill sizes="48px" className="object-contain p-0.5" loading="lazy" />
                           ) : (
-                            <Package className="m-auto h-5 w-5 text-[#E22BFF]" aria-hidden />
+                            <Package className="m-auto h-5 w-5 text-[#A855F7]" aria-hidden />
                           )}
                         </span>
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate text-[12px] font-bold text-[#EFEAF9]">{p.name}</span>
-                          <span className="text-[11px] font-black text-[#67E8F9] tabular-nums">
+                          <span className="block truncate text-[12px] font-bold text-[var(--g-ink)]">{p.name}</span>
+                          <span className="gc-price text-[11px] font-black">
                             {formatPrice(p.effectivePrice)}
                           </span>
                         </span>
-                        <ChevronLeft className="h-4 w-4 shrink-0 text-[#A79BC6]" aria-hidden />
+                        <ChevronLeft className="h-4 w-4 shrink-0 text-[var(--g-faint)]" aria-hidden />
                       </span>
                     </Link>
                   ))}
@@ -2869,7 +2838,7 @@ export function GamingCyberTemplate({ data }: { data: HomeData }) {
                       key={p.id}
                       role="listitem"
                       href={`/products/${p.slug}`}
-                      className="group w-52 shrink-0 snap-start rounded-xl border border-[#8B5CF6]/22 bg-[#2E2345]/40 p-3 transition-all hover:-translate-y-1 hover:border-[#E22BFF]/60 sm:w-56"
+                      className="group w-52 shrink-0 snap-start rounded-xl border border-[var(--g-line)] bg-[rgba(36,30,51,.4)] p-3 transition-all hover:-translate-y-1 hover:border-[rgba(236,72,153,.55)] sm:w-56"
                     >
                       <div className="flex items-start gap-3">
                         <span
@@ -2883,23 +2852,23 @@ export function GamingCyberTemplate({ data }: { data: HomeData }) {
                         >
                           {(i + 1).toLocaleString("fa-IR")}
                         </span>
-                        <span className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-[#1A1025]/70 p-1">
+                        <span className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-[rgba(20,15,32,.55)] p-1">
                           {p.mainImage ? (
                             <Image src={p.mainImage} alt={p.name} fill sizes="64px" className="object-contain p-0.5 transition-transform duration-500 group-hover:scale-110" loading="lazy" />
                           ) : (
-                            <Package className="m-auto h-6 w-6 text-[#E22BFF]" aria-hidden />
+                            <Package className="m-auto h-6 w-6 text-[#A855F7]" aria-hidden />
                           )}
                         </span>
                       </div>
-                      <span className="mt-2.5 block min-h-12 text-[12.5px] font-bold leading-6 text-[#EFEAF9] line-clamp-2 group-hover:text-[#F79CFF]">
+                      <span className="mt-2.5 block min-h-12 text-[12.5px] font-bold leading-6 text-[var(--g-ink)] line-clamp-2 group-hover:text-[var(--g-hot)]">
                         {p.name}
                       </span>
                       <span className="mt-1.5 flex items-center justify-between gap-2">
-                        <span className="text-[12px] font-black text-[#67E8F9] tabular-nums">
+                        <span className="gc-price text-[12px] font-black">
                           {formatPrice(p.effectivePrice)}
                         </span>
                         {p.soldCount > 0 && (
-                          <span className="rounded-full bg-[#E22BFF]/15 px-2 py-0.5 text-[9px] font-black text-[#F79CFF] tabular-nums">
+                          <span className="rounded-full bg-[rgba(236,72,153,.14)] px-2 py-0.5 text-[9px] font-black text-[var(--g-hot)] tabular-nums">
                             {p.soldCount.toLocaleString("fa-IR")} فروش
                           </span>
                         )}
@@ -2926,10 +2895,10 @@ export function GamingCyberTemplate({ data }: { data: HomeData }) {
           </section>
         )}
 
-        {/* ═══ v30 · CONNECT — GameUp gradient banner (opens AI chat) ═══ */}
-        <ConnectBand data={data} />
+        {/* ═══ JOIN — «به آرنای تاج بپیوندید» AI copilot (join* keys) ═══ */}
+        <JoinBand data={data} />
 
-        {/* ═══ SHOWCASES — mission boards (global showcases + v5-f: the template's own slides) ═══ */}
+        {/* ═══ SHOWCASES — mission boards (global + v5-f: template slides) ═══ */}
         {missions.length > 0 && (
           <section className="mx-auto w-full max-w-[1360px] px-4" aria-labelledby="gc-missions">
             <Reveal>
@@ -2939,7 +2908,7 @@ export function GamingCyberTemplate({ data }: { data: HomeData }) {
                   <Link
                     key={s.id}
                     href={s.buttonUrl ?? (s.product ? `/products/${s.product.slug}` : "/products")}
-                    className={cn("gc-mission group min-h-48 sm:min-h-56", glowOn && "gc-rgb")}
+                    className="gc-mission group min-h-48 sm:min-h-56"
                   >
                     <Image
                       src={s.image}
@@ -2950,9 +2919,9 @@ export function GamingCyberTemplate({ data }: { data: HomeData }) {
                       loading="lazy"
                     />
                     <span aria-hidden className="absolute inset-0 bg-gradient-to-t from-[#120E18] via-[#120E18]/40 to-transparent" />
-                    {scanOn && <span aria-hidden className="gc-scanlines absolute inset-0 opacity-50" />}
+                    {scanOn && <span aria-hidden className="gc-scanlines absolute inset-0 opacity-40" />}
                     <span className="relative flex h-full min-h-[inherit] flex-col justify-end p-5">
-                      <span className="mb-2 inline-flex w-fit items-center gap-1.5 rounded-full bg-[#06B6D4]/15 px-3 py-1 font-mono text-[9.5px] font-black tracking-[.2em] text-[#67E8F9] backdrop-blur">
+                      <span className="gc-mission-chip mb-2.5 w-fit">
                         <Zap className="h-3 w-3" aria-hidden />
                         MISSION_BRIEF
                       </span>
@@ -2989,7 +2958,7 @@ export function GamingCyberTemplate({ data }: { data: HomeData }) {
                           {b.logo || b.image ? (
                             <Image src={(b.logo ?? b.image)!} alt="" fill sizes="32px" className="object-cover" loading="lazy" />
                           ) : (
-                            <span className="grid h-full w-full place-items-center bg-[#E22BFF]/20 text-[11px] font-black text-[#F79CFF]">
+                            <span className="grid h-full w-full place-items-center bg-[rgba(168,85,247,.2)] text-[11px] font-black text-[var(--g-violet)]">
                               {b.name.charAt(0)}
                             </span>
                           )}
@@ -3018,7 +2987,7 @@ export function GamingCyberTemplate({ data }: { data: HomeData }) {
           </section>
         )}
 
-        {/* ═══ v30 · FINAL CTA — giant glowing monogram band ═══ */}
+        {/* ═══ FINAL CTA — gradient monogram band ═══ */}
         <FinalCtaBand data={data} />
 
         {/* ═══ EMPTY STATE ═══ */}
@@ -3026,9 +2995,9 @@ export function GamingCyberTemplate({ data }: { data: HomeData }) {
           <section className="mx-auto w-full max-w-[1360px] px-4">
             <HudWindow title="وضعیت سرور" code="BOOTING" live>
               <div className="p-16 text-center">
-                <Gamepad2 className="mx-auto mb-4 h-12 w-12 text-[#E22BFF]/50" aria-hidden />
-                <h2 className="text-lg font-black tracking-wide text-white">سرور در حال بوت شدن است</h2>
-                <p className="mt-2 text-sm leading-7 text-[#A79BC6]">محصولات به‌زودی آنلاین می‌شوند…</p>
+                <Gamepad2 className="mx-auto mb-4 h-12 w-12 text-[rgba(168,85,247,.5)]" aria-hidden />
+                <h2 className="text-lg font-black tracking-wide text-[var(--g-ink)]">سرور در حال بوت شدن است</h2>
+                <p className="mt-2 text-sm leading-7 text-[var(--g-dim)]">محصولات به‌زودی آنلاین می‌شوند…</p>
               </div>
             </HudWindow>
           </section>

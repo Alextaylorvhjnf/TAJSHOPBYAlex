@@ -350,6 +350,11 @@ export const storeSettingsSchema = z.object({
       footerNote: z.string().max(200).optional().nullable(),
       /* v30: caption above the countdown digits (countdown-eta template) */
       etaNote: z.string().max(200).optional().nullable(),
+      /* v32 (13-d): repair-page logo override + countdown target (strings;
+       * empty/omitted = designed fallback) */
+      logoUrl: z.string().max(500).optional().nullable(),
+      countdownDays: z.string().max(8).optional().nullable(),
+      countdownHours: z.string().max(8).optional().nullable(),
     })
     .optional()
     .nullable(),

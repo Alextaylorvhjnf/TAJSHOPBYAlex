@@ -613,6 +613,14 @@ model StoreSettings {
   // Admin → تنظیمات → فوتر (template-aware). Missing template/field = the
   // global StoreSettings/FooterLink values apply.
   templateFooters       String?
+  // v32 (14-b): STORE-WIDE chrome look options (JSON { skin?, navOrder?,
+  // actionsMode?, productHover? }) — header SKIN (classic/crystalline/
+  // liquid-glass/minimal), the header nav item ORDER, where the theme/cart/
+  // account actions sit, and the product-card hover effect. Managed from
+  // Admin → ظاهر → «هدر و فوتر» (same PUT /api/admin/templates path as the
+  // per-template chrome). null/missing key = designed default (nothing
+  // changes until the admin saves).
+  storeChrome          String?
   // Footer copyright; {year} auto-replaced with current year
   copyrightText        String  @default("© {year} {storeName}. All rights reserved.")
   // ── v29 · MAINTENANCE (repair) PAGE ──

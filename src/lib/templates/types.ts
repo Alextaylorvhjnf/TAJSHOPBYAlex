@@ -60,6 +60,15 @@ export type TemplateSlide = {
   ctaText: string | null;
   ctaUrl: string | null;
   product: TemplateProductSlide | null;
+  /** v32 (per-template content only): show a live countdown chip over the
+   *  slide — روز/ساعت/دقیقه/ثانیه in fa-IR digits. Additive; templates that
+   *  ignore it render exactly as before. */
+  countdownEnabled?: boolean;
+  countdownTarget?: string | null;
+  countdownLabel?: string | null;
+  /** v32 (per-template content only): muted autoplay-loop VIDEO with the
+   *  image as poster, rendered instead of the static artwork. */
+  videoUrl?: string | null;
 };
 
 /** v26: mega-menu branch under a category — either a real child category
@@ -172,6 +181,31 @@ export type TemplateStore = {
   /** v29: admin-uploaded FOOTER logo (Branding → «لوگوی فوتر», falls back
    *  to the main logo) — rendered by the chrome FOOTER brand blocks. */
   footerLogo?: string | null;
+  /** v32 (14-b): STORE-WIDE chrome look options (Admin → ظاهر → «هدر و
+   *  فوتر») — header SKIN (کریستالی/لیکوئید گلس/مینیمال…), the header NAV
+   *  item order, where the theme-toggle/cart/account actions sit, and the
+   *  product-card hover effect. Applies to the shared storefront header AND
+   *  every template chrome header; missing key = designed default (the
+   *  storefront renders exactly as before until the admin saves). */
+  storeChrome?: StoreChromeData;
+};
+
+/** v32 (14-b): the store-wide chrome look options — persisted as JSON in
+ *  StoreSettings.storeChrome and parsed defensively server-side
+ *  (parseStoreChrome in src/lib/settings.ts). All fields optional. */
+export type StoreChromeData = {
+  /** header skin — classic | crystalline | liquid-glass | minimal */
+  skin?: string;
+  /** ChromeHeaderNav item order — subset/permutation of
+   *  ["home","shop","categories","about","contact"]; unknown/missing keys
+   *  fall back to the designed default order. */
+  navOrder?: string[];
+  /** where the theme-toggle/cart/account actions sit —
+   *  grouped (کنار هم در انتها, default) | split (تم در ابتدای ردیف) */
+  actionsMode?: string;
+  /** product-card hover effect — none (default) | flip3d | topdown |
+   *  slide | fade | bigzoom */
+  productHover?: string;
 };
 
 /** v24: admin-editable header overrides (all fields optional).

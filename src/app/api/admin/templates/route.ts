@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import { ok, fail, getClientIp } from "@/lib/api";
 import { getAdminUser, SETTINGS_WRITE, hasPermission } from "@/lib/auth";
-import { getStoreSettings, parseTemplateFeatures, parseTemplateChrome, invalidateSettingsCache } from "@/lib/settings";
+import { getStoreSettings, parseTemplateFeatures, parseTemplateChrome, parseStoreChrome, invalidateSettingsCache } from "@/lib/settings";
 import { TEMPLATE_DEFS, TEMPLATE_IDS } from "@/lib/templates/registry";
 import { logAdmin } from "@/lib/admin-log";
 
@@ -19,6 +19,9 @@ export async function GET() {
     featureFlags: parseTemplateFeatures(settings.templateFeatures),
     timerEndsAt: (settings as { templateTimerEndsAt?: Date | null }).templateTimerEndsAt?.toISOString() ?? null,
     chrome: parseTemplateChrome((settings as { templateChrome?: string | null }).templateChrome),
+    // v32 (14-b): store-wide chrome look options (header skin / nav order /
+    // actions placement / product hover) — shared by every «هدر و فوتر» dialog
+    storeChrome: parseStoreChrome((settings as { storeChrome?: string | null }).storeChrome),
   });
 }
 
@@ -91,7 +94,25 @@ export async function PUT(req: Request) {
     }
   }
 
-  if (Object.keys(clean).length === 0 && Object.keys(timerUpdate).length === 0 && !chromeUpdate && !chromeReset) {
+  /* v32 (14-b): STORE-WIDE chrome look options (header skin / nav order /
+   * actions placement / product hover) — validated with the same defensive
+   * parser the renderer uses (parseStoreChrome), so a hand-crafted payload
+   * can never smuggle junk into the storefront. `storeChrome: null` clears
+   * everything back to the designed defaults. These are STORE-level: the
+   * templateId is only needed for the log entry. */
+  let storeChromeUpdate: Record<string, unknown> | null = null;
+  let storeChromeReset = false;
+  if (body && "storeChrome" in body) {
+    if (body.storeChrome === null) {
+      storeChromeReset = true;
+    } else {
+      const parsed = parseStoreChrome(JSON.stringify(body.storeChrome ?? {}));
+      if (Object.keys(parsed).length === 0) return fail("تنظیمات ظاهر هدر نامعتبر است", 400);
+      storeChromeUpdate = parsed as Record<string, unknown>;
+    }
+  }
+
+  if (Object.keys(clean).length === 0 && Object.keys(timerUpdate).length === 0 && !chromeUpdate && !chromeReset && !storeChromeUpdate && !storeChromeReset) {
     return fail("هیچ ویژگی معتبری ارسال نشد", 400);
   }
 
@@ -112,6 +133,9 @@ export async function PUT(req: Request) {
     }
     updateData.templateChrome = Object.keys(allChrome).length > 0 ? JSON.stringify(allChrome) : null;
   }
+  if (storeChromeReset || storeChromeUpdate) {
+    updateData.storeChrome = storeChromeReset ? null : JSON.stringify(storeChromeUpdate);
+  }
   Object.assign(updateData, timerUpdate);
   await db.storeSettings.update({ where: { id: "main" }, data: updateData });
   invalidateSettingsCache();
@@ -123,6 +147,7 @@ export async function PUT(req: Request) {
       features: clean,
       timerEndsAt: timerUpdate.templateTimerEndsAt?.toISOString() ?? undefined,
       chrome: chromeReset ? "reset" : chromeUpdate ?? undefined,
+      storeChrome: storeChromeReset ? "reset" : storeChromeUpdate ?? undefined,
     },
   });
   return ok({ message: `تنظیمات ویژگی‌های «${def.nameFa}» ذخیره شد` });

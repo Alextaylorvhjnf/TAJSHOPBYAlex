@@ -24,6 +24,7 @@ import type { HomeData, TemplateProduct } from "@/lib/templates/types";
 import { formatPrice, toFaDigits } from "@/lib/format";
 import { useCart } from "@/hooks/use-store";
 import { StoryViewer } from "../story-viewer";
+import { SlideCountdown, SlideHeroMedia, SLIDE_MEDIA_CSS } from "./slide-media";
 import {
   Sparkles, TrendingUp, Flame, Star, Crown, Zap, Gem, HelpCircle,
   Smartphone, Laptop, Computer, Cpu, Monitor, Gamepad2,
@@ -491,29 +492,42 @@ function HeroSlider({ data }: { data: HomeData }) {
 
   return (
     <section aria-label="اسلایدر اصلی فروشگاه" className="relative h-[420px] w-full overflow-hidden sm:h-[560px]">
-      {/* artworks (stacked crossfade · mobile art swap) */}
+      {/* artworks (stacked crossfade · mobile art swap · v32: hero VIDEO) */}
       {slides.map((sl, i) => (
         <div
           key={sl.id}
           aria-hidden={i !== idx}
           className={`absolute inset-0 transition-opacity duration-[900ms] ease-out ${i === idx ? "z-10 opacity-100" : "z-0 opacity-0"}`}
         >
-          <Image
-            src={sl.image}
-            alt={sl.title}
-            fill priority={i === 0}
-            sizes="100vw"
-            className={`object-cover ${sl.mobileImage ? "hidden sm:block" : ""}`}
-          />
-          {sl.mobileImage ? (
-            <Image
-              src={sl.mobileImage}
+          {sl.videoUrl ? (
+            /* v32: per-slide hero video — muted autoplay loop, art = poster */
+            <SlideHeroMedia
+              slide={sl}
               alt={sl.title}
-              fill priority={i === 0}
               sizes="100vw"
-              className="object-cover sm:hidden"
+              priority={i === 0}
+              className="object-cover"
             />
-          ) : null}
+          ) : (
+            <>
+              <Image
+                src={sl.image}
+                alt={sl.title}
+                fill priority={i === 0}
+                sizes="100vw"
+                className={`object-cover ${sl.mobileImage ? "hidden sm:block" : ""}`}
+              />
+              {sl.mobileImage ? (
+                <Image
+                  src={sl.mobileImage}
+                  alt={sl.title}
+                  fill priority={i === 0}
+                  sizes="100vw"
+                  className="object-cover sm:hidden"
+                />
+              ) : null}
+            </>
+          )}
         </div>
       ))}
 
@@ -549,6 +563,12 @@ function HeroSlider({ data }: { data: HomeData }) {
                 <p key={`s-${idx}`} className="mt-rise mt-3.5 max-w-xl text-[13.5px] leading-7 text-[#A0AAB5] sm:text-[15px] sm:leading-8">
                   {s.subtitle}
                 </p>
+              ) : null}
+              {/* v32: per-slide countdown chip (روز/ساعت/دقیقه/ثانیه) */}
+              {s.countdownEnabled && s.countdownTarget ? (
+                <div key={`cd-${idx}`} className="mt-rise mt-5">
+                  <SlideCountdown target={s.countdownTarget} label={s.countdownLabel} />
+                </div>
               ) : null}
               <div key={`c-${idx}`} className="mt-rise mt-7 flex flex-wrap items-center gap-3">
                 <span className="mt-cta">
@@ -1001,7 +1021,7 @@ export function ModernTechTemplate({ data }: { data: HomeData }) {
 
   return (
     <div data-tpl="modern-tech" className="relative isolate overflow-x-clip">
-      <style>{CSS}</style>
+      <style>{CSS + SLIDE_MEDIA_CSS}</style>
 
       {/* soft blend from the theme chrome into the void (no-op in dark theme) */}
       <div aria-hidden className="h-14 bg-gradient-to-b from-background to-[#0B0E14]" />

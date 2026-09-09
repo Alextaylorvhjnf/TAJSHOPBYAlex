@@ -1,0 +1,929 @@
+/* ═══════════════════════════════════════════════════════════════════
+   TAJ Electronics — Admin design system v32 (building v32, app v26.0.0)
+
+   FULL professional redesign (Task 13-b) built on TWO owner references:
+   • «Peoplexio HR» — lavender #F5F4FD page, white 16px-radius cards with
+     soft layered shadows, deep-indigo #1E1B4B dark panels, #7C3AED accent.
+   • «Finnova invoice» — #F8F9FC canvas, #1E293B dark split-panel list +
+     glassmorphism detail card, #6366F1 accents, stat cards with trends.
+
+   LAYERING (never touches the storefront):
+   • html[data-admin-theme="finnova"][data-admin-theme]
+       → PEOPLEXIO LIGHT (default skin, purple accent)      (0,2,1)
+   • html[data-admin-theme="saas-dark"][data-admin-theme][data-admin-theme]
+       → PEOPLEXIO DARK                                      (0,3,1)
+   • html[data-admin-accent="…"][data-admin-theme="finnova"][data-admin-theme]
+       → accent overrides on light                           (0,3,1)
+   • html[data-admin-accent="…"][data-admin-theme="saas-dark"][data-admin-theme][data-admin-theme]
+       → accent overrides on dark                            (0,4,1)
+   The doubled/tripled attribute selectors keep every block above the
+   v20/v23 rules in admin-v20.css regardless of bundle order, so this
+   file can be imported anywhere after (or even before) it.
+
+   4 SELECTABLE ACCENTS (persisted in localStorage "taj-admin-accent"):
+   purple #7C3AED (default) · pink #EC4899 · charcoal #1E1B4B + gold ·
+   red #EF4444. Text contrast is tuned per accent AND per mode — the
+   dark modes use lightened accent primaries with dark foregrounds.
+
+   Persian note: NO uppercase/letter-spacing is ever applied to Persian
+   text (Arabic script must keep its joining); “uppercase labels” from
+   the references become small bold muted labels instead.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ═══ 1 · PEOPLEXIO LIGHT — default (purple accent) ═══════════════ */
+html[data-admin-theme="finnova"][data-admin-theme] {
+  --radius: 0.875rem; /* md=12px buttons · lg=14px · xl=18px · cards 16px */
+  --background: #f5f4fd; /* Peoplexio lavender page */
+  --foreground: #1f2937;
+  --card: #ffffff;
+  --card-foreground: #1f2937;
+  --popover: #ffffff;
+  --popover-foreground: #1f2937;
+  --primary: #7c3aed; /* vibrant purple */
+  --primary-foreground: #ffffff;
+  --secondary: #f1f0fb;
+  --secondary-foreground: #1f2937;
+  --muted: #f1f0fb;
+  --muted-foreground: #6b7280;
+  --accent: #f3e8ff;
+  --accent-foreground: #6d28d9;
+  --destructive: #dc2626;
+  --border: #e9e7f8;
+  --input: #e2e0f2;
+  --ring: #7c3aed;
+  --chart-1: #7c3aed;
+  --chart-2: #a78bfa;
+  --chart-3: #10b981;
+  --chart-4: #ec4899;
+  --chart-5: #f59e0b;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #1f2937;
+  --sidebar-primary: #7c3aed;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f3e8ff;
+  --sidebar-accent-foreground: #6d28d9;
+  --sidebar-border: #e9e7f8;
+  --sidebar-ring: #7c3aed;
+  /* legacy KPI widgets → flat purple tints */
+  --kpi-1-bg: #f3e8ff;
+  --kpi-1-fg: #3b2a63;
+  --kpi-1-icon: #7c3aed;
+  --kpi-1-chip: #7c3aed;
+  --kpi-1-chip-fg: #ffffff;
+  --kpi-2-bg: #f3e8ff;
+  --kpi-2-fg: #3b2a63;
+  --kpi-2-icon: #8b5cf6;
+  --kpi-2-chip: #8b5cf6;
+  --kpi-2-chip-fg: #ffffff;
+  --kpi-3-bg: #f5f3ff;
+  --kpi-3-fg: #4c1d95;
+  --kpi-3-icon: #a78bfa;
+  --kpi-3-chip: #a78bfa;
+  --kpi-3-chip-fg: #ffffff;
+  --kpi-border: #e9e7f8;
+  /* shell surface tokens */
+  --av-topbar-bg: rgba(255, 255, 255, 0.82);
+  --av-topbar-border: #e9e7f8;
+  --av-card-shadow: 0 4px 6px -1px rgba(16, 12, 46, 0.05),
+    0 2px 4px -1px rgba(16, 12, 46, 0.03);
+  --av-card-shadow-hover: 0 10px 25px -5px rgba(124, 58, 237, 0.15);
+  --av-sidebar-bg: #ffffff;
+  --av-sidebar-border: #e9e7f8;
+  --av-sidebar-shadow: 0 10px 15px -3px rgba(30, 27, 75, 0.08),
+    0 4px 6px -2px rgba(30, 27, 75, 0.04);
+  --av-row-hover: #f8f7fe;
+  --av-accent: #7c3aed;
+  --av-accent-strong: #6d28d9;
+  --av-accent-contrast: #ffffff;
+  --av-accent-soft-bg: #f3e8ff;
+  --av-accent-soft-fg: #6d28d9;
+  --av-glow: rgba(124, 58, 237, 0.32);
+  --av-pill-from: #7c3aed;
+  --av-pill-to: #6d28d9;
+  --av-pill-fg: #ffffff;
+  --av-gradient: linear-gradient(135deg, #7c3aed 0%, #6d28d9 55%, #1e1b4b 130%);
+  --av-panel-dark: #1e1b4b; /* Finnova-style dark list panel */
+  --av-panel-dark-border: #322e63;
+  --av-panel-dark-fg: #f9fafb;
+  --av-panel-dark-muted: #a5a3c8;
+  --av-panel-selected: #4c1d95;
+  /* nav */
+  --zy-label: #9a97c0;
+  --zy-nav-fg: #6b7280;
+  --zy-nav-hover-bg: #f3f2fb;
+  --zy-nav-hover-fg: #1f2937;
+  --zy-nav-active-bg: transparent; /* the gradient pill paints it */
+  --zy-nav-active-fg: #ffffff;
+  --zy-nav-active-border: transparent;
+  --zy-nav-icon-chip: rgba(255, 255, 255, 0.22);
+  --zy-nav-glow: 0 10px 25px -5px var(--av-glow);
+  --zy-profile-bg: #f8f7fe;
+  /* segmented + pills */
+  --zy-seg-bg: #efedfa;
+  --zy-seg-active-bg: #ffffff;
+  --zy-seg-shadow: 0 1px 3px rgba(16, 12, 46, 0.12);
+  --zy-pill-active-bg: #1e1b4b;
+  --zy-pill-active-fg: #ffffff;
+  --zy-primary-hover: #6d28d9;
+  /* tinted icon chips + trends (semantic, accent-neutral) */
+  --zy-tint-indigo-bg: #f3e8ff;
+  --zy-tint-indigo-fg: #7c3aed;
+  --zy-tint-red-bg: #fef2f2;
+  --zy-tint-red-fg: #dc2626;
+  --zy-tint-cyan-bg: #ecfeff;
+  --zy-tint-cyan-fg: #0891b2;
+  --zy-tint-emerald-bg: #ecfdf5;
+  --zy-tint-emerald-fg: #059669;
+  --zy-trend-up-bg: #ecfdf5;
+  --zy-trend-up-fg: #059669;
+  --zy-trend-down-bg: #fef2f2;
+  --zy-trend-down-fg: #dc2626;
+}
+
+/* ═══ 2 · PEOPLEXIO DARK (deep-indigo panels, purple accent) ══════ */
+html[data-admin-theme="saas-dark"][data-admin-theme][data-admin-theme] {
+  --radius: 0.875rem;
+  --background: #14132f; /* below the #1e1b4b panels */
+  --foreground: #f5f4fd;
+  --card: #1e1b4b; /* Peoplexio deep indigo */
+  --card-foreground: #f5f4fd;
+  --popover: #1e1b4b;
+  --popover-foreground: #f5f4fd;
+  --primary: #a78bfa; /* light purple → dark text stays readable */
+  --primary-foreground: #1e1b4b;
+  --secondary: #2e2a5e;
+  --secondary-foreground: #f5f4fd;
+  --muted: #2e2a5e;
+  --muted-foreground: #a5a3c8;
+  --accent: #322b6b;
+  --accent-foreground: #d8ccff;
+  --destructive: #f87171;
+  --border: #322e63;
+  --input: #322e63;
+  --ring: #a78bfa;
+  --chart-1: #a78bfa;
+  --chart-2: #c4b5fd;
+  --chart-3: #34d399;
+  --chart-4: #f472b6;
+  --chart-5: #fbbf24;
+  --sidebar: #1e1b4b;
+  --sidebar-foreground: #f5f4fd;
+  --sidebar-primary: #a78bfa;
+  --sidebar-primary-foreground: #1e1b4b;
+  --sidebar-accent: #322b6b;
+  --sidebar-accent-foreground: #d8ccff;
+  --sidebar-border: #322e63;
+  --sidebar-ring: #a78bfa;
+  --kpi-1-bg: #322b6b;
+  --kpi-1-fg: #e6e0ff;
+  --kpi-1-icon: #a78bfa;
+  --kpi-1-chip: #7c3aed;
+  --kpi-1-chip-fg: #ffffff;
+  --kpi-2-bg: #322b6b;
+  --kpi-2-fg: #e6e0ff;
+  --kpi-2-icon: #c4b5fd;
+  --kpi-2-chip: #a78bfa;
+  --kpi-2-chip-fg: #1e1b4b;
+  --kpi-3-bg: #2e1065;
+  --kpi-3-fg: #ede9fe;
+  --kpi-3-icon: #c4b5fd;
+  --kpi-3-chip: #c4b5fd;
+  --kpi-3-chip-fg: #1e1b4b;
+  --kpi-border: #322e63;
+  --av-topbar-bg: rgba(30, 27, 75, 0.78);
+  --av-topbar-border: #322e63;
+  --av-card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.35),
+    0 2px 4px -1px rgba(0, 0, 0, 0.25);
+  --av-card-shadow-hover: 0 10px 25px -5px rgba(124, 58, 237, 0.35);
+  --av-sidebar-bg: #1e1b4b;
+  --av-sidebar-border: #322e63;
+  --av-sidebar-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.45);
+  --av-row-hover: rgba(50, 46, 99, 0.55);
+  --av-accent: #a78bfa;
+  --av-accent-strong: #7c3aed;
+  --av-accent-contrast: #1e1b4b;
+  --av-accent-soft-bg: rgba(124, 58, 237, 0.22);
+  --av-accent-soft-fg: #c4b5fd;
+  --av-glow: rgba(124, 58, 237, 0.45);
+  --av-pill-from: #7c3aed;
+  --av-pill-to: #8b5cf6;
+  --av-pill-fg: #ffffff;
+  --av-gradient: linear-gradient(135deg, #7c3aed 0%, #5b21b6 55%, #1e1b4b 125%);
+  --av-panel-dark: #191642;
+  --av-panel-dark-border: #322e63;
+  --av-panel-dark-fg: #f5f4fd;
+  --av-panel-dark-muted: #a5a3c8;
+  --av-panel-selected: #4c1d95;
+  --zy-label: #7d7aa8;
+  --zy-nav-fg: #b6b3d9;
+  --zy-nav-hover-bg: rgba(50, 46, 99, 0.6);
+  --zy-nav-hover-fg: #f5f4fd;
+  --zy-nav-active-bg: transparent;
+  --zy-nav-active-fg: #ffffff;
+  --zy-nav-active-border: transparent;
+  --zy-nav-icon-chip: rgba(255, 255, 255, 0.2);
+  --zy-nav-glow: 0 10px 25px -5px var(--av-glow);
+  --zy-profile-bg: #17143a;
+  --zy-seg-bg: #17143a;
+  --zy-seg-active-bg: #2e2a5e;
+  --zy-seg-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
+  --zy-pill-active-bg: #ffffff;
+  --zy-pill-active-fg: #1e1b4b;
+  --zy-primary-hover: #c4b5fd;
+  --zy-tint-indigo-bg: rgba(124, 58, 237, 0.2);
+  --zy-tint-indigo-fg: #c4b5fd;
+  --zy-tint-red-bg: rgba(239, 68, 68, 0.18);
+  --zy-tint-red-fg: #fca5a5;
+  --zy-tint-cyan-bg: rgba(6, 182, 212, 0.16);
+  --zy-tint-cyan-fg: #67e8f9;
+  --zy-tint-emerald-bg: rgba(16, 185, 129, 0.18);
+  --zy-tint-emerald-fg: #6ee7b7;
+  --zy-trend-up-bg: rgba(16, 185, 129, 0.18);
+  --zy-trend-up-fg: #34d399;
+  --zy-trend-down-bg: rgba(239, 68, 68, 0.18);
+  --zy-trend-down-fg: #f87171;
+}
+
+/* ═══ 3 · ACCENT OVERRIDES — pink «صورتی» #EC4899 ═════════════════ */
+html[data-admin-accent="pink"][data-admin-theme="finnova"][data-admin-theme] {
+  --primary: #db2777; /* pink-600 — white text stays 4.5:1+ */
+  --primary-foreground: #ffffff;
+  --ring: #db2777;
+  --accent: #fdf2f8;
+  --accent-foreground: #be185d;
+  --sidebar-primary: #db2777;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #fdf2f8;
+  --sidebar-accent-foreground: #be185d;
+  --sidebar-ring: #db2777;
+  --chart-1: #db2777;
+  --chart-2: #f472b6;
+  --kpi-1-icon: #db2777;
+  --kpi-1-chip: #db2777;
+  --kpi-2-icon: #ec4899;
+  --kpi-2-chip: #ec4899;
+  --zy-primary-hover: #be185d;
+  --zy-tint-indigo-bg: #fdf2f8;
+  --zy-tint-indigo-fg: #db2777;
+  --zy-pill-active-bg: #be185d;
+  --zy-pill-active-fg: #ffffff;
+  --av-accent: #ec4899;
+  --av-accent-strong: #db2777;
+  --av-accent-soft-bg: #fdf2f8;
+  --av-accent-soft-fg: #be185d;
+  --av-glow: rgba(236, 72, 153, 0.32);
+  --av-pill-from: #db2777;
+  --av-pill-to: #be185d;
+  --av-pill-fg: #ffffff;
+  --av-gradient: linear-gradient(135deg, #ec4899 0%, #db2777 55%, #831843 130%);
+  --av-panel-selected: #9d174d;
+}
+html[data-admin-accent="pink"][data-admin-theme="saas-dark"][data-admin-theme][data-admin-theme] {
+  --primary: #f472b6; /* pink-400 with dark indigo text — 6.9:1 */
+  --primary-foreground: #450a26;
+  --ring: #f472b6;
+  --accent: #571f43;
+  --accent-foreground: #fbcfe8;
+  --sidebar-primary: #f472b6;
+  --sidebar-primary-foreground: #450a26;
+  --sidebar-accent: #571f43;
+  --sidebar-accent-foreground: #fbcfe8;
+  --sidebar-ring: #f472b6;
+  --chart-1: #f472b6;
+  --chart-2: #f9a8d4;
+  --kpi-1-icon: #f472b6;
+  --kpi-1-chip: #db2777;
+  --kpi-2-icon: #f9a8d4;
+  --kpi-2-chip: #f472b6;
+  --zy-primary-hover: #f9a8d4;
+  --zy-tint-indigo-bg: rgba(236, 72, 153, 0.22);
+  --zy-tint-indigo-fg: #f9a8d4;
+  --zy-pill-active-bg: #ffffff;
+  --zy-pill-active-fg: #9d174d;
+  --av-accent: #f472b6;
+  --av-accent-strong: #db2777;
+  --av-accent-soft-bg: rgba(236, 72, 153, 0.22);
+  --av-accent-soft-fg: #f9a8d4;
+  --av-glow: rgba(236, 72, 153, 0.45);
+  --av-pill-from: #db2777;
+  --av-pill-to: #9d174d;
+  --av-pill-fg: #ffffff;
+  --av-gradient: linear-gradient(135deg, #db2777 0%, #9d174d 55%, #4a042e 125%);
+  --av-panel-selected: #831843;
+}
+
+/* ═══ 4 · ACCENT OVERRIDES — charcoal «زغالی» #1E1B4B + gold ══════ */
+html[data-admin-accent="charcoal"][data-admin-theme="finnova"][data-admin-theme] {
+  --primary: #1e1b4b; /* deep indigo ink + subtle gold accents */
+  --primary-foreground: #ffffff;
+  --ring: #1e1b4b;
+  --accent: #efeee2; /* pale gold tint */
+  --accent-foreground: #8b6f1f;
+  --sidebar-primary: #1e1b4b;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #efeee2;
+  --sidebar-accent-foreground: #8b6f1f;
+  --sidebar-ring: #1e1b4b;
+  --chart-1: #c9a227; /* gold leads the charts */
+  --chart-2: #1e1b4b;
+  --kpi-1-icon: #1e1b4b;
+  --kpi-1-chip: #1e1b4b;
+  --kpi-2-icon: #c9a227;
+  --kpi-2-chip: #c9a227;
+  --zy-primary-hover: #312e81;
+  --zy-tint-indigo-bg: #efeee2;
+  --zy-tint-indigo-fg: #8b6f1f;
+  --zy-pill-active-bg: #1e1b4b;
+  --zy-pill-active-fg: #ffffff;
+  --av-accent: #1e1b4b;
+  --av-accent-strong: #312e81;
+  --av-accent-soft-bg: #f4f2e6;
+  --av-accent-soft-fg: #8b6f1f;
+  --av-glow: rgba(201, 162, 39, 0.38); /* the “subtle gold” signature */
+  --av-pill-from: #1e1b4b;
+  --av-pill-to: #3b3680;
+  --av-pill-fg: #ffffff;
+  --av-gradient: linear-gradient(135deg, #1e1b4b 0%, #312e81 60%, #c9a227 165%);
+  --av-panel-selected: #312e81;
+}
+html[data-admin-accent="charcoal"][data-admin-theme="saas-dark"][data-admin-theme][data-admin-theme] {
+  --primary: #d4af37; /* burnished gold with ink text — 7.6:1 */
+  --primary-foreground: #241f06;
+  --ring: #e5c158;
+  --accent: #3a3418; /* gold-tinted elevation */
+  --accent-foreground: #ecdfae;
+  --sidebar-primary: #d4af37;
+  --sidebar-primary-foreground: #241f06;
+  --sidebar-accent: #3a3418;
+  --sidebar-accent-foreground: #ecdfae;
+  --sidebar-ring: #e5c158;
+  --chart-1: #d4af37;
+  --chart-2: #a78bfa;
+  --kpi-1-icon: #d4af37;
+  --kpi-1-chip: #c9a227;
+  --kpi-2-icon: #e5c158;
+  --kpi-2-chip: #d4af37;
+  --zy-primary-hover: #e5c158;
+  --zy-tint-indigo-bg: rgba(201, 162, 39, 0.2);
+  --zy-tint-indigo-fg: #ecdfae;
+  --zy-pill-active-bg: #ffffff;
+  --zy-pill-active-fg: #241f06;
+  --av-accent: #d4af37;
+  --av-accent-strong: #c9a227;
+  --av-accent-soft-bg: rgba(201, 162, 39, 0.2);
+  --av-accent-soft-fg: #ecdfae;
+  --av-glow: rgba(201, 162, 39, 0.42);
+  --av-pill-from: #d4af37; /* gold pill on indigo — the luxury look */
+  --av-pill-to: #b8962e;
+  --av-pill-fg: #241f06;
+  --av-gradient: linear-gradient(135deg, #2e2a72 0%, #1e1b4b 55%, #c9a227 150%);
+  --av-panel-selected: #312e81;
+}
+
+/* ═══ 5 · ACCENT OVERRIDES — red «قرمز» #EF4444 ═══════════════════ */
+html[data-admin-accent="red"][data-admin-theme="finnova"][data-admin-theme] {
+  --primary: #dc2626; /* red-600 — white text stays 4.5:1+ */
+  --primary-foreground: #ffffff;
+  --ring: #dc2626;
+  --accent: #fef2f2;
+  --accent-foreground: #b91c1c;
+  --sidebar-primary: #dc2626;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #fef2f2;
+  --sidebar-accent-foreground: #b91c1c;
+  --sidebar-ring: #dc2626;
+  --chart-1: #dc2626;
+  --chart-2: #f87171;
+  --kpi-1-icon: #dc2626;
+  --kpi-1-chip: #dc2626;
+  --kpi-2-icon: #ef4444;
+  --kpi-2-chip: #ef4444;
+  --zy-primary-hover: #b91c1c;
+  --zy-tint-indigo-bg: #fef2f2;
+  --zy-tint-indigo-fg: #dc2626;
+  --zy-pill-active-bg: #b91c1c;
+  --zy-pill-active-fg: #ffffff;
+  --av-accent: #ef4444;
+  --av-accent-strong: #dc2626;
+  --av-accent-soft-bg: #fef2f2;
+  --av-accent-soft-fg: #b91c1c;
+  --av-glow: rgba(239, 68, 68, 0.32);
+  --av-pill-from: #dc2626;
+  --av-pill-to: #b91c1c;
+  --av-pill-fg: #ffffff;
+  --av-gradient: linear-gradient(135deg, #ef4444 0%, #dc2626 55%, #7f1d1d 130%);
+  --av-panel-selected: #991b1b;
+}
+html[data-admin-accent="red"][data-admin-theme="saas-dark"][data-admin-theme][data-admin-theme] {
+  --primary: #f87171; /* red-400 with ink text — 6.6:1 */
+  --primary-foreground: #3b0d0d;
+  --ring: #f87171;
+  --accent: #4c1d1d;
+  --accent-foreground: #fecaca;
+  --sidebar-primary: #f87171;
+  --sidebar-primary-foreground: #3b0d0d;
+  --sidebar-accent: #4c1d1d;
+  --sidebar-accent-foreground: #fecaca;
+  --sidebar-ring: #f87171;
+  --chart-1: #f87171;
+  --chart-2: #fca5a5;
+  --kpi-1-icon: #f87171;
+  --kpi-1-chip: #dc2626;
+  --kpi-2-icon: #fca5a5;
+  --kpi-2-chip: #f87171;
+  --zy-primary-hover: #fca5a5;
+  --zy-tint-indigo-bg: rgba(239, 68, 68, 0.2);
+  --zy-tint-indigo-fg: #fca5a5;
+  --zy-pill-active-bg: #ffffff;
+  --zy-pill-active-fg: #991b1b;
+  --av-accent: #f87171;
+  --av-accent-strong: #ef4444;
+  --av-accent-soft-bg: rgba(239, 68, 68, 0.2);
+  --av-accent-soft-fg: #fca5a5;
+  --av-glow: rgba(239, 68, 68, 0.45);
+  --av-pill-from: #ef4444;
+  --av-pill-to: #b91c1c;
+  --av-pill-fg: #ffffff;
+  --av-gradient: linear-gradient(135deg, #dc2626 0%, #991b1b 55%, #450a0a 125%);
+  --av-panel-selected: #7f1d1d;
+}
+
+/* ═══ 6 · v32 STRUCTURE (scoped to the .admin-v20 shell wrapper) ═══ */
+
+/* cards → 16px radius + whisper layered shadow + hover lift */
+.admin-v20 [data-slot="card"] {
+  border-radius: 1rem;
+  border-color: var(--border);
+  box-shadow: var(--av-card-shadow, 0 4px 6px -1px rgba(16, 12, 46, 0.05));
+  transition:
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+.admin-v20 [data-slot="card"]:hover {
+  box-shadow: var(--av-card-shadow-hover, 0 10px 25px -5px rgba(124, 58, 237, 0.15));
+}
+
+/* tables stay readable: 12px/600 headers, 48px rows, soft zebra */
+.admin-v20 [data-slot="table"] thead th,
+.admin-v20 table thead th {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted-foreground);
+  text-transform: none; /* Persian never uppercases */
+  padding-block: 0.75rem;
+}
+.admin-v20 [data-slot="table"] tbody [data-slot="table-row"],
+.admin-v20 table tbody tr {
+  height: 48px;
+}
+.admin-v20 [data-slot="table"] tbody [data-slot="table-row"]:hover,
+.admin-v20 table tbody tr:hover {
+  background-color: var(--av-row-hover, var(--muted));
+}
+
+/* focus rings for the custom controls */
+.zy-nav-link:focus-visible,
+.zy-segment-btn:focus-visible,
+.zy-tab:focus-visible,
+.av32-accent-dot:focus-visible,
+.av32-search:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* ── floating glass topbar (rounded-2xl, backdrop-blur) ─────────── */
+.av32-topbar {
+  background: var(--av-topbar-bg, var(--card));
+  border: 1px solid var(--av-topbar-border, var(--border));
+  backdrop-filter: blur(12px) saturate(1.4);
+  -webkit-backdrop-filter: blur(12px) saturate(1.4);
+  box-shadow: var(--av-card-shadow);
+}
+@media (max-width: 767px) {
+  .av32-topbar {
+    border-left: none;
+    border-right: none;
+    border-top: none;
+    border-radius: 0;
+    box-shadow: none;
+  }
+}
+@media (min-width: 768px) {
+  .av32-topbar {
+    border-radius: 1rem;
+  }
+}
+
+/* topbar search — soft pill input with accent focus ring */
+.av32-search {
+  height: 2.4rem;
+  width: 11rem;
+  border-radius: 999px;
+  border: 1px solid var(--av-topbar-border, var(--border));
+  background: color-mix(in oklab, var(--card) 65%, transparent);
+  color: var(--foreground);
+  padding-inline-start: 2.25rem;
+  padding-inline-end: 0.875rem;
+  font-size: 13px;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    width 0.2s ease;
+}
+.av32-search::placeholder {
+  color: var(--muted-foreground);
+}
+.av32-search:focus {
+  border-color: var(--av-accent, var(--primary));
+  box-shadow: 0 0 0 3px var(--av-glow, rgba(124, 58, 237, 0.25));
+  outline: none;
+}
+@media (min-width: 1024px) {
+  .av32-search {
+    width: 15rem;
+  }
+  .av32-search:focus {
+    width: 17rem;
+  }
+}
+
+/* topbar avatar chip (name + role pill) */
+.av32-user-chip {
+  border-radius: 999px;
+  border: 1px solid var(--av-topbar-border, var(--border));
+  background: color-mix(in oklab, var(--card) 70%, transparent);
+  transition:
+    background-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.av32-user-chip:hover {
+  box-shadow: 0 6px 18px -6px var(--av-glow, rgba(124, 58, 237, 0.35));
+}
+
+/* circular topbar icon buttons — restyle the v20 look */
+.av32-icon-btn {
+  background: color-mix(in oklab, var(--card) 72%, transparent);
+  border: 1px solid var(--av-topbar-border, var(--border));
+  border-radius: 999px;
+}
+.av32-icon-btn:hover {
+  background: var(--zy-nav-hover-bg, var(--muted));
+  box-shadow: 0 6px 16px -8px var(--av-glow, rgba(124, 58, 237, 0.4));
+}
+
+/* CTA → accent gradient pill */
+.zy-cta {
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--av-pill-from, var(--primary)), var(--av-pill-to, var(--primary)));
+  color: var(--av-pill-fg, var(--primary-foreground));
+  border: none;
+  box-shadow: 0 8px 20px -6px var(--av-glow, rgba(124, 58, 237, 0.45));
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    filter 0.15s ease;
+}
+.zy-cta:hover {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+  background: linear-gradient(135deg, var(--av-pill-from, var(--primary)), var(--av-pill-to, var(--primary)));
+}
+
+/* ── floating sidebar card (desktop rail / full sidebar) ─────────── */
+.av32-sidebar-card {
+  background: var(--av-sidebar-bg, var(--sidebar, var(--card)));
+  border: 1px solid var(--av-sidebar-border, var(--sidebar-border, var(--border)));
+  border-radius: 1rem;
+  box-shadow: var(--av-sidebar-shadow, 0 10px 15px -3px rgba(30, 27, 75, 0.08));
+}
+
+/* ── sidebar nav (Peoplexio rhythm, gradient pill active) ───────── */
+
+/* section label: 10px bold muted with a hairline rule */
+.zy-nav-label {
+  padding: 0.875rem 1.25rem 0.5rem;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--zy-label, var(--muted-foreground));
+}
+
+/* nav item: 42px rounded-full pill; active = gradient + icon glow.
+   border-inline-start: 0 clears the v23 3px reserved border. */
+.zy-nav-link {
+  border-inline-start: 0;
+  color: var(--zy-nav-fg, var(--muted-foreground));
+  transition:
+    background-color 0.18s ease,
+    color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s ease;
+}
+.zy-nav-link:hover {
+  background: var(--zy-nav-hover-bg, var(--muted));
+  color: var(--zy-nav-hover-fg, var(--foreground));
+}
+.zy-nav-link[data-active] {
+  background: linear-gradient(
+    135deg,
+    var(--av-pill-from, var(--primary)),
+    var(--av-pill-to, var(--primary))
+  );
+  color: var(--av-pill-fg, var(--primary-foreground));
+  box-shadow: var(--zy-nav-glow, 0 10px 25px -5px var(--av-glow));
+}
+/* icon chip: 32px, tinted glass only when active + glow halo */
+.zy-nav-icon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  flex-shrink: 0;
+  transition: background-color 0.18s ease;
+}
+.zy-nav-link[data-active] .zy-nav-icon {
+  background: var(--zy-nav-icon-chip, rgba(255, 255, 255, 0.22));
+}
+.zy-nav-link[data-active] .zy-nav-icon svg {
+  filter: drop-shadow(0 0 6px var(--av-glow, rgba(124, 58, 237, 0.6)));
+}
+.zy-nav-link:not([data-active]) .zy-nav-icon svg {
+  opacity: 0.9;
+}
+
+/* bottom profile card */
+.zy-profile {
+  background: var(--zy-profile-bg, var(--muted));
+  border-radius: 0.875rem;
+  transition: background-color 0.15s ease;
+}
+.zy-profile:hover {
+  background: var(--zy-nav-hover-bg, var(--muted));
+}
+.zy-avatar-dot {
+  box-shadow: 0 0 0 2px var(--zy-profile-bg, var(--muted));
+}
+
+/* segmented controls + pill tabs (kept, tuned) */
+.zy-segment {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--zy-seg-bg, var(--muted));
+}
+.zy-segment-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 30px;
+  padding-inline: 13px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--muted-foreground);
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.zy-segment-btn:hover {
+  color: var(--foreground);
+}
+.zy-segment-btn[data-active] {
+  background: var(--zy-seg-active-bg, var(--card));
+  color: var(--foreground);
+  box-shadow: var(--zy-seg-shadow, 0 1px 3px rgba(16, 12, 46, 0.12));
+}
+.zy-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 32px;
+  padding-inline: 14px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--muted-foreground);
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease;
+}
+.zy-tab:hover {
+  background: var(--muted);
+  color: var(--foreground);
+}
+.zy-tab[data-active] {
+  background: var(--zy-pill-active-bg, var(--primary));
+  color: var(--zy-pill-active-fg, var(--primary-foreground));
+}
+
+/* stat-card trend pills (kept from v23 contract) */
+.zy-trend {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+}
+.zy-trend-up {
+  background: var(--zy-trend-up-bg, #ecfdf5);
+  color: var(--zy-trend-up-fg, #059669);
+}
+.zy-trend-down {
+  background: var(--zy-trend-down-bg, #fef2f2);
+  color: var(--zy-trend-down-fg, #dc2626);
+}
+.zy-stat-card {
+  border-radius: 1rem;
+  border-color: var(--border);
+  box-shadow: var(--av-card-shadow, 0 4px 6px -1px rgba(16, 12, 46, 0.05));
+}
+.zy-tint-indigo {
+  background: var(--zy-tint-indigo-bg, #f3e8ff);
+  color: var(--zy-tint-indigo-fg, var(--primary));
+}
+.zy-tint-red {
+  background: var(--zy-tint-red-bg, #fef2f2);
+  color: var(--zy-tint-red-fg, var(--destructive));
+}
+.zy-tint-cyan {
+  background: var(--zy-tint-cyan-bg, #ecfeff);
+  color: var(--zy-tint-cyan-fg, #0891b2);
+}
+.zy-tint-emerald {
+  background: var(--zy-tint-emerald-bg, #ecfdf5);
+  color: var(--zy-tint-emerald-fg, #059669);
+}
+
+/* ── v32 dashboard widgets (page-level, still shell-scoped) ─────── */
+
+/* welcome banner: layered gradient + glow blobs + glass close btn */
+.av32-welcome {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1.25rem;
+  background: var(--av-gradient, linear-gradient(135deg, #7c3aed, #1e1b4b));
+  color: #ffffff;
+  box-shadow: 0 18px 40px -12px var(--av-glow, rgba(124, 58, 237, 0.5));
+}
+.av32-welcome::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    620px circle at 88% -20%,
+    rgba(255, 255, 255, 0.18),
+    transparent 55%
+  );
+  pointer-events: none;
+}
+.av32-welcome-glass {
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* KPI stat card: 16px radius, layered shadow, accent icon chip */
+.av32-kpi {
+  border-radius: 1rem;
+  border: 1px solid var(--border);
+  background: var(--card);
+  box-shadow: var(--av-card-shadow);
+  transition:
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+.av32-kpi:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--av-card-shadow-hover);
+}
+.av32-kpi-chip {
+  width: 44px;
+  height: 44px;
+  border-radius: 0.875rem;
+  background: var(--av-accent-soft-bg, var(--accent));
+  color: var(--av-accent-soft-fg, var(--primary));
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--av-accent, var(--primary)) 18%, transparent);
+}
+
+/* Finnova split panel — dark list (right) */
+.av32-panel {
+  border-radius: 1rem;
+  background: var(--av-panel-dark, #1e1b4b);
+  color: var(--av-panel-dark-fg, #f9fafb);
+  border: 1px solid var(--av-panel-dark-border, #322e63);
+  box-shadow: 0 14px 34px -14px rgba(10, 8, 40, 0.55);
+  overflow: hidden;
+}
+.av32-panel-row {
+  position: relative;
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.7rem 0.9rem;
+  text-align: start;
+  color: var(--av-panel-dark-muted, #a5a3c8);
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+.av32-panel-row:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--av-panel-dark-fg, #f9fafb);
+}
+.av32-panel-row[data-selected] {
+  background: var(--av-panel-selected, #4c1d95);
+  color: #ffffff;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+}
+.av32-panel-avatar {
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--av-pill-from, #7c3aed), var(--av-pill-to, #6d28d9));
+  color: var(--av-pill-fg, #ffffff);
+}
+
+/* Finnova glassmorphism detail card (left) */
+.av32-glass {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1rem;
+  background: var(--av-gradient, linear-gradient(135deg, #7c3aed, #1e1b4b));
+  color: #ffffff;
+  box-shadow: 0 18px 40px -14px var(--av-glow, rgba(124, 58, 237, 0.5));
+}
+.av32-glass::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    480px circle at 85% 115%,
+    rgba(255, 255, 255, 0.16),
+    transparent 60%
+  );
+  pointer-events: none;
+}
+.av32-glass-pane {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-radius: 0.875rem;
+}
+.av32-glass-chip {
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 999px;
+}
+
+/* accent dots in the theme popover */
+.av32-accent-dot {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.35);
+  transition: transform 0.15s ease;
+}
+.av32-accent-dot:hover {
+  transform: scale(1.12);
+}
+
+/* top products rank chip */
+.av32-rank {
+  width: 26px;
+  height: 26px;
+  border-radius: 0.625rem;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  background: var(--av-accent-soft-bg, var(--accent));
+  color: var(--av-accent-soft-fg, var(--primary));
+}
+
+/* reduced motion — the framer entrances already respect the hook;
+   these cover the CSS transitions */
+@media (prefers-reduced-motion: reduce) {
+  .av32-kpi,
+  .zy-nav-link,
+  .zy-cta,
+  .av32-panel-row {
+    transition: none;
+  }
+}

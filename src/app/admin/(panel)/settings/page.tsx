@@ -38,6 +38,7 @@ import {
   Check,
   CheckCircle2,
   HelpCircle,
+  ImagePlus,
   KeyRound,
   CreditCard,
   Eye,
@@ -295,24 +296,22 @@ function MaintenancePreviewDialog({
   );
 }
 
-/* ═══════════════ v31 (10-b) · «حالت تعمیر» — dedicated maintenance section ═══════════════ */
-
-/** v31 (10-b): the mini-browser preview viewport height (h-[26rem] = 416px) */
-const MAINT_CARD_PREVIEW_H = 416;
+/* ═══════════════ v32 (13-d) · «حالت تعمیر» — dedicated maintenance section ═══════════════ */
 
 /**
- * v31 (10-b) · BIG live template card («قالب صفحهٔ تعمیر» section) — renders
- * the REAL repair-page template at its natural 1280px logical width, scaled
- * (CSS transform: scale) into a tall 416px mini browser viewport. The
- * template's real height is MEASURED with a ResizeObserver and the scale is
- * fitted to it (clamped [0.30, 0.55] for legibility), so the whole page —
- * logo تا یادداشت پایین — is always fully visible and readable; the old
- * 256px viewport assumed page height == window.innerHeight and clipped
- * taller templates. Each template centers its content, so the horizontal
- * overhang at 1280px logical width clips symmetrically; the centered
- * transform-origin keeps any clamped edge-case overflow symmetric too.
- * Selecting a card writes maintenanceTemplate; «پیش‌نمایش زنده» opens the
- * full-size MaintenancePreviewDialog.
+ * v32 (13-d) · COMPACT square live template card («قالب صفحهٔ تعمیر» section) —
+ * the owner asked for small cards instead of the v31 416px monsters: a
+ * SQUARE mini-browser viewport (~aspect-square, 2×2 at ≥sm / 4 columns at
+ * xl) renders the REAL repair-page template — the exact component closed
+ * visitors see, with this form's own words/logo/contacts (even unsaved).
+ * The page's real height is MEASURED with a ResizeObserver (it is h-dvh of
+ * the admin window) and fitted with a CSS transform clamped to [0.16, 0.34],
+ * transform-origin center — the whole page is always fully visible and the
+ * horizontal overhang at 1280px logical width clips symmetrically (each
+ * template centers its content). Clicking the card / «انتخاب این قالب»
+ * writes maintenanceTemplate; «پیش‌نمایش زنده» opens the full-size
+ * MaintenancePreviewDialog. The ACTIVE template wears the GOLDEN ring
+ * («کادر طلایی») the owner asked for.
  */
 function MaintenanceTemplateCard({
   tpl,
@@ -327,22 +326,23 @@ function MaintenanceTemplateCard({
   onSelect: () => void;
   onPreview: () => void;
 }) {
-  /* v31 (10-b): scale the full-size page to FIT the 416px preview area —
-   * measured, not assumed (re-measures on window resize because the pages
-   * are min-h-screen, and on live form edits that change the texts). */
+  const boxRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0);
 
   useEffect(() => {
-    const el = innerRef.current;
-    if (!el) return;
+    const box = boxRef.current;
+    const inner = innerRef.current;
+    if (!box || !inner) return;
     const measure = () => {
-      const h = el.offsetHeight || window.innerHeight || 800;
-      setScale(Math.max(0.3, Math.min(0.55, MAINT_CARD_PREVIEW_H / h)));
+      const bh = box.clientHeight || 230;
+      const ph = inner.offsetHeight || 900;
+      setScale(Math.max(0.16, Math.min(0.34, bh / ph)));
     };
     measure();
     const ro = new ResizeObserver(measure);
-    ro.observe(el);
+    ro.observe(box);
+    ro.observe(inner);
     return () => ro.disconnect();
   }, []);
 
@@ -360,76 +360,92 @@ function MaintenanceTemplateCard({
   return (
     <div
       className={cn(
-        "relative flex flex-col rounded-2xl border-2 bg-card p-3 transition-all duration-300",
+        "relative flex flex-col rounded-2xl border bg-card p-2.5 transition-all duration-300",
         active
-          ? "border-primary bg-gradient-to-b from-primary/[0.08] via-card to-card shadow-xl shadow-primary/20 ring-2 ring-primary/25"
-          : "border-border hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl"
+          ? "border-primary shadow-xl shadow-primary/25 ring-2 ring-primary ring-offset-2 ring-offset-background"
+          : "border-border hover:border-primary/50 hover:shadow-lg"
       )}
     >
-      {/* mini browser viewport with the REAL template rendered inside */}
-      <div className="overflow-hidden rounded-xl border border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900">
-        <div className="flex h-8 items-center gap-1.5 border-b border-zinc-200 bg-zinc-100 px-2.5 dark:border-zinc-800 dark:bg-zinc-800/70" dir="ltr">
-          <span aria-hidden className="h-2.5 w-2.5 rounded-full bg-red-400/80" />
-          <span aria-hidden className="h-2.5 w-2.5 rounded-full bg-amber-400/80" />
-          <span aria-hidden className="h-2.5 w-2.5 rounded-full bg-emerald-400/80" />
-          <span dir="ltr" className="ms-1.5 flex-1 truncate rounded-md bg-white/80 px-2 py-0.5 font-mono text-[10px] text-zinc-500 dark:bg-zinc-900/70 dark:text-zinc-400">
-            taj-electronics.ir/{tpl.nameEn}
-          </span>
-        </div>
-        <div className="relative h-[26rem] w-full overflow-hidden">
-          {/* the scaled REAL page — centered, pointer-events off */}
-          <div className="absolute inset-0 flex items-center justify-center overflow-hidden">
-            <div
-              ref={innerRef}
-              className="pointer-events-none select-none transition-transform duration-300 ease-out [transform-origin:center]"
-              style={{ width: 1280, transform: `scale(${scale})` }}
+      {/* the whole card top (mini browser + name + desc) is one select button */}
+      <button
+        type="button"
+        onClick={onSelect}
+        disabled={active}
+        className="w-full cursor-pointer text-start disabled:cursor-default"
+        aria-label={`انتخاب قالب ${tpl.nameFa}`}
+      >
+        {/* mini square browser viewport with the REAL template inside */}
+        <div className="overflow-hidden rounded-xl border border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900">
+          <div
+            className="flex h-6 items-center gap-1.5 border-b border-zinc-200 bg-zinc-100 px-2 dark:border-zinc-800 dark:bg-zinc-800/70"
+            dir="ltr"
+          >
+            <span aria-hidden className="h-2 w-2 rounded-full bg-red-400/80" />
+            <span aria-hidden className="h-2 w-2 rounded-full bg-amber-400/80" />
+            <span aria-hidden className="h-2 w-2 rounded-full bg-emerald-400/80" />
+            <span
+              dir="ltr"
+              className="ms-1 flex-1 truncate rounded bg-white/80 px-1.5 font-mono text-[8px] text-zinc-500 dark:bg-zinc-900/70 dark:text-zinc-400"
             >
-              <RepairPage data={data} />
-            </div>
-          </div>
-          {scale === 0 && <Skeleton className="absolute inset-0 z-10 rounded-none" />}
-        </div>
-      </div>
-
-      {/* Persian name, 2-line description, active badge, actions */}
-      <div className="flex flex-1 flex-col pt-3.5">
-        <div className="flex items-center justify-between gap-2">
-          <p className="text-sm font-black">{tpl.nameFa}</p>
-          {active ? (
-            <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 text-[10px] font-black text-primary">
-              <Check className="h-3 w-3" />
-              قالب فعال
+              {tpl.nameEn}
             </span>
-          ) : (
-            <span dir="ltr" className="shrink-0 font-mono text-[9px] text-muted-foreground">{tpl.nameEn}</span>
+          </div>
+          <div ref={boxRef} className="relative aspect-square w-full overflow-hidden">
+            <div className="absolute inset-0 flex items-center justify-center overflow-hidden">
+              <div
+                ref={innerRef}
+                className="pointer-events-none select-none [transform-origin:center]"
+                style={{ width: 1280, transform: `scale(${scale})` }}
+              >
+                <RepairPage data={data} />
+              </div>
+            </div>
+            {scale === 0 && <Skeleton className="absolute inset-0 z-10 rounded-none" />}
+            {active && (
+              <span className="absolute right-1.5 top-1.5 z-10 inline-flex items-center gap-1 rounded-full bg-primary px-2 py-0.5 text-[9px] font-black text-primary-foreground shadow-lg">
+                <Check className="h-3 w-3" />
+                فعال
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Persian name + one-line description */}
+        <div className="flex items-center justify-between gap-1.5 px-0.5 pt-2">
+          <p className="truncate text-xs font-black">{tpl.nameFa}</p>
+          {!active && (
+            <span dir="ltr" className="shrink-0 font-mono text-[8px] text-muted-foreground">
+              {tpl.nameEn}
+            </span>
           )}
         </div>
-        <p className="mt-2 min-h-10 text-[11px] leading-5 text-muted-foreground">{tpl.desc}</p>
-        <div className="mt-auto flex items-center gap-2 pt-3">
-          <Button
-            type="button"
-            size="sm"
-            variant={active ? "outline" : "default"}
-            disabled={active}
-            className="h-10 flex-1 rounded-lg text-[11px] font-black"
-            onClick={onSelect}
-            aria-label={`انتخاب قالب ${tpl.nameFa}`}
-          >
-            {active && <Check className="h-3.5 w-3.5" />}
-            {active ? "قالب فعال" : "انتخاب این قالب"}
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            className="h-10 flex-1 rounded-lg text-[11px] font-bold"
-            onClick={onPreview}
-            aria-label={`پیش‌نمایش زنده قالب ${tpl.nameFa}`}
-          >
-            <Eye className="h-3.5 w-3.5" />
-            پیش‌نمایش زنده
-          </Button>
-        </div>
+        <p className="mt-0.5 line-clamp-1 px-0.5 text-[10px] leading-4 text-muted-foreground">{tpl.desc}</p>
+      </button>
+
+      <div className="flex items-center gap-1.5 pt-2">
+        <Button
+          type="button"
+          size="sm"
+          variant={active ? "outline" : "default"}
+          disabled={active}
+          className="h-8 flex-1 rounded-lg text-[10px] font-black"
+          onClick={onSelect}
+          aria-label={`انتخاب قالب ${tpl.nameFa}`}
+        >
+          {active && <Check className="h-3 w-3" />}
+          {active ? "قالب فعال" : "انتخاب این قالب"}
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          className="h-8 flex-1 rounded-lg text-[10px] font-bold"
+          onClick={onPreview}
+          aria-label={`پیش‌نمایش زنده قالب ${tpl.nameFa}`}
+        >
+          <Eye className="h-3.5 w-3.5" />
+          پیش‌نمایش زنده
+        </Button>
       </div>
     </div>
   );
@@ -500,9 +516,9 @@ function MaintenanceTab() {
       <div className="space-y-4">
         <Skeleton className="h-36 rounded-xl" />
         <Skeleton className="h-80 rounded-xl" />
-        <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
-          {/* v31 (10-b): matches the new BIG template cards (~610px tall) */}
-          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-[38rem] rounded-2xl" />)}
+        {/* v32 (13-d): matches the new COMPACT square template cards */}
+        <div className="mx-auto grid w-full max-w-[36rem] grid-cols-2 gap-3 sm:gap-4 xl:mx-0 xl:max-w-none xl:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-[21.5rem] rounded-2xl" />)}
         </div>
       </div>
     );
@@ -653,15 +669,65 @@ function MaintenanceTab() {
               شمارش معکوس (فقط قالب «شمارش معکوس»)
             </p>
             <div className="md:col-span-2">
-              <Field label="متن بالای شمارش معکوس" htmlFor="mt-etanote" hint={`پیش‌فرض: ${def("etaNote")} — شمارش تا ساعت ۱۸:۰۰ امروز (یا فردا) ادامه دارد`}>
+              <Field label="متن بالای شمارش معکوس" htmlFor="mt-etanote" hint={`پیش‌فرض: ${def("etaNote")}`}>
                 <Input id="mt-etanote" className="rounded-lg" value={texts.etaNote} onChange={(e) => setText("etaNote", e.target.value)} placeholder={def("etaNote")} />
               </Field>
+            </div>
+            {/* v32 (13-d): admin-set countdown target — days + hours on top of
+             * the refresh-proof 18:00 anchor (empty = the designed default) */}
+            <Field label="تعداد روز شمارش" htmlFor="mt-cddays" hint="۰ تا ۳۶۵ — خالی = بدون روز اضافه">
+              <Input
+                id="mt-cddays"
+                type="number"
+                min={0}
+                max={365}
+                dir="ltr"
+                className="rounded-lg"
+                value={texts.countdownDays}
+                onChange={(e) => setText("countdownDays", e.target.value)}
+                placeholder="مثلاً ۲"
+              />
+            </Field>
+            <Field label="تعداد ساعت شمارش" htmlFor="mt-cdhours" hint="۰ تا ۲۳ — خالی = بدون ساعت اضافه">
+              <Input
+                id="mt-cdhours"
+                type="number"
+                min={0}
+                max={23}
+                dir="ltr"
+                className="rounded-lg"
+                value={texts.countdownHours}
+                onChange={(e) => setText("countdownHours", e.target.value)}
+                placeholder="مثلاً ۶"
+              />
+            </Field>
+            <div className="md:col-span-2">
+              <GuideNote>
+                اگر روز یا ساعت را تنظیم کنید، هدف شمارش معکوس «ساعت ۱۸:۰۰ (امروز یا فردا) به‌اضافهٔ مقدار شما» می‌شود و نوار پیشرفت و مراحل تعمیر کل همین مدت را پوشش می‌دهند. هر دو خالی = شمارش کوتاه پیش‌فرض تا ساعت ۱۸:۰۰.
+              </GuideNote>
+            </div>
+
+            <p className="md:col-span-2 flex items-center gap-1.5 text-xs font-black text-muted-foreground">
+              <ImagePlus className="h-3.5 w-3.5 text-primary/70" />
+              لوگوی صفحهٔ تعمیر
+            </p>
+            <div className="md:col-span-2">
+              <ImageUpload
+                label="لوگوی اختصاصی صفحهٔ تعمیر (اختیاری)"
+                folder="branding"
+                height={96}
+                value={texts.logoUrl || null}
+                onChange={(url) => setText("logoUrl", url ?? "")}
+              />
+              <p className="mt-1.5 text-[11px] leading-5 text-muted-foreground">
+                خالی بگذارید تا لوگوی اصلی فروشگاه (تب «برندینگ») روی صفحهٔ تعمیر بیفتد؛ اگر آن هم تنظیم نشده باشد، آیکون آچارِ قالب نمایش داده می‌شود.
+              </p>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* ── Section 3 · قالب صفحهٔ تعمیر — the 4 BIG live cards ── */}
+      {/* ── Section 3 · قالب صفحهٔ تعمیر — the 4 COMPACT square live cards ── */}
       <Card>
         <CardHeader className="pb-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
@@ -676,9 +742,10 @@ function MaintenanceTab() {
         </CardHeader>
         <CardContent className="space-y-4">
           <GuideNote>
-            قالب ظاهر صفحه‌ای را که بازدیدکنندهٔ عادی در حالت تعمیر می‌بیند انتخاب کنید — پیش‌نمایش هر کارت، خودِ همان قالب به‌صورت کامل و زنده است و با متن‌ها، لوگو و اطلاعات تماسِ همین فرم (حتی ذخیره‌نشده) به‌روز می‌شود. کارت انتخاب‌شده با کادر طلایی مشخص می‌شود.
+            قالب ظاهر صفحه‌ای را که بازدیدکنندهٔ عادی در حالت تعمیر می‌بیند انتخاب کنید — هر کارت کوک، خودِ همان قالب را به‌صورت زنده و کامل در یک قاب مربعی نشان می‌دهد و با متن‌ها، لوگو و اطلاعات تماسِ همین فرم (حتی ذخیره‌نشده) به‌روز می‌شود. کارت فعال با کادر طلایی مشخص می‌شود؛ برای دیدن قالب در اندازهٔ واقعی، «پیش‌نمایش زنده» را بزنید.
           </GuideNote>
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
+          {/* v32 (13-d): COMPACT square cards — 2×2 at ≥sm, 4 columns at xl */}
+          <div className="mx-auto grid w-full max-w-[36rem] grid-cols-2 gap-3 sm:gap-4 xl:mx-0 xl:max-w-none xl:grid-cols-4">
             {MAINTENANCE_TEMPLATES.map((t) => (
               <MaintenanceTemplateCard
                 key={t.id}
@@ -1953,6 +2020,10 @@ interface MaintenanceContentForm {
   footerNote: string;
   /* v30: caption above the countdown digits (countdown-eta template) */
   etaNote: string;
+  /* v32 (13-d): repair-page logo override + countdown target ("" = default) */
+  logoUrl: string;
+  countdownDays: string;
+  countdownHours: string;
 }
 
 /** parse the raw JSON string into an editable all-strings form */
@@ -1960,7 +2031,7 @@ function parseMaintenanceContentForm(raw: string | null | undefined): Maintenanc
   const empty: MaintenanceContentForm = {
     titleSuffix: "", badge: "", description: "", phoneLabel: "", emailLabel: "",
     hoursLabel: "", trackingTitle: "", trackingDesc: "", trackingButton: "", footerNote: "",
-    etaNote: "",
+    etaNote: "", logoUrl: "", countdownDays: "", countdownHours: "",
   };
   if (!raw?.trim()) return empty;
   try {

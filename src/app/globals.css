@@ -684,6 +684,62 @@
   transform: scale(1.06);
 }
 
+/* ── v32 (14-b): product-card HOVER EFFECTS (Admin → ظاهر → «هدر و فوتر»
+   → «افکت های هاور محصولات») ─────────────────────────────────────────
+   The (store) layout sets data-hover-fx on the store shell (from
+   StoreSettings.storeChrome.productHover); the shared ProductCard carries
+   data-product-card. Value "none" (default) matches nothing — the card
+   renders with the classic zoom above. All effects animate the card IMAGE
+   via transform/opacity (GPU, no layout) and are physical-direction, so
+   they read correctly in RTL. The global prefers-reduced-motion block
+   above neutralizes the transitions for sensitive visitors. ── */
+[data-hover-fx="flip3d"] [data-product-card] .zoom-media {
+  perspective: 800px;
+}
+[data-hover-fx="flip3d"] [data-product-card] .zoom-media img {
+  transform: rotateY(0deg) rotateX(0deg) scale(1);
+  transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+}
+[data-hover-fx="flip3d"] [data-product-card] .zoom-media:hover img {
+  transform: rotateY(-26deg) rotateX(5deg) scale(1.1);
+}
+/* از بالا به پایین — the image glides downward on hover */
+[data-hover-fx="topdown"] [data-product-card] .zoom-media img {
+  transform: translateY(-6%) scale(1.12);
+  transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+[data-hover-fx="topdown"] [data-product-card] .zoom-media:hover img {
+  transform: translateY(6%) scale(1.12);
+}
+/* چپ به راست — the image pans left→right (physical direction, RTL-safe) */
+[data-hover-fx="slide"] [data-product-card] .zoom-media img {
+  transform: translateX(-6%) scale(1.12);
+  transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+[data-hover-fx="slide"] [data-product-card] .zoom-media:hover img {
+  transform: translateX(6%) scale(1.12);
+}
+/* محو - ظهور — dimmed at rest, fades in on hover */
+[data-hover-fx="fade"] [data-product-card] .zoom-media img {
+  opacity: 0.35;
+  transform: scale(1.02);
+  transition: opacity 0.5s ease, transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+[data-hover-fx="fade"] [data-product-card] .zoom-media:hover img {
+  opacity: 1;
+  transform: scale(1.06);
+}
+/* بزرگنمایی + سایه — stronger zoom + heavier card shadow */
+[data-hover-fx="bigzoom"] [data-product-card] .zoom-media img {
+  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+[data-hover-fx="bigzoom"] [data-product-card] .zoom-media:hover img {
+  transform: scale(1.16);
+}
+[data-hover-fx="bigzoom"] [data-product-card]:hover {
+  box-shadow: 0 26px 52px -20px color-mix(in oklab, var(--primary) 60%, transparent);
+}
+
 /* Story progress bars */
 .story-progress {
   align-items: center;

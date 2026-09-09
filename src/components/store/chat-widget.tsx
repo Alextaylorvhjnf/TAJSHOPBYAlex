@@ -11,7 +11,8 @@ import { cn } from "@/lib/utils";
 import { Sparkles, X, SendHorizonal, ShoppingCart, Crown, Trash2, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { getWidgetSkin, getWidgetAvatar, isFarsiStoreName, storeMonogram, WIDGET_SKIN_CSS } from "./widget-skins";
+import { getWidgetSkin, getWidgetPersonaArt, WIDGET_SKIN_CSS } from "./widget-skins";
+import { AssistantRobot } from "./assistant-art";
 
 type ChatProduct = {
   id: string;
@@ -217,6 +218,13 @@ export function ChatWidget({
    *  deterministic engine alone — both modes fully answer catalog +
    *  order-tracking questions. */
   const [aiMode, setAiMode] = useState<"pro" | "smart">("smart");
+  /** v32 (13-g): per-template widget art, fetched from the public
+   * /api/store-info endpoint (extended to also return { activeTemplate,
+   * aiWidgetImage }): aiWidgetImage is the per-template content override
+   * (templateContent.texts.aiWidgetImage — Admin → ظاهر → محتوای اختصاصی
+   * قالب), activeTemplate is the live template id. Loaded once on mount
+   * (plus on window focus); failures silently keep the server props. */
+  const [tplArt, setTplArt] = useState<{ template: string | null; image: string | null } | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -227,6 +235,35 @@ export function ChatWidget({
   useEffect(() => {
     setLiveLogo(aiLogo);
   }, [aiLogo]);
+
+  /* ── v32 (13-g): store-info art fetch (mount + window focus) ──
+   * /api/store-info now also returns { activeTemplate, aiWidgetImage } —
+   * the server resolves the ACTIVE template's own content, so the widget
+   * learns both the live template id and the per-template art override
+   * client-side (it also covers mounts outside the (store) layout). */
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const res = await fetch("/api/store-info", { cache: "no-store" });
+        if (!res.ok) return;
+        const j = (await res.json()) as { ok?: boolean; activeTemplate?: string | null; aiWidgetImage?: string | null };
+        if (cancelled) return;
+        const template = typeof j.activeTemplate === "string" && j.activeTemplate ? j.activeTemplate : null;
+        const image = typeof j.aiWidgetImage === "string" && j.aiWidgetImage.trim() ? j.aiWidgetImage.trim() : null;
+        setTplArt({ template, image });
+      } catch {
+        /* offline — keep the prop-based defaults */
+      }
+    };
+    void load();
+    window.addEventListener("focus", load);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("focus", load);
+    };
+  }, []);
 
   /* ── v29.2: live logo poller ──────────────────────────────────
    * Every ~6s while the tab is VISIBLE (+ immediately on window focus)
@@ -482,24 +519,24 @@ export function ChatWidget({
 
   /* v28-T3: dynamic store branding — the widget takes the store's CURRENT
    * name (admin renames → widget re-brands on the next request) for the
-   * title/greeting/aria-labels, and builds its logo as a MONOGRAM from the
-   * name's initials ("alex vpn" → "AV", «تاج الکترونیکس» → «تا"). The
-   * visual skin follows the ACTIVE storefront template (25 ids → 10 skins
-   * via widget-skins.ts); with no skin the original gold-surface look is
-   * kept as the fallback. */
+   * title/greeting/aria-labels. The visual skin follows the ACTIVE
+   * storefront template (25 ids → 10 skins via widget-skins.ts); with no
+   * skin the original gold-surface look is kept as the fallback.
+   * v32 (13-g): THEME-AWARE ART — resolution order:
+   *   ① templateContent.texts.aiWidgetImage for the ACTIVE template
+   *      (per-template content override, fetched live from /api/store-info)
+   *   ② the admin's global uploaded AI logo (Settings → AI, live poller)
+   *   ③ the per-template default persona: gaming-cyber keeps its cool
+   *      photographic arcade art; every other family → the CODE-DRAWN
+   *      AssistantRobot whose accent follows the widget skin. */
   const rawName = typeof storeName === "string" ? storeName.trim() : "";
   const displayName = rawName || "فروشگاه";
-  const monogram = rawName ? storeMonogram(rawName) : "";
-  const skin = getWidgetSkin(templateId);
-  /* v27.1: cool per-template AI assistant avatar (robot/girl art) — shown in
-   * the header + empty state; Farsi store names also use it on the FAB
-   * (Latin names keep their monogram).
-   * v29: the admin-uploaded custom logo (aiLogo) overrides the art EVERYWHERE
-   * (FAB + header + empty state), for any store name.
-   * v29.2: liveLogo = same override, but refreshed live via the poller above. */
-  const assistantAvatar = liveLogo || getWidgetAvatar(skin);
-  const farsiName = isFarsiStoreName(rawName);
-  const hasCustomLogo = !!liveLogo;
+  const effTemplate = tplArt?.template || templateId || null;
+  const skin = getWidgetSkin(effTemplate);
+  const assistantAvatar = tplArt?.image || liveLogo || getWidgetPersonaArt(effTemplate) || null;
+  /* the Concierge Robot is the default persona whenever no image
+   * (override / uploaded logo / photographic persona) resolves */
+  const showRobot = !assistantAvatar;
 
   if (aiAvailable === false) return null;
 
@@ -519,12 +556,12 @@ export function ChatWidget({
       >
         {open ? (
           <X className="h-6 w-6" />
-        ) : assistantAvatar && (farsiName || hasCustomLogo) ? (
-          /* v27.1: Farsi store name → the cool AI assistant logo on the FAB.
-           * v29: with a custom uploaded logo it always shows (any name). */
+        ) : assistantAvatar ? (
+          /* override / uploaded logo / photographic persona (gaming-cyber) */
           <img src={assistantAvatar} alt="" className="h-11 w-11 rounded-full object-cover" />
-        ) : monogram ? (
-          <span className="text-lg font-black leading-none">{monogram}</span>
+        ) : showRobot ? (
+          /* v32 (13-g): the Concierge Robot — theme-aware default persona */
+          <AssistantRobot className="h-9 w-9 drop-shadow-sm" />
         ) : (
           <Sparkles className="h-6 w-6" />
         )}
@@ -575,10 +612,10 @@ export function ChatWidget({
             )}
           >
             {assistantAvatar ? (
-              /* v27.1: the template's AI assistant face (robot/girl art) */
+              /* override / uploaded logo / photographic persona (gaming-cyber) */
               <img src={assistantAvatar} alt="" className="h-full w-full object-cover" />
-            ) : monogram ? (
-              <span className="text-lg font-black leading-none">{monogram}</span>
+            ) : showRobot ? (
+              <AssistantRobot className="h-8 w-8" />
             ) : aiMode === "pro" ? (
               <Sparkles className="h-5 w-5" />
             ) : (
@@ -644,8 +681,8 @@ export function ChatWidget({
               >
                 {assistantAvatar ? (
                   <img src={assistantAvatar} alt="" className="h-full w-full object-cover" />
-                ) : monogram ? (
-                  <span className="text-lg font-black leading-none">{monogram}</span>
+                ) : showRobot ? (
+                  <AssistantRobot className="h-11 w-11" />
                 ) : aiMode === "pro" ? (
                   <Sparkles className="h-7 w-7" />
                 ) : (

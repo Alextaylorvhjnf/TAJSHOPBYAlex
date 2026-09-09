@@ -99,6 +99,23 @@ export function getWidgetAvatar(skin?: WidgetSkin): string | null {
   return skin ? WIDGET_AVATARS[skin] : null;
 }
 
+/* ── v32 (13-g): per-template DEFAULT persona art ─────────────────────
+ * The widget's default art is THEME-AWARE per template id: gaming-cyber
+ * keeps its current cool photographic arcade persona; every other
+ * template family renders the CODE-DRAWN AssistantRobot SVG
+ * (assistant-art.tsx — accent follows the widget skin). A per-template
+ * content override (templateContent.texts.aiWidgetImage, Admin → ظاهر)
+ * or the global uploaded AI logo still wins over these defaults. */
+export const WIDGET_PHOTO_PERSONAS: Partial<Record<string, string>> = {
+  "gaming-cyber": "/images/ai-assistants/arcade.png",
+};
+
+/** default persona art URL for a template id (null → AssistantRobot SVG) */
+export function getWidgetPersonaArt(templateId?: string | null): string | null {
+  if (!templateId) return null;
+  return WIDGET_PHOTO_PERSONAS[templateId] ?? null;
+}
+
 /** true when the store name is (mostly) Farsi/Arabic-script — those names
  *  render the cool assistant LOGO instead of a Latin monogram */
 export function isFarsiStoreName(name: string): boolean {
@@ -308,5 +325,31 @@ export const WIDGET_SKIN_CSS = `
 @media (prefers-reduced-motion: reduce) {
   [data-wskin] .cw-fab,
   [data-wskin] .cw-fab::after { animation: none !important; }
+}
+
+/* ── v32 (13-g): the Concierge Robot (assistant-art.tsx) ──────────────
+ * Gentle life: the eyes blink about once every 6s and the antenna beacon
+ * breathes. Not scoped to [data-wskin] — the robot also renders when no
+ * skin is active; accent colors ride the --w-accent vars (with a
+ * var(--primary) fallback baked into the SVG itself). */
+.cw-ar-eyes {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: cw-ar-blink 6.2s ease-in-out infinite;
+}
+@keyframes cw-ar-blink {
+  0%, 93.5%, 100% { transform: scaleY(1); }
+  96% { transform: scaleY(0.12); }
+}
+.cw-ar-pulse {
+  animation: cw-ar-beacon 2.8s ease-in-out infinite;
+}
+@keyframes cw-ar-beacon {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cw-ar-eyes,
+  .cw-ar-pulse { animation: none !important; }
 }
 `;

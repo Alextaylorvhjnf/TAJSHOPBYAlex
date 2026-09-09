@@ -228,12 +228,12 @@ export const TEMPLATE_DEFS: TemplateDef[] = [
   },
   {
     id: "mobile-first-pwa",
-    nameFa: "موبایل‌محور",
-    nameEn: "Mobile First",
-    descFa: "اپ‌شل آینده — ستون اپ ۴۳۰px با نوار تب شیشه‌ای و چرخ‌های اسنپ لمسی.",
-    tags: ["اپ‌مانند", "لمسی", "سریع"],
+    nameFa: "پرمیوم ریسپانسیو",
+    nameEn: "Premium Responsive",
+    descFa: "پرمیوم ریسپانسیو — فروشگاه حرفه‌ای با پارالاکس، چرخش سه‌بعدی محصولات و نورهایی که با اسکرول روشن می‌شوند؛ یک تجربه از موبایل تا دسکتاپ.",
+    tags: ["پرمیوم", "ریسپانسیو", "اسکرول‌انیمیشن"],
     icon: "Smartphone",
-    family: "social",
+    family: "modern",
   },
   {
     id: "nexora-tech",
