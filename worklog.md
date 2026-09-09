@@ -543,3 +543,27 @@ Work Log:
 
 Stage Summary:
 - v33 نهایی: ربات تلگرام کامل (فروشگاه+AI+پرداخت+تیکت+پنل ادمین) بدون تغییر در فایل‌های قدیمی؛ فیلتر اسلایدر/rail در ۲۳ قالب + هر دو DB؛ ۴۵ تست سبز + QA مرورگر سبز؛ بستهٔ ۱۱۸MB آماده از پیوست تسک/لینک‌ها؛ گیت کامیت شد بدون push (کاربر خودش push می‌کند).
+
+---
+Task ID: 17
+Agent: main (Z.ai Code)
+Task: v34 (29.0.0) — نصب فوق‌سریع بدون Docker: بستهٔ از پیش ساخته‌شده + install.sh جدید (دامنه/Nginx/SSL/systemd) + به‌روزرسانی standalone بدون بیلد.
+
+Work Log:
+- ریشه‌یابی کندی نصب v33: install.sh قدیمی Docker-based بود — روی سرور کاربر docker build کامل (bun install + next build) اجرا می‌شد ⇒ ۳۰-۴۰ دقیقه، ۱۰GB دیسک، ۸۰٪ RAM. راه‌حل: بیلد از قبل + نصاب بدون Docker.
+- prisma/schema.prisma: binaryTargets += rhel-openssl-1.1.x / rhel-openssl-3.0.x / linux-musl-openssl-3.0.x (افزایشی — سازگاری RHEL/Alma/Alpine برای runtime از پیش ساخته‌شده).
+- بیلد production با output:standalone در /tmp/taj-v34 (کپی پروژه + NODE_OPTIONS heap cap 2.2GB + توقف dev-supervisor برای آزادسازی RAM — دو OOM اولیه حل شد). سه بار بیلد شد تا updater.ts نهایی (رشته‌های runtime/runtime-code) داخل چانک‌های کامپایل‌شده بنشیند.
+- runtime/ (۵۴۲MB): standalone + prisma-cli-closure overlay + db-seed/catalog.db + prisma/schema + scripts/{docker-entrypoint,reset-install} + .version=29.0.0 + package.json + update.sh. اسم‌گذاری عمداً «runtime» — نام «app» با قرارداد App Router تاج زده بود (dev crash: builtin/layout.js از app/node_modules رزولو می‌شد) — با تست تجربی dev+runtime موازی تأیید شد بی‌تزاحم.
+- تست runtime روی پورت 3005 (همان entrypoint داکر): seed → prisma db push («in sync») → node server.js → /api/health=200 و همه صفحات ۲۰۰ (خانه، products فیلتردار، install، compare، cart…) + ربات تلگرام instrumentation بالا آمد.
+- install.sh جدید (بازنویسی کامل): ۷ گام — پیش‌نیازها فقط غایب (Node 22 NodeSource + nginx + certbot)، پرسیدن دامنه + اعتبارسنجی + چک DNS (getent + ipify)، استقرار در /var/www/taj-electronics (حفظ .env/db/uploads در اجرای مجدد + انتقال خودکار از Docker قبلی)، .env با AUTH_SECRET تصادفی + DATABASE_URL مطلق، Nginx conf.d vhost (proxy 3000 + gzip + 64MB body + SELinux setsebool)، certbot --nginx غیرتعاملی (فقط با دامنه/DNS معتبر)، systemd service (User=www-data|nginx، EnvironmentFile=.env، ExecStart=entrypoint) + health-wait + باکس جمع‌بندی فارسی (زمان/دیسک/RAM/دستورات) + پیام مؤدبانه فیلترینگ تلگرام ایران (پروب api.telegram.org) + راهنمای پاک‌سازی ایمیج‌های Docker قدیمی.
+- update.sh: تشخیص خودکار حالت (standalone: server.js یا /var/www/taj-electronics | docker)؛ شاخه standalone: بسته با runtime/ (تعویض کامل) یا runtime-code/ (تعویض کد، node_modules می‌ماند + overlay public/prisma/scripts) → restart systemd + health-wait؛ شاخه docker: allowlist += runtime/runtime-code (بعد از استخراج حذف). .version فایل قطعی نسخه.
+- src/lib/updater.ts (جراحی افزایشی): ALLOWED_DIRS += runtime/runtime-code + RUNTIME_DIRS — در بسته‌های v34+ پذیرفته و هنگام panel-apply کنار گذاشته می‌شوند (extract می‌شوند ولی قبل از apply حذف؛ شمارش/بکاپ فایل‌ها تمیز می‌ماند) + پیام standalone.
+- scripts/release-update.mjs: فلگ‌های --runtime/--runtime-code → embed در zip به‌روزرسانی (code-only: بدون node_modules/public/src تا زیر سقف ۱۰۰MB گیت‌هاب) → updates/taj-electronics-update-29.0.0.zip = 41.30MB + مانیفست (sha256 335e2042…).
+- بهداشت بسته: scripts/dev-supervisor.sh + dev-watchdog.sh از git untrack + .gitignore/.dockerignore (+ /runtime، /app) — اسکریپت‌های sandbox دیگر در بسته‌ها نیستند.
+- انتشار: bump 28→29.0.0 + RELEASE-NOTES-v34.md + ورودی changelog README + کامیت release 0901950 (--no-push طبق روال).
+- QA: tsc=0 خطا؛ bash -n/node--check همه اسکریپت‌ها؛ runtime curl-suite کامل ۲۰۰؛ agent-browser روی dev (خوب‌گرم): عنوان درست، بدون خطای کنسول، لینک اسلایدر «گوشی» → /products?category=mobile ✓، صفحه موبایل ۱۳ کارت ✓، /install (ردایرکت در DB نصب‌شده) ✓.
+- بسته کامل: git archive HEAD + runtime/ → 390MB / 409,167,401 bytes / SHA-256 c84c2e3d734b7ca2b945d448f46761bbdef82a92f8e50dc84d3e02b0b27bbc00 / unzip -t OK / 10,636 فایل. کپی در download/ و public/downloads/ (هر دو نام) + حذف فایل‌های v33.
+- آپلود: litterbox 72h ×2 (https://litter.catbox.moe/c8gj7u.zip — content-length بایتی تطبیق ✓ و https://litter.catbox.moe/vsz5nr.zip ✓). gofile/pixeldrain/transfers/bashupload این بار در دسترس نبودند.
+
+Stage Summary:
+- v34 نهایی: نصب ۲-۴ دقیقه‌ای بدون Docker/بیلد (زیر ۱GB دیسک، بدون فشار RAM)، دامنه/SSL/Nginx خودکار، systemd + به‌روزرسانی standalone در ~۱ دقیقه؛ کد فروشگاه دست‌نخورده (فقط schema binaryTargets + updater.ts allowlist جراحی شد)؛ بسته ۳۹۰MB آماده از پیوست تسک/لینک‌ها؛ گیت کامیت 0901950 بدون push.
