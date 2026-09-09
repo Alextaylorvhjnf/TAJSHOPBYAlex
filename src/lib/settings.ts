@@ -1,4 +1,5 @@
 import { db, ensureRuntimeSchema } from "@/lib/db";
+import type { StoreChromeData } from "@/lib/templates/types";
 
 /* v29.1: every settings getter first awaits the runtime schema self-heal —
  * an upgraded (v28) database volume missing the new columns would otherwise
@@ -296,7 +297,57 @@ export function parseTemplateChrome(json: string | null | undefined): Record<str
   }
 }
 
-/* ─────────────────────────── v27b: per-template footer content ─────────────────────────── */
+/* ─────────────────────── v32 (14-b): store-wide chrome ─────────────────────── */
+
+/** v32 (14-b): the valid option VALUES for StoreSettings.storeChrome —
+ *  kept in sync with the admin option tables in
+ *  src/components/store/templates/chrome/config.ts (STORE_HEADER_SKINS /
+ *  STORE_NAV_ITEMS / STORE_ACTIONS_MODES / STORE_HOVER_FX). */
+const STORE_SKINS = ["classic", "crystalline", "liquid-glass", "minimal"] as const;
+const STORE_NAV_KEYS = ["home", "shop", "categories", "about", "contact"] as const;
+const STORE_ACTIONS = ["grouped", "split"] as const;
+const STORE_HOVERS = ["none", "flip3d", "topdown", "slide", "fade", "bigzoom"] as const;
+
+/** v32 (14-b): parse StoreSettings.storeChrome JSON into the safe
+ *  store-wide chrome look options (header skin / nav item order / actions
+ *  placement / product hover effect) — same defensive style as
+ *  parseTemplateChrome: invalid JSON / wrong shape → {} (every consumer
+ *  renders its designed default). The nav order only keeps known keys
+ *  (max 5, dedup) so a hand-crafted payload can never smuggle junk into
+ *  the storefront headers. */
+export function parseStoreChrome(json: string | null | undefined): StoreChromeData {
+  if (!json) return {};
+  try {
+    const obj = JSON.parse(json);
+    if (!obj || typeof obj !== "object" || Array.isArray(obj)) return {};
+    const src = obj as Record<string, unknown>;
+    const out: StoreChromeData = {};
+    if (typeof src.skin === "string" && (STORE_SKINS as readonly string[]).includes(src.skin)) {
+      out.skin = src.skin;
+    }
+    if (Array.isArray(src.navOrder)) {
+      const seen = new Set<string>();
+      const order: string[] = [];
+      for (const k of src.navOrder) {
+        if (typeof k === "string" && (STORE_NAV_KEYS as readonly string[]).includes(k) && !seen.has(k)) {
+          seen.add(k);
+          order.push(k);
+        }
+        if (order.length >= STORE_NAV_KEYS.length) break;
+      }
+      if (order.length > 0) out.navOrder = order;
+    }
+    if (typeof src.actionsMode === "string" && (STORE_ACTIONS as readonly string[]).includes(src.actionsMode)) {
+      out.actionsMode = src.actionsMode;
+    }
+    if (typeof src.productHover === "string" && (STORE_HOVERS as readonly string[]).includes(src.productHover)) {
+      out.productHover = src.productHover;
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
 
 /** v27b: per-template footer CONTENT overrides (Admin → تنظیمات → فوتر →
  * «تنظیمات فوتر قالب فعال»). Stored in StoreSettings.templateFooters as

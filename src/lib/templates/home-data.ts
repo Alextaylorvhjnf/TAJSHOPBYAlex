@@ -12,8 +12,9 @@
 
 import { db } from "@/lib/db";
 import { serializeProduct, productInclude, type ProductDTO } from "@/lib/product";
-import { getStoreSettings, parseTickerMessages, resolveTemplateFeatures, parseTemplateChrome, getTemplateFooterContent } from "@/lib/settings";
+import { getStoreSettings, parseTickerMessages, resolveTemplateFeatures, parseTemplateChrome, getTemplateFooterContent, parseStoreChrome } from "@/lib/settings";
 import { applyTemplateBrandToStore, getTemplateContentData } from "@/lib/templates/content";
+import { smartSliderUrl } from "./slide-targets";
 import type {
   HomeData,
   TemplateProduct,
@@ -81,6 +82,31 @@ function toTemplateProduct(p: ProductDTO): TemplateProduct {
  * getHomeData, getChromeData and /api/categories so every consumer
  * (server RSC + client fallback) sees the same branches.
  */
+/* v34.1: resolve the «خرید از ربات تلگرامی» footer link.
+ * Priority: the admin's explicit StoreSettings.telegramBotUrl override →
+ * the CONFIGURED Telegram shopping bot's username (Settings → ربات تلگرامی,
+ * t.me/<botUsername>) → null (button hidden). Never throws — the footer is
+ * cosmetic and must not break page render. */
+export async function resolveTelegramBotUrl(
+  settings: { telegramBotUrl?: string | null }
+): Promise<string | null> {
+  const manual = (settings as { telegramBotUrl?: string | null }).telegramBotUrl?.trim();
+  if (manual) return manual;
+  try {
+    const bot = await db.telegramBotSettings.findUnique({
+      where: { id: "main" },
+      select: { enabled: true, botUsername: true },
+    });
+    if (bot?.enabled && bot.botUsername?.trim()) {
+      const u = bot.botUsername.trim().replace(/^@/, "");
+      return `https://t.me/${u}`;
+    }
+  } catch {
+    /* pre-wizard environment (table missing) — button stays hidden */
+  }
+  return null;
+}
+
 export async function loadBranchIndex(): Promise<Map<string, TemplateBranch[]>> {
   const [children, brandRows, pairs] = await Promise.all([
     db.category.findMany({
@@ -281,6 +307,9 @@ export async function getHomeData(): Promise<HomeData> {
     features: resolveTemplateFeatures(settings.templateFeatures, settings.activeTemplate),
     // v24: admin header/footer overrides per template (Admin → ظاهر)
     chromeOverridesMap: parseTemplateChrome((settings as { templateChrome?: string | null }).templateChrome) as TemplateStore["chromeOverridesMap"],
+    // v32 (14-b): store-wide chrome look options — header skin, nav item
+    // order, actions placement, product hover effect (Admin → ظاهر → هدر)
+    storeChrome: parseStoreChrome((settings as { storeChrome?: string | null }).storeChrome),
     // v27b: footer CONTENT overrides for the ACTIVE template (Admin →
     // تنظیمات → فوتر) — text/copyright/custom link columns
     footerContent: getTemplateFooterContent((settings as { templateFooters?: string | null }).templateFooters, settings.activeTemplate) as TemplateStore["footerContent"],
@@ -291,6 +320,8 @@ export async function getHomeData(): Promise<HomeData> {
       : null,
     phone: settings.phone,
     currency: settings.currency,
+    // v34.1: «خرید از ربات تلگرامی» footer link (manual override → bot username)
+    telegramBotUrl: await resolveTelegramBotUrl(settings as { telegramBotUrl?: string | null }),
     // v29: uploaded brand logos — chrome headers/footers render them
     // (Branding → «لوگوی اصلی / لوگوی فوتر»); null = designed letter-mark
     logo: settings.logo ?? null,
@@ -305,7 +336,17 @@ export async function getHomeData(): Promise<HomeData> {
     // v23: the phone-specific artwork — templates render it on <sm screens
     mobileImage: s.mobileImage ?? null,
     ctaText: s.buttonText,
-    ctaUrl: s.buttonUrl,
+    // v33 (2-d): SMART slider target — a bare "/products" buttonUrl is
+    // resolved from the button text + title + badge into a FILTERED list
+    // («مشاهدهٔ گوشی‌ها» → ?category=mobile, «ورود به منطقهٔ گیمینگ» →
+    // ?q=گیمینگ) while an admin's specific URL passes through untouched.
+    // Sliders with NO CTA signal at all (neither buttonText nor buttonUrl)
+    // keep their null ctaUrl so templates keep linking the slide artwork to
+    // its related product instead of the generic product list.
+    ctaUrl:
+      s.buttonText || s.buttonUrl
+        ? smartSliderUrl({ buttonUrl: s.buttonUrl, text: s.buttonText, title: s.title, badge: s.badge })
+        : s.buttonUrl,
     product: s.product,
   }));
 
@@ -357,7 +398,13 @@ export async function getHomeData(): Promise<HomeData> {
     title: s.title,
     subtitle: s.subtitle,
     image: s.image,
-    buttonUrl: s.buttonUrl,
+    // v33 (2-d): same neutral smart treatment for showcase buttons — bare
+    // "/products" resolves from buttonText/title/badge, specific URLs pass.
+    // No CTA signal → keep the raw null so a linked product still wins.
+    buttonUrl:
+      s.buttonText || s.buttonUrl
+        ? smartSliderUrl({ buttonUrl: s.buttonUrl, text: s.buttonText, title: s.title, badge: s.badge })
+        : s.buttonUrl,
     product: s.product,
   }));
 
@@ -454,6 +501,9 @@ export async function getChromeData(): Promise<HomeData> {
     features: resolveTemplateFeatures(settings.templateFeatures, settings.activeTemplate),
     // v24: admin header/footer overrides per template (all store pages)
     chromeOverridesMap: parseTemplateChrome((settings as { templateChrome?: string | null }).templateChrome) as TemplateStore["chromeOverridesMap"],
+    // v32 (14-b): store-wide chrome look options — header skin, nav item
+    // order, actions placement, product hover effect (Admin → ظاهر → هدر)
+    storeChrome: parseStoreChrome((settings as { storeChrome?: string | null }).storeChrome),
     // v27b: footer CONTENT overrides for the ACTIVE template — the bespoke
     // TemplateFooter on every store page reads them
     footerContent: getTemplateFooterContent((settings as { templateFooters?: string | null }).templateFooters, settings.activeTemplate) as TemplateStore["footerContent"],
@@ -463,6 +513,8 @@ export async function getChromeData(): Promise<HomeData> {
       : null,
     phone: settings.phone,
     currency: settings.currency,
+    // v34.1: «خرید از ربات تلگرامی» footer link (manual override → bot username)
+    telegramBotUrl: await resolveTelegramBotUrl(settings as { telegramBotUrl?: string | null }),
     // v29: uploaded brand logos — chrome headers/footers render them
     // (Branding → «لوگوی اصلی / لوگوی فوتر»); null = designed letter-mark
     logo: settings.logo ?? null,

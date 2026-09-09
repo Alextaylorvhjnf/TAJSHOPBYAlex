@@ -29,6 +29,7 @@ import {
   Sparkles, Rocket, Crown,
 } from "lucide-react";
 import type { HomeData, TemplateProduct } from "@/lib/templates/types";
+import { RAIL_URLS } from "@/lib/templates/slide-targets";
 import { useCart } from "@/hooks/use-store";
 import { formatPrice, toFaDigits } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -37,6 +38,9 @@ import { StoriesRow, type StoryItem } from "../stories-row";
 import { TemplateHeader } from "./chrome/header";
 import { TemplateFooter } from "./chrome/footer";
 import { TEMPLATE_CHROME } from "./chrome/config";
+/* v32 (14-a): shared scroll-animation system — staggered tiles, 3D flip
+ * hero product, parallax ribbons, lights-on glow */
+import { RevealOnScroll, FlipOnScroll, ParallaxBand, GlowOnScroll, sfxStagger, SCROLL_FX_CSS } from "./scroll-fx";
 
 /* category slug → lucide icon */
 const CAT_ICONS: Record<string, React.ElementType> = {
@@ -112,7 +116,7 @@ function AisleHead({
 }
 
 /* ── PRICE-BOMB tile ──────────────────────────────────────────────── */
-function BombTile({ product, hero }: { product: TemplateProduct; hero?: boolean }) {
+function BombTile({ product, hero, i = 0 }: { product: TemplateProduct; hero?: boolean; i?: number }) {
   const { add } = useCart();
   const [added, setAdded] = useState(false);
 
@@ -128,11 +132,15 @@ function BombTile({ product, hero }: { product: TemplateProduct; hero?: boolean 
   };
 
   return (
+    <RevealOnScroll
+      variant="tilt"
+      delay={sfxStagger(i, 65)}
+      className={cn(hero && "sm:col-span-2 sm:row-span-2")}
+    >
     <article
       className={cn(
-        "sg-tile group relative flex flex-col overflow-hidden rounded-2xl border border-white/[0.07] bg-[#1A1A22]",
-        !product.inStock && "opacity-55 grayscale-[0.4]",
-        hero && "sm:col-span-2 sm:row-span-2"
+        "sg-tile group relative flex h-full flex-col overflow-hidden rounded-2xl border border-white/[0.07] bg-[#1A1A22]",
+        !product.inStock && "opacity-55 grayscale-[0.4]"
       )}
     >
       {/* rotated ribbon discount badge */}
@@ -219,6 +227,7 @@ function BombTile({ product, hero }: { product: TemplateProduct; hero?: boolean 
         </div>
       </div>
     </article>
+    </RevealOnScroll>
   );
 }
 
@@ -276,9 +285,15 @@ export function SuperstoreGridTemplate({ data }: { data: HomeData }) {
         {flashHero && (
           <section className="relative px-4 pb-8 pt-6 md:pt-8" aria-labelledby="sg-flash">
             <div className="sg-hero relative mx-auto grid max-w-7xl items-center gap-6 overflow-hidden rounded-[2rem] border border-yellow-400/20 bg-[#1A1A22] p-6 md:p-9 lg:grid-cols-[1fr_.8fr]">
-              {/* diagonal flash ribbons */}
-              <span aria-hidden className="sg-flash sg-flash-a" />
-              <span aria-hidden className="sg-flash sg-flash-b" />
+              {/* diagonal flash ribbons — now riding the scroll (v32 14-a) */}
+              <ParallaxBand className="sg-para" speed={0.1} range={90}>
+                <span aria-hidden className="sg-flash sg-flash-a" />
+              </ParallaxBand>
+              <ParallaxBand className="sg-para" speed={0.06} range={70}>
+                <span aria-hidden className="sg-flash sg-flash-b" />
+              </ParallaxBand>
+              {/* vertical value-tape ribbon drifting top-to-bottom */}
+              <ParallaxBand className="sg-tape" speed={0.15} range={130} />
               <div className="relative z-10">
                 <p className="inline-flex items-center gap-2 rounded-full bg-[#EF4444] px-4 py-1.5 text-[11px] font-black text-white">
                   <Siren className="h-4 w-4" aria-hidden />
@@ -321,21 +336,27 @@ export function SuperstoreGridTemplate({ data }: { data: HomeData }) {
                   </Link>
                 </div>
               </div>
-              <div className="relative mx-auto aspect-square w-full max-w-xs md:max-w-sm">
-                <Link href={`/products/${flashHero.slug}`} aria-label={flashHero.name} className="absolute inset-0 grid place-items-center">
-                  {flashHero.mainImage ? (
-                    <Image
-                      src={flashHero.mainImage}
-                      alt={flashHero.name}
-                      fill
-                      sizes="(max-width: 1024px) 70vw, 400px"
-                      className="object-contain p-6 drop-shadow-[0_16px_40px_rgba(250,204,21,.25)]"
-                      priority
-                    />
-                  ) : (
-                    <Package className="h-20 w-20 text-zinc-600" aria-hidden />
-                  )}
-                </Link>
+              <div className="sg-hero-visual relative mx-auto aspect-square w-full max-w-xs md:max-w-sm">
+                {/* the flash product turns in like a page and its lights
+                    ramp on (GlowOnScroll) — the v32 scroll-motion moment */}
+                <GlowOnScroll color="#FACC15" size={54}>
+                  <FlipOnScroll degrees={52} origin="start" className="h-full">
+                    <Link href={`/products/${flashHero.slug}`} aria-label={flashHero.name} className="absolute inset-0 grid place-items-center">
+                      {flashHero.mainImage ? (
+                        <Image
+                          src={flashHero.mainImage}
+                          alt={flashHero.name}
+                          fill
+                          sizes="(max-width: 1024px) 70vw, 400px"
+                          className="object-contain p-6 drop-shadow-[0_16px_40px_rgba(250,204,21,.25)]"
+                          priority
+                        />
+                      ) : (
+                        <Package className="h-20 w-20 text-zinc-600" aria-hidden />
+                      )}
+                    </Link>
+                  </FlipOnScroll>
+                </GlowOnScroll>
                 <span aria-hidden className="sg-hero-ring absolute inset-3 rounded-[2rem] border-2 border-dashed border-yellow-400/25" />
               </div>
             </div>
@@ -352,18 +373,19 @@ export function SuperstoreGridTemplate({ data }: { data: HomeData }) {
               </Link>
               <span aria-hidden className="h-6 w-px shrink-0 bg-white/10" />
               <div className="sg-rail flex flex-1 gap-2 overflow-x-auto">
-                {data.categories.slice(0, 14).map((c) => {
+                {data.categories.slice(0, 14).map((c, ci) => {
                   const Icon = CAT_ICONS[c.slug] ?? Boxes;
                   return (
-                    <Link
-                      key={c.id}
-                      href={`/products?category=${c.slug}`}
-                      className="sg-chip flex h-10 shrink-0 items-center gap-1.5 rounded-full px-4 text-[11.5px] font-bold text-zinc-50"
-                    >
-                      <Icon className="h-4 w-4 text-yellow-400/90" aria-hidden />
-                      {c.name}
-                      <span className="text-[9.5px] font-normal text-zinc-500 tabular-nums">{c.productCount.toLocaleString("fa-IR")}</span>
-                    </Link>
+                    <RevealOnScroll key={c.id} variant="fade" delay={sfxStagger(ci, 45, 10)} className="shrink-0">
+                      <Link
+                        href={`/products?category=${c.slug}`}
+                        className="sg-chip flex h-10 items-center gap-1.5 rounded-full px-4 text-[11.5px] font-bold text-zinc-50"
+                      >
+                        <Icon className="h-4 w-4 text-yellow-400/90" aria-hidden />
+                        {c.name}
+                        <span className="text-[9.5px] font-normal text-zinc-500 tabular-nums">{c.productCount.toLocaleString("fa-IR")}</span>
+                      </Link>
+                    </RevealOnScroll>
                   );
                 })}
               </div>
@@ -382,17 +404,17 @@ export function SuperstoreGridTemplate({ data }: { data: HomeData }) {
         {deals.length > 0 && (
           <section className="relative px-4 py-8" aria-labelledby="sg-aisle1">
             <div className="mx-auto max-w-7xl">
-              <Reveal>
+              <RevealOnScroll variant="start">
                 <div id="sg-aisle1">
                   <AisleHead icon={Flame} kicker="قفسهٔ تخفیف‌های فلش" title="بمب‌های قیمتی امروز" href="/products?discount=1" n={nextAisle()} />
                 </div>
+              </RevealOnScroll>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
                   {flashHero && <BombTile product={flashHero} hero />}
-                  {deals.map((p) => (
-                    <BombTile key={p.id} product={p} />
+                  {deals.map((p, i) => (
+                    <BombTile key={p.id} product={p} i={i + 1} />
                   ))}
                 </div>
-              </Reveal>
             </div>
           </section>
         )}
@@ -401,16 +423,16 @@ export function SuperstoreGridTemplate({ data }: { data: HomeData }) {
         {bestsellers.length > 0 && (
           <section className="relative px-4 py-8" aria-labelledby="sg-aisle2">
             <div className="mx-auto max-w-7xl">
-              <Reveal>
+              <RevealOnScroll variant="start">
                 <div id="sg-aisle2">
-                  <AisleHead icon={Crown} kicker="قفسهٔ پرفروش‌ها" title="چرخ‌های همیشه‌پرچرخ سوپر" href="/products?sort=bestseller" n={nextAisle()} />
+                  <AisleHead icon={Crown} kicker="قفسهٔ پرفروش‌ها" title="چرخ‌های همیشه‌پرچرخ سوپر" href={RAIL_URLS.bestsellers} n={nextAisle()} />
                 </div>
+              </RevealOnScroll>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-                  {bestsellers.map((p) => (
-                    <BombTile key={p.id} product={p} />
+                  {bestsellers.map((p, i) => (
+                    <BombTile key={p.id} product={p} i={i} />
                   ))}
                 </div>
-              </Reveal>
             </div>
           </section>
         )}
@@ -419,16 +441,16 @@ export function SuperstoreGridTemplate({ data }: { data: HomeData }) {
         {newest.length > 0 && (
           <section className="relative px-4 py-8" aria-labelledby="sg-aisle3">
             <div className="mx-auto max-w-7xl">
-              <Reveal>
+              <RevealOnScroll variant="start">
                 <div id="sg-aisle3">
                   <AisleHead icon={Rocket} kicker="قفسهٔ تازه‌ها" title="تازه از کارتن، تازه به قفسه" href="/products?sort=newest" n={nextAisle()} />
                 </div>
+              </RevealOnScroll>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-                  {newest.map((p) => (
-                    <BombTile key={p.id} product={p} />
+                  {newest.map((p, i) => (
+                    <BombTile key={p.id} product={p} i={i} />
                   ))}
                 </div>
-              </Reveal>
             </div>
           </section>
         )}
@@ -437,13 +459,15 @@ export function SuperstoreGridTemplate({ data }: { data: HomeData }) {
         {exclusive.length > 0 && (
           <section className="relative px-4 py-8" aria-labelledby="sg-aisle4">
             <div className="mx-auto max-w-7xl">
-              <Reveal>
+              <RevealOnScroll variant="start">
                 <div id="sg-aisle4">
                   <AisleHead icon={Gem} kicker="قفسهٔ ویژه" title="کالاهای انحصاری سوپرمارکت" href="/products?special=1" n={nextAisle()} />
                 </div>
+              </RevealOnScroll>
                 <div className="sg-rail flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2">
-                  {exclusive.map((p) => (
-                    <article key={p.id} className="sg-tile group relative flex w-44 shrink-0 snap-start flex-col overflow-hidden rounded-2xl border border-white/[0.07] bg-[#1A1A22] p-2.5 sm:w-48">
+                  {exclusive.map((p, i) => (
+                    <RevealOnScroll key={p.id} variant="tilt" delay={sfxStagger(i, 70)} className="w-44 shrink-0 snap-start sm:w-48">
+                    <article className="sg-tile group relative flex flex-col overflow-hidden rounded-2xl border border-white/[0.07] bg-[#1A1A22] p-2.5">
                       <Link href={`/products/${p.slug}`} aria-label={p.name} className="relative block aspect-[3/4] overflow-hidden rounded-xl bg-[#131318]">
                         {p.mainImage ? (
                           <Image src={p.mainImage} alt={p.name} fill sizes="(max-width: 640px) 44vw, 190px" className="object-contain p-3 transition-transform duration-500 group-hover:scale-[1.06]" loading="lazy" />
@@ -458,9 +482,9 @@ export function SuperstoreGridTemplate({ data }: { data: HomeData }) {
                         <span className="text-[9px] font-normal text-zinc-500"> تومان</span>
                       </p>
                     </article>
+                    </RevealOnScroll>
                   ))}
                 </div>
-              </Reveal>
             </div>
           </section>
         )}
@@ -469,11 +493,11 @@ export function SuperstoreGridTemplate({ data }: { data: HomeData }) {
         {(data.showcases ?? []).length > 0 && (
           <section className="relative px-4 py-8" aria-label="بنرهای فروشگاه">
             <div className="mx-auto max-w-7xl">
-              <Reveal>
+              <RevealOnScroll>
                 <div className="grid gap-4 md:grid-cols-2">
-                  {data.showcases.slice(0, 4).map((sc) => (
+                  {data.showcases.slice(0, 4).map((sc, i) => (
+                    <RevealOnScroll key={sc.id} variant={i % 2 === 0 ? "start" : "end"} delay={sfxStagger(i, 90, 3)}>
                     <Link
-                      key={sc.id}
                       href={sc.buttonUrl ?? (sc.product ? `/products/${sc.product.slug}` : "/products")}
                       className="sg-showcase group relative block overflow-hidden rounded-2xl border border-white/[0.07] bg-[#1A1A22]"
                     >
@@ -492,9 +516,10 @@ export function SuperstoreGridTemplate({ data }: { data: HomeData }) {
                         </span>
                       </div>
                     </Link>
+                    </RevealOnScroll>
                   ))}
                 </div>
-              </Reveal>
+              </RevealOnScroll>
             </div>
           </section>
         )}
@@ -502,10 +527,11 @@ export function SuperstoreGridTemplate({ data }: { data: HomeData }) {
         {/* ═══ 9 · BENEFITS + COUNTS ═══ */}
         <section className="relative px-4 py-8" aria-label="مزایا و آمار سوپرمارکت">
           <div className="mx-auto max-w-7xl">
-            <Reveal>
+            <RevealOnScroll>
               <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-                {benefits.map((b) => (
-                  <div key={b.title} className="flex items-center gap-3 rounded-2xl border border-white/[0.07] bg-[#1A1A22] p-4">
+                {benefits.map((b, i) => (
+                  <RevealOnScroll key={b.title} variant="zoom" delay={sfxStagger(i, 70)}>
+                  <div className="flex h-full items-center gap-3 rounded-2xl border border-white/[0.07] bg-[#1A1A22] p-4">
                     <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-yellow-400/12 text-yellow-300 ring-1 ring-yellow-400/30">
                       <b.icon className="h-5.5 w-5.5" aria-hidden />
                     </span>
@@ -514,6 +540,7 @@ export function SuperstoreGridTemplate({ data }: { data: HomeData }) {
                       <span className="mt-0.5 block truncate text-[10px] text-zinc-500">{b.text}</span>
                     </span>
                   </div>
+                  </RevealOnScroll>
                 ))}
               </div>
               <div className="sg-stats mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -522,15 +549,17 @@ export function SuperstoreGridTemplate({ data }: { data: HomeData }) {
                   { icon: LayoutGrid, label: "قفسه‌بندی", value: counts.categories },
                   { icon: BadgeCheck, label: "برند", value: counts.brands },
                   { icon: Sparkles, label: "استوری", value: counts.stories },
-                ].map((s) => (
-                  <div key={s.label} className="flex items-center justify-center gap-2.5 rounded-2xl border border-white/[0.07] bg-[#1A1A22]/70 p-4">
+                ].map((s, i) => (
+                  <RevealOnScroll key={s.label} variant="fade" delay={sfxStagger(i, 60)}>
+                  <div className="flex items-center justify-center gap-2.5 rounded-2xl border border-white/[0.07] bg-[#1A1A22]/70 p-4">
                     <s.icon className="h-4.5 w-4.5 text-yellow-400/80" aria-hidden />
                     <span className="text-lg font-black text-zinc-50 tabular-nums">{toFaDigits(s.value.toLocaleString("fa-IR"))}</span>
                     <span className="text-[10.5px] text-zinc-500">{s.label}</span>
                   </div>
+                  </RevealOnScroll>
                 ))}
               </div>
-            </Reveal>
+            </RevealOnScroll>
           </div>
         </section>
 
@@ -538,11 +567,13 @@ export function SuperstoreGridTemplate({ data }: { data: HomeData }) {
         {(data.faq ?? []).length > 0 && (
           <section className="relative px-4 py-8" aria-labelledby="sg-faq">
             <div className="mx-auto max-w-7xl">
-              <Reveal>
+              <RevealOnScroll variant="start">
                 <AisleHead icon={HelpCircle} kicker="قفسهٔ پرسش‌ها" title="قبل از چرخ زدن بخوانید" n={nextAisle()} />
+              </RevealOnScroll>
                 <div className="grid gap-2.5 md:grid-cols-2">
                   {data.faq.map((f, i) => (
-                    <details key={i} className="group rounded-xl border border-white/[0.07] bg-[#1A1A22] p-4">
+                    <RevealOnScroll key={i} variant="fade" delay={sfxStagger(i, 55, 6)}>
+                    <details className="group rounded-xl border border-white/[0.07] bg-[#1A1A22] p-4">
                       <summary className="flex min-h-11 cursor-pointer list-none items-center gap-3 text-[12.5px] font-bold text-zinc-50">
                         <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-[#EF4444]/15 font-mono text-[10.5px] font-black text-[#F87171] tabular-nums">
                           {toFaDigits(String(i + 1).padStart(2, "0"))}
@@ -552,9 +583,9 @@ export function SuperstoreGridTemplate({ data }: { data: HomeData }) {
                       </summary>
                       <p className="mt-3 border-t border-white/[0.07] pt-3 text-[12px] leading-7 text-zinc-400">{f.p}</p>
                     </details>
+                    </RevealOnScroll>
                   ))}
                 </div>
-              </Reveal>
             </div>
           </section>
         )}
@@ -563,23 +594,25 @@ export function SuperstoreGridTemplate({ data }: { data: HomeData }) {
         {(data.brands ?? []).length > 0 && (
           <section className="relative px-4 py-8" aria-label="برندهای سوپرمارکت">
             <div className="mx-auto max-w-7xl">
-              <Reveal>
+              <RevealOnScroll variant="start">
                 <AisleHead icon={Store} kicker="قفسهٔ برندها" title="تأمین‌کننده‌های سوپر" n={nextAisle()} />
+              </RevealOnScroll>
                 <ul className="flex flex-wrap gap-2">
-                  {data.brands.map((b) => (
+                  {data.brands.map((b, i) => (
                     <li key={b.id}>
-                      <Link href={`/products?brand=${b.slug}`} className="sg-chip flex h-10 items-center gap-2 rounded-full px-4 text-[11.5px] font-bold text-zinc-50">
-                        {b.logo ? (
-                          <Image src={b.logo} alt={b.name} width={18} height={18} className="h-[18px] w-[18px] rounded-full object-contain" />
-                        ) : (
-                          <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-yellow-400" />
-                        )}
-                        {b.name}
-                      </Link>
+                      <RevealOnScroll variant="fade" delay={sfxStagger(i, 45, 12)}>
+                        <Link href={`/products?brand=${b.slug}`} className="sg-chip flex h-10 items-center gap-2 rounded-full px-4 text-[11.5px] font-bold text-zinc-50">
+                          {b.logo ? (
+                            <Image src={b.logo} alt={b.name} width={18} height={18} className="h-[18px] w-[18px] rounded-full object-contain" />
+                          ) : (
+                            <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-yellow-400" />
+                          )}
+                          {b.name}
+                        </Link>
+                      </RevealOnScroll>
                     </li>
                   ))}
                 </ul>
-              </Reveal>
             </div>
           </section>
         )}
@@ -600,8 +633,23 @@ export function SuperstoreGridTemplate({ data }: { data: HomeData }) {
       </div>
       <TemplateFooter data={data} cfg={chrome.footer} />
 
-      {/* ═══ scoped template CSS (single plain <style>) ═══ */}
+      {/* ═══ scoped template CSS (single plain <style>) + shared scroll-fx ═══ */}
       <style>{`
+/* v32 (14-a): parallax ribbon plumbing — the sg-flash stripes + the new
+   vertical value tape translate on scroll (translate3d only, composited) */
+[data-tpl="superstore-grid"] .sg-para { position:absolute; inset:0; pointer-events:none; z-index:0; }
+[data-tpl="superstore-grid"] .sg-tape {
+  position:absolute; top:-12%; height:124%; width:54px; inset-inline-start:6%;
+  pointer-events:none; z-index:0; border-radius:999px; filter:blur(1.5px);
+  background:linear-gradient(180deg, transparent 0%, rgba(250,204,21,.16) 26%, rgba(239,68,68,.2) 62%, rgba(250,204,21,.06) 84%, transparent 100%);
+}
+html:not(.dark) [data-tpl="superstore-grid"] .sg-tape {
+  background:linear-gradient(180deg, transparent 0%, rgba(202,138,4,.12) 26%, rgba(220,38,38,.14) 62%, rgba(202,138,4,.05) 84%, transparent 100%);
+}
+/* flip/glow hero plumbing — percentage heights down the static wrappers */
+[data-tpl="superstore-grid"] .sg-hero-visual .sfx-glow,
+[data-tpl="superstore-grid"] .sg-hero-visual .sfx-flip-wrap { height:100%; }
+
 [data-tpl="superstore-grid"] {
   --background: #131318;
   --foreground: #F4F4F5;
@@ -830,7 +878,7 @@ html:not(.dark) [data-tpl="superstore-grid"] .sg-chip { border-color: rgba(29, 2
 html:not(.dark) [data-tpl="superstore-grid"] .sg-chip:hover { background: rgba(234, 179, 8, 0.13); border-color: rgba(202, 138, 4, 0.45); color: #854D0E; }
 html:not(.dark) [data-tpl="superstore-grid"] .sg-chip-active { box-shadow: 0 6px 18px -6px rgba(234, 179, 8, 0.55); }
 html:not(.dark) [data-tpl="superstore-grid"] .sg-showcase:hover { box-shadow: 0 18px 44px -20px rgba(202, 138, 4, 0.26); }
-`}</style>
+` + SCROLL_FX_CSS}</style>
     </div>
   );
 }

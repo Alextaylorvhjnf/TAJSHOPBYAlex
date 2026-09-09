@@ -30,12 +30,13 @@ import {
   ShieldCheck, Truck, CreditCard, Headset, Rocket, ArrowLeft, Megaphone,
 } from "lucide-react";
 import type { HomeData, TemplateProduct } from "@/lib/templates/types";
+import { RAIL_URLS } from "@/lib/templates/slide-targets";
 import { useCart } from "@/hooks/use-store";
 import { formatPrice, toFaDigits } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { Reveal } from "../reveal";
 import { StoriesRow, type StoryItem } from "../stories-row";
-import { SlideArt } from "./slide-image";
+import { SlideCountdown, SlideHeroMedia, SLIDE_MEDIA_CSS } from "./slide-media";
 import { TemplateHeader } from "./chrome/header";
 import { TemplateFooter } from "./chrome/footer";
 import { TEMPLATE_CHROME } from "./chrome/config";
@@ -310,12 +311,18 @@ export function StartupLightTemplate({ data }: { data: HomeData }) {
             >
               <div className="sl-hero-card relative h-full w-full overflow-hidden rounded-[2.5rem] border border-slate-200/70 bg-white shadow-[0_30px_80px_-40px_rgba(139,92,246,.45)]">
                 {heroSlide ? (
-                  <SlideArt slide={heroSlide} alt={heroSlide.title} fill sizes="(max-width: 1024px) 88vw, 460px" className="object-cover" priority />
+                  /* v32: per-slide hero video + countdown chip */
+                  <SlideHeroMedia slide={heroSlide} alt={heroSlide.title} fill sizes="(max-width: 1024px) 88vw, 460px" className="object-cover" priority />
                 ) : (
                   <span className="grid h-full place-items-center text-slate-300">
                     <Package className="h-16 w-16" aria-hidden />
                   </span>
                 )}
+                {heroSlide?.countdownEnabled && heroSlide.countdownTarget ? (
+                  <div className="absolute top-4 start-4 z-10">
+                    <SlideCountdown target={heroSlide.countdownTarget} label={heroSlide.countdownLabel} />
+                  </div>
+                ) : null}
                 {heroSlide?.product && (
                   <div className="absolute bottom-4 start-4 end-4 flex items-center justify-between gap-3 rounded-3xl bg-white/85 px-5 py-3.5 backdrop-blur-xl">
                     <span className="min-w-0">
@@ -529,7 +536,7 @@ export function StartupLightTemplate({ data }: { data: HomeData }) {
           <section className="relative px-4 py-10" aria-labelledby="sl-best">
             <div className="mx-auto max-w-7xl">
               <Reveal>
-                <SoftHead kicker="پرفروش‌ها" title="انتخاب مشتری‌های ما" href="/products?sort=bestseller" icon={TrendingUp} />
+                <SoftHead kicker="پرفروش‌ها" title="انتخاب مشتری‌های ما" href={RAIL_URLS.bestsellers} icon={TrendingUp} />
                 <div className="grid gap-3 md:grid-cols-2">
                   {bestsellers.map((p, i) => (
                     <Link
@@ -866,7 +873,7 @@ html.dark [data-tpl="startup-light"] .sl-gradient-text { background-image: linea
    CTA pill + deep-violet label keep their light-mode look */
 html.dark [data-tpl="startup-light"] .sl-deals-banner .bg-white { background-color: #FFFFFF; }
 html.dark [data-tpl="startup-light"] .sl-deals-banner .text-violet-700 { color: #6D28D9; }
-`}</style>
+` + SLIDE_MEDIA_CSS}</style>
     </div>
   );
 }

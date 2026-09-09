@@ -14,6 +14,13 @@
  * Presentation-layer only: switching templates never touches store data.
  */
 
+/**
+ * v32 (13-d) · MAINTENANCE 2.0 — logo override + admin-set countdown target.
+ * The three new content keys are ADDITIVE OPTIONAL strings: "" / missing =
+ * the designed fallback (store logo for logoUrl, next-18:00 ETA for the
+ * countdown), so every old stored JSON blob keeps parsing unchanged.
+ */
+
 // ─────────────────────────── Content model ───────────────────────────
 
 /** every editable word on the repair page (null/missing = designed default) */
@@ -40,6 +47,15 @@ export interface MaintenanceContent {
   footerNote?: string;
   /** v30: caption above the countdown digits (countdown-eta template) */
   etaNote?: string;
+  /** v32 (13-d): optional logo shown on the repair page (""/missing = the
+   * store's own brand logo, then the wrench mark as the last fallback) */
+  logoUrl?: string;
+  /** v32 (13-d): countdown-eta target — days added on top of the next-18:00
+   * anchor ("" = unset → the designed next-18:00 countdown) */
+  countdownDays?: string;
+  /** v32 (13-d): countdown-eta target — hours added on top of the next-18:00
+   * anchor ("" = unset) */
+  countdownHours?: string;
 }
 
 /** designed defaults — byte-identical to the v25–v28 screen wording */
@@ -56,6 +72,10 @@ export const DEFAULT_MAINTENANCE_CONTENT: Required<MaintenanceContent> = {
   trackingButton: "پیگیری سفارش",
   footerNote: "به‌زودی بازمی‌گردیم — از صبر شما سپاسگزاریم",
   etaNote: "شمارش معکوس تا بازگشایی فروشگاه",
+  /* v32 (13-d): empty = the designed fallback chain / next-18:00 anchor */
+  logoUrl: "",
+  countdownDays: "",
+  countdownHours: "",
 };
 
 /** parse + merge the raw JSON column with the defaults (never throws) */
@@ -90,25 +110,25 @@ export const MAINTENANCE_TEMPLATES: MaintenanceTemplateDef[] = [
     id: "tech-dark",
     nameFa: "تِک تاریک",
     nameEn: "tech-dark",
-    desc: "پنل عیب‌یابی سخت‌افزاری با نئون سبز/فیروزه‌ای، LEDهای وضعیت و خط اسکن — حس تخصصی و فنی",
+    desc: "پنل عیب‌یابی فنی با نئون سبز، ترمینال و رادار",
   },
   {
     id: "minimal-light",
     nameFa: "مینیمال روشن",
     nameEn: "minimal-light",
-    desc: "سفید و تمیز با تایپوگرافی درشت، خط طلایی و فضای خالی — سادگی اپل‌گونه",
+    desc: "ادیتوریال شیک با تایپوگرافی درشت و خط طلایی",
   },
   {
     id: "neon-glass",
     nameFa: "نئون شیشه‌ای",
     nameEn: "neon-glass",
-    desc: "گرادیان‌های فوشیا/فیروزه‌ای شناور + کارت شیشه‌ای با حلقهٔ نئونی چرخان",
+    desc: "کارتی شیشه‌ای با هالهٔ فوشیا/فیروزه‌ای و حلقهٔ نئونی",
   },
   {
     id: "countdown-eta",
     nameFa: "شمارش معکوس",
     nameEn: "countdown-eta",
-    desc: "شمارش معکوس بزرگ روز/ساعت/دقیقه/ثانیه + نوار پیشرفت و مراحل تعمیر (تشخیص، قطعات، تعمیر، تست)",
+    desc: "شمارش معکوس روز/ساعت/دقیقه/ثانیه — هدفش از پنل تنظیم می‌شود",
   },
 ];
 

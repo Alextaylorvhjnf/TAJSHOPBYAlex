@@ -21,6 +21,7 @@ import {
   ShieldCheck, ShoppingBasket, Gem, Timer,
 } from "lucide-react";
 import type { HomeData, TemplateProduct } from "@/lib/templates/types";
+import { RAIL_URLS } from "@/lib/templates/slide-targets";
 import { useCart } from "@/hooks/use-store";
 import { formatPrice, toFaDigits } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -619,7 +620,7 @@ export function AutumnTemplate({ data }: { data: HomeData }) {
       {data.featured.length > 0 && (
         <section className="mx-auto w-full max-w-[1440px] px-4 pt-14" aria-labelledby="aut-featured">
           <Reveal>
-            <CozyHeader icon={Gem} title="نقش مایع ویترین" subtitle="چیدمان موزاییکی انتخاب‌های ویژه" href="/products" />
+            <CozyHeader icon={Gem} title="نقش مایع ویترین" subtitle="چیدمان موزاییکی انتخاب‌های ویژه" href={RAIL_URLS.featured} />
             <div className="grid gap-4 md:grid-cols-4 md:[grid-auto-rows:270px]">
               {data.featured.slice(0, 5).map((p, i) => (
                 <div key={p.id} className={cn(i === 0 && "md:col-span-2 md:row-span-2")}>
@@ -725,7 +726,7 @@ export function AutumnTemplate({ data }: { data: HomeData }) {
       {data.newest.length > 0 && (
         <section className="mx-auto w-full max-w-[1440px] px-4 pt-14" aria-labelledby="aut-newest">
           <Reveal>
-            <CozyHeader icon={Leaf} title="برگ‌های تازه" subtitle="به‌تازگی به ویترین افزوده شده" href="/products" />
+            <CozyHeader icon={Leaf} title="برگ‌های تازه" subtitle="به‌تازگی به ویترین افزوده شده" href={RAIL_URLS.newest} />
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
               {data.newest.slice(0, 8).map((p) => (
                 <Link key={p.id} href={`/products/${p.slug}`} className="au-card au-glass group flex flex-col overflow-hidden rounded-3xl">

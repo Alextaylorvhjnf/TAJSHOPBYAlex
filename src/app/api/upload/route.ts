@@ -39,8 +39,13 @@ export async function POST(req: Request) {
   if (!(file instanceof File)) return fail("فایلی ارسال نشده است", 400);
 
   // story videos take a dedicated path (no sharp, larger size cap)
-  if (folder === "videos") {
-    const result = await saveVideoUpload(file);
+  // v32: SLIDER HERO VIDEOS — a video file aimed at the whitelisted "sliders"
+  // folder (template-content editor) takes the same dedicated video path with
+  // its own 100MB cap; the mime check below keeps image uploads on the image
+  // path even for the sliders folder.
+  const isVideoFile = typeof file.type === "string" && file.type.startsWith("video/");
+  if (folder === "videos" || (isVideoFile && folder === "sliders")) {
+    const result = await saveVideoUpload(file, folder);
     if (!result.ok) return fail(result.message, 400);
     await logAdmin(admin.id, "UPLOAD_VIDEO", { entity: "Media", entityId: result.url, ip: getClientIp(req) });
     return ok({ url: result.url, kind: "video" });

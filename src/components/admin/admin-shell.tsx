@@ -2,7 +2,14 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+  type ReactNode,
+} from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,6 +26,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Bell,
+  Check,
   CreditCard,
   ExternalLink,
   FileClock,
@@ -36,6 +44,7 @@ import {
   PlayCircle,
   Plus,
   RefreshCw,
+  Search,
   Settings,
   ShoppingBag,
   Tag,
@@ -49,6 +58,7 @@ import {
 import { ROLE_FA } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { apiFetch } from "@/components/admin/api-client";
+import { useMe } from "@/hooks/use-store";
 import { useBranding } from "@/components/providers/branding-provider";
 import { AdminThemeModeToggle } from "@/components/admin/admin-theme";
 import { ADMIN_ROUTE_DESCS, matchAdminRoute } from "@/components/admin/ui-bits";
@@ -86,46 +96,35 @@ interface NavGroup {
   items: NavItem[];
 }
 
-/* ── ZYWRA sidebar navigation (v23) ────────────────────────────────
-   Reference: “Invoice Management SaaS Dashboard | Zywra Studio”.
-   • desktop lg+ → fixed 260px sidebar on the START side (right in RTL)
-   • md (768–1023) → same rail collapsed to 80px icons
-   • below md     → hidden; the topbar hamburger opens the Sheet with
-     the full grouped tree (same 20 v17 routes, all reachable).
-   Look & feel (light/dark via --zy-* vars in admin-v20.css):
-   11px slate-400 section labels, 44px/10px-radius items, active =
-   indigo-50 bg + indigo-600 text + 3px START border + icon chip. */
+/* ── v32 sidebar navigation (Task 13-b — Peoplexio/Finnova reference) ──
+   Five grouped sections with small Persian labels, adapted to RTL:
+   • desktop lg+ → floating 272px rounded-2xl card on the START side
+     (right in RTL); md (768–1023) → the same card collapsed to an
+     80px icon rail; below md → hidden, the topbar hamburger opens the
+     Sheet with the full grouped tree (all 20 v17 routes + the new
+     /admin/template-content, all reachable, permission-gated).
+   Look & feel (light/dark via the --av- and --zy- vars in admin-v32.css):
+   10.5px muted section labels, 42px full-pill items, active = accent
+   GRADIENT pill + glowing icon chip + soft glow shadow. Badges (live
+   unread messages / open tickets) and the collapse behavior are the
+   same as v23. */
 const NAV_GROUPS: NavGroup[] = [
   {
     id: "root",
-    label: null,
+    label: "اصلی",
     items: [{ href: "/admin", label: "داشبورد", icon: LayoutDashboard, exact: true }],
   },
   {
-    id: "products",
-    label: "محصولات",
+    id: "store",
+    label: "فروشگاه",
     items: [
       { href: "/admin/products", label: "همه محصولات", icon: Package, perm: "products" },
       { href: "/admin/categories", label: "دسته‌بندی‌ها", icon: FolderTree, perm: "categories" },
       { href: "/admin/brands", label: "برندها", icon: Tag, perm: "brands" },
-    ],
-  },
-  {
-    id: "orders",
-    label: "سفارش‌ها و پرداخت",
-    items: [
       { href: "/admin/orders", label: "سفارش‌ها", icon: ShoppingBag, perm: "orders" },
       { href: "/admin/payments", label: "پرداخت‌ها", icon: CreditCard, perm: "payments" },
       { href: "/admin/coupons", label: "کد تخفیف", icon: Ticket, perm: "coupons" },
       { href: "/admin/delivery", label: "روش‌های ارسال", icon: Truck, perm: "delivery" },
-    ],
-  },
-  {
-    id: "customers",
-    label: "مشتریان",
-    items: [
-      { href: "/admin/users", label: "کاربران", icon: Users, perm: "users" },
-      { href: "/admin/reviews", label: "دیدگاه‌ها", icon: MessageSquare, perm: "reviews" },
     ],
   },
   {
@@ -136,21 +135,27 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/admin/stories", label: "استوری‌ها", icon: PlayCircle, perm: "stories" },
       { href: "/admin/showcases", label: "شوکیس‌ها", icon: LayoutTemplate, perm: "showcases" },
       { href: "/admin/pages", label: "صفحات", icon: FileText, perm: "pages" },
+      { href: "/admin/appearance", label: "تغییر قالب", icon: Palette, perm: "appearance" },
+      // v32 (Task 13-b): new «محتوای قالب‌ها» page — same permission
+      // gating as «تغییر قالب» (appearance). The page itself is built by
+      // a parallel task; the link may 404 until that lands.
+      { href: "/admin/template-content", label: "محتوای قالب‌ها", icon: Images, perm: "appearance" },
     ],
   },
   {
-    id: "messages",
-    label: "پیام‌ها و پشتیبانی",
+    id: "customers",
+    label: "مشتریان",
     items: [
+      { href: "/admin/users", label: "کاربران", icon: Users, perm: "users" },
+      { href: "/admin/reviews", label: "دیدگاه‌ها", icon: MessageSquare, perm: "reviews" },
       { href: "/admin/tickets", label: "تیکت‌های پشتیبانی", icon: TicketCheck, perm: "tickets" },
       { href: "/admin/messages", label: "پیام‌های مشتریان", icon: MessagesSquare, perm: "messages" },
     ],
   },
   {
-    id: "settings",
-    label: "تنظیمات",
+    id: "system",
+    label: "سیستم",
     items: [
-      { href: "/admin/appearance", label: "تغییر قالب فروشگاه", icon: Palette, perm: "appearance" },
       { href: "/admin/settings", label: "تنظیمات", icon: Settings, perm: "settings" },
       // v29.2: staff-manager accounts + granular permissions (admin-only)
       { href: "/admin/managers", label: "مدیران", icon: UserCog, perm: "settings" },
@@ -179,10 +184,262 @@ function hasPanelAccess(user: AdminShellUser, perm?: string): boolean {
   return (ROLE_DEFAULT_PERMS[user.role] ?? []).includes(perm);
 }
 
-/** route-aware topbar CTA (reference: indigo-600 button, 10px radius) */
+/** route-aware topbar CTA (reference: accent gradient pill) */
 const ROUTE_CTAS: Record<string, { href: string; label: string }> = {
   "/admin": { href: "/admin/products/new", label: "محصول جدید" },
 };
+
+/* ═══ v32 · ADMIN ACCENT THEMES (Task 13-b) ═══════════════════════
+   4 selectable accents persisted in localStorage("taj-admin-accent")
+   and applied as [data-admin-accent] on <html>. The no-flash boot
+   script in app/admin/layout.tsx sets the attribute before first
+   paint; admin-v32.css re-maps the primary/chart/nav/shadow vars per
+   accent AND per light/dark mode, layered on the existing
+   next-themes-style token machinery (finnova = light, saas-dark =
+   dark). Text contrast is tuned per accent per mode. */
+const ADMIN_ACCENT_STORAGE_KEY = "taj-admin-accent";
+
+export type AdminAccentId = "purple" | "pink" | "charcoal" | "red";
+
+interface AdminAccentDef {
+  id: AdminAccentId;
+  /** Persian label shown in the popover */
+  label: string;
+  /** preview dot color (the identity hex) */
+  dot: string;
+}
+
+const ADMIN_ACCENTS: AdminAccentDef[] = [
+  { id: "purple", label: "بنفش", dot: "#7C3AED" },
+  { id: "pink", label: "صورتی", dot: "#EC4899" },
+  { id: "charcoal", label: "زغالی", dot: "#1E1B4B" },
+  { id: "red", label: "قرمز", dot: "#EF4444" },
+];
+
+const DEFAULT_ADMIN_ACCENT: AdminAccentId = "purple";
+
+function isAccentId(v: unknown): v is AdminAccentId {
+  return typeof v === "string" && ADMIN_ACCENTS.some((a) => a.id === v);
+}
+
+function applyAdminAccent(id: AdminAccentId) {
+  const normalized = isAccentId(id) ? id : DEFAULT_ADMIN_ACCENT;
+  document.documentElement.setAttribute("data-admin-accent", normalized);
+  try {
+    localStorage.setItem(ADMIN_ACCENT_STORAGE_KEY, normalized);
+  } catch {
+    /* private mode etc. — the attribute still applies for this session */
+  }
+}
+
+function currentAdminAccent(): AdminAccentId {
+  const attr = document.documentElement.getAttribute("data-admin-accent");
+  return isAccentId(attr) ? attr : DEFAULT_ADMIN_ACCENT;
+}
+
+const accentStore = {
+  subscribe(cb: () => void) {
+    const obs = new MutationObserver(cb);
+    obs.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-admin-accent"],
+    });
+    window.addEventListener("storage", cb);
+    return () => {
+      obs.disconnect();
+      window.removeEventListener("storage", cb);
+    };
+  },
+  getSnapshot: (): AdminAccentId => currentAdminAccent(),
+  getServerSnapshot: (): AdminAccentId => DEFAULT_ADMIN_ACCENT,
+};
+
+/** hydration-safe accent state — syncs across components and tabs */
+function useAdminAccent() {
+  const accent = useSyncExternalStore(
+    accentStore.subscribe,
+    accentStore.getSnapshot,
+    accentStore.getServerSnapshot
+  );
+  const setAccent = useCallback((id: AdminAccentId) => {
+    applyAdminAccent(id); // attribute change re-renders every subscriber
+  }, []);
+  return [accent, setAccent] as const;
+}
+
+/* ── v32 topbar theme popover: 4 accent dots + labels + light/dark ── */
+function AccentThemePopover() {
+  const [accent, setAccent] = useAdminAccent();
+  const [open, setOpen] = useState(false);
+  const activeDot = ADMIN_ACCENTS.find((a) => a.id === accent)?.dot ?? "#7C3AED";
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          aria-label="رنگ‌بندی و حالت پنل"
+          title="رنگ‌بندی و حالت پنل"
+          className="av32-icon-btn relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <Palette className="h-[18px] w-[18px]" strokeWidth={1.75} />
+          <span
+            aria-hidden
+            className="absolute -bottom-0.5 -end-0.5 h-2.5 w-2.5 rounded-full ring-2 ring-card"
+            style={{ background: activeDot }}
+          />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="end" dir="rtl" className="w-64 rounded-2xl p-3">
+        <p className="text-xs font-bold">رنگ‌بندی پنل مدیریت</p>
+        <p className="mt-0.5 text-[11px] leading-5 text-muted-foreground">
+          انتخاب شما در همین مرورگر ذخیره می‌شود.
+        </p>
+        <div className="mt-3 space-y-1" role="radiogroup" aria-label="انتخاب رنگ‌بندی">
+          {ADMIN_ACCENTS.map((a) => {
+            const active = accent === a.id;
+            return (
+              <button
+                key={a.id}
+                type="button"
+                role="radio"
+                aria-checked={active}
+                onClick={() => setAccent(a.id)}
+                className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-start transition-colors hover:bg-muted"
+              >
+                <span
+                  className="av32-accent-dot shrink-0"
+                  style={{ background: a.dot }}
+                  aria-hidden
+                />
+                <span className="flex-1 text-[13px] font-semibold">{a.label}</span>
+                {active && <Check className="h-4 w-4 text-primary" strokeWidth={2.25} />}
+              </button>
+            );
+          })}
+        </div>
+        <div className="mt-3 border-t pt-3">
+          <p className="mb-2 text-[11px] font-bold text-muted-foreground">حالت نمایش</p>
+          <AdminThemeModeToggle />
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+/* ── v32 topbar search — submits to the products page `q` filter ─── */
+function TopbarSearch() {
+  const router = useRouter();
+  const [q, setQ] = useState("");
+  return (
+    <form
+      role="search"
+      className="relative hidden shrink-0 md:block"
+      onSubmit={(e) => {
+        e.preventDefault();
+        const t = q.trim();
+        router.push(t ? `/admin/products?q=${encodeURIComponent(t)}` : "/admin/products");
+      }}
+    >
+      <Search
+        className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+        strokeWidth={1.75}
+      />
+      <input
+        type="search"
+        value={q}
+        onChange={(e) => setQ(e.target.value)}
+        placeholder="جستجوی محصول…"
+        aria-label="جستجوی محصول در پنل مدیریت"
+        className="av32-search"
+      />
+    </form>
+  );
+}
+
+/* ── v32 topbar avatar chip: name + role via the existing useMe hook
+   (live /api/auth/me data; falls back to the server shell user while
+   the query loads) — opens the account dropdown. */
+function TopbarUserChip({
+  user,
+  onLogout,
+  loggingOut,
+}: {
+  user: AdminShellUser;
+  onLogout: () => void;
+  loggingOut: boolean;
+}) {
+  const { data } = useMe();
+  const me = data?.user;
+  const name =
+    `${(me?.firstName ?? user.firstName) ?? ""} ${(me?.lastName ?? user.lastName) ?? ""}`.trim() || "مدیر";
+  const role = me?.role ?? user.role;
+  const avatar = me?.avatar ?? user.avatar ?? null;
+  const initials = name.slice(0, 1);
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          aria-label="منوی حساب کاربری"
+          className="av32-user-chip hidden h-11 items-center gap-2.5 ps-1.5 pe-3 text-start outline-none sm:flex"
+        >
+          <span className="relative shrink-0">
+            <span
+              className="grid h-8 w-8 place-items-center overflow-hidden rounded-full text-[11px] font-bold"
+              style={{
+                background: "linear-gradient(135deg, var(--av-pill-from, #7C3AED), var(--av-pill-to, #6D28D9))",
+                color: "var(--av-pill-fg, #FFFFFF)",
+              }}
+            >
+              {avatar ? (
+                <img src={avatar} alt={`آواتار ${name}`} className="h-full w-full object-cover" />
+              ) : (
+                initials
+              )}
+            </span>
+            <span
+              aria-hidden
+              className="zy-avatar-dot absolute -bottom-0.5 -end-0.5 h-2 w-2 rounded-full bg-emerald-500"
+            />
+          </span>
+          <span className="hidden min-w-0 flex-col leading-tight lg:flex">
+            <span className="max-w-[110px] truncate text-[12.5px] font-bold">{name}</span>
+            <span className="max-w-[110px] truncate text-[10.5px] text-muted-foreground">
+              {ROLE_FA[role] ?? role}
+            </span>
+          </span>
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent side="bottom" align="end" className="w-56">
+        <DropdownMenuLabel className="text-xs text-muted-foreground">
+          <span className="block truncate font-bold text-foreground">{name}</span>
+          {ROLE_FA[role] ?? role}
+          <span className="block truncate font-mono text-[10px]" dir="ltr">
+            {user.email ?? user.phone}
+          </span>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <Link href="/admin/account">
+            <UserRound className="h-4 w-4 ml-2" />
+            حساب من
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href="/" target="_blank" rel="noopener noreferrer">
+            <ExternalLink className="h-4 w-4 ml-2" />
+            مشاهده فروشگاه
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={onLogout} disabled={loggingOut} className="text-destructive">
+          <LogOut className="h-4 w-4 ml-2" />
+          خروج از حساب
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
 
 /** Live unread customer-messages badge (polls every 60s, shared query key) */
 function useUnreadMessages() {
@@ -307,7 +564,7 @@ function NotificationBell() {
           aria-label="اعلان‌ها و پیام‌ها"
           title="اعلان‌ها و پیام‌ها"
           className={cn(
-            "relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full border bg-card text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
+            "av32-icon-btn relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           )}
         >
@@ -471,8 +728,8 @@ function SidebarNav({
                   aria-current={active ? "page" : undefined}
                   title={item.label}
                   className={cn(
-                    "zy-nav-link relative flex h-11 items-center gap-2.5 rounded-[10px] px-3 text-sm font-medium outline-none transition-colors",
-                    responsive && "md:justify-center md:px-1 lg:justify-start lg:px-3"
+                    "zy-nav-link relative flex h-11 items-center gap-2.5 rounded-full px-3 text-sm font-medium outline-none transition-colors",
+                    responsive && "md:justify-center md:px-1 lg:justify-start lg:px-3.5"
                   )}
                 >
                   <span className="zy-nav-icon">
@@ -544,7 +801,13 @@ function ProfileMenu({
           )}
         >
           <span className="relative shrink-0">
-            <span className="grid h-9 w-9 place-items-center overflow-hidden rounded-full bg-[linear-gradient(135deg,#6366F1,#8B5CF6)] text-xs font-bold text-white">
+            <span
+              className="grid h-9 w-9 place-items-center overflow-hidden rounded-full text-xs font-bold"
+              style={{
+                background: "linear-gradient(135deg, var(--av-pill-from, #7C3AED), var(--av-pill-to, #6D28D9))",
+                color: "var(--av-pill-fg, #FFFFFF)",
+              }}
+            >
               {user.avatar ? (
                 <img src={user.avatar} alt={`آواتار ${name}`} className="h-full w-full object-cover" />
               ) : (
@@ -612,7 +875,7 @@ function TopIconButton({
   children: ReactNode;
 }) {
   const cls = cn(
-    "relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full border bg-card text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
+    "av32-icon-btn relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground",
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
     className
   );
@@ -660,7 +923,12 @@ function BrandMark({ compact = false }: { compact?: boolean }) {
       ) : (
         <span
           aria-hidden
-          className="grid h-10 w-10 place-items-center rounded-xl bg-[linear-gradient(135deg,#6366F1,#8B5CF6)] text-lg font-black text-white shadow-lg shadow-indigo-500/25"
+          className="grid h-10 w-10 place-items-center rounded-xl text-lg font-black"
+          style={{
+            background: "linear-gradient(135deg, var(--av-pill-from, #7C3AED), var(--av-pill-to, #6D28D9))",
+            color: "var(--av-pill-fg, #FFFFFF)",
+            boxShadow: "0 8px 20px -6px var(--av-glow, rgba(124, 58, 237, 0.45))",
+          }}
         >
           {initial}
         </span>
@@ -797,33 +1065,40 @@ export function AdminShell({ user, children }: { user: AdminShellUser; children:
 
   return (
     <div className="admin-v20 flex min-h-screen bg-background text-foreground">
-      {/* ═ ZYWRA sidebar — START side (right in RTL), 260px / 80px rail ═ */}
-      <aside className="zy-sidebar hidden md:sticky md:top-0 md:flex md:h-screen md:w-20 md:shrink-0 md:flex-col lg:w-[260px]">
-        {/* logo area — 72px */}
-        <div className="flex h-[72px] shrink-0 items-center justify-center px-4 lg:justify-start lg:px-5">
-          <Link
-            href="/admin"
-            aria-label="داشبورد پنل مدیریت"
-            className="rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <BrandMark compact />
-          </Link>
-        </div>
+      {/* ═ v32 sidebar — floating rounded-2xl card on the START side
+         (right in RTL): 272px at lg, 80px icon rail at md, Sheet below.
+         The wrapper only positions; the inner card paints the surface. ═ */}
+      <div className="hidden md:sticky md:top-0 md:block md:h-screen md:w-20 md:shrink-0 md:py-3 md:ps-3 lg:w-[272px]">
+        <aside
+          className="av32-sidebar-card flex h-full w-full flex-col md:overflow-hidden"
+          aria-label="ناوبری اصلی پنل"
+        >
+          {/* logo area — 68px */}
+          <div className="flex h-[68px] shrink-0 items-center justify-center px-4 lg:justify-start lg:px-5">
+            <Link
+              href="/admin"
+              aria-label="داشبورد پنل مدیریت"
+              className="rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <BrandMark compact />
+            </Link>
+          </div>
 
-        {/* scrollable grouped nav */}
-        <ScrollArea className="min-h-0 flex-1">
-          <SidebarNav groups={visibleGroups} pathname={pathname} labels="responsive" />
-        </ScrollArea>
+          {/* scrollable grouped nav */}
+          <ScrollArea className="min-h-0 flex-1">
+            <SidebarNav groups={visibleGroups} pathname={pathname} labels="responsive" />
+          </ScrollArea>
 
-        {/* bottom profile card */}
-        <div className="shrink-0 p-3">
-          <ProfileMenu user={liveUser} onLogout={logout} loggingOut={loggingOut} compact />
-        </div>
-      </aside>
+          {/* bottom profile card */}
+          <div className="shrink-0 p-3">
+            <ProfileMenu user={liveUser} onLogout={logout} loggingOut={loggingOut} compact />
+          </div>
+        </aside>
+      </div>
 
-      {/* ═ main column: 64px topbar + page content ═ */}
+      {/* ═ main column: floating glass topbar + page content ═ */}
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="admin-topbar sticky top-0 z-40 flex h-16 shrink-0 items-center gap-3 border-b bg-card/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-card/85 md:px-6">
+        <header className="av32-topbar sticky top-0 z-40 flex h-16 shrink-0 items-center gap-2 px-3 md:top-3 md:mx-3 md:gap-3 md:px-4 lg:px-5">
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
               <button
@@ -835,7 +1110,7 @@ export function AdminShell({ user, children }: { user: AdminShellUser; children:
               </button>
             </SheetTrigger>
 
-            {/* mobile drawer — full vertical nav (Zywra look) */}
+            {/* mobile drawer — full vertical nav (same grouped tree) */}
             <SheetContent
               side="right"
               className="zy-sidebar flex w-[288px] flex-col gap-0 overflow-y-auto p-0"
@@ -859,14 +1134,17 @@ export function AdminShell({ user, children }: { user: AdminShellUser; children:
             </SheetContent>
           </Sheet>
 
-          {/* page title (24px/700) + subtitle (14px slate-500) */}
+          {/* v32 topbar search (submits to the products q filter) */}
+          <TopbarSearch />
+
+          {/* page title + subtitle (route registry) */}
           <div className="min-w-0 flex-1">
-            <h1 className="truncate text-2xl font-bold leading-tight tracking-tight">{title}</h1>
-            <p className="hidden truncate text-sm text-muted-foreground sm:block">{desc}</p>
+            <h1 className="truncate text-lg font-bold leading-tight tracking-tight md:text-xl">{title}</h1>
+            <p className="hidden truncate text-xs text-muted-foreground xl:block">{desc}</p>
           </div>
 
-          {/* action cluster (end side): circular icon buttons, segmented
-              mode toggle, palette picker + the indigo CTA */}
+          {/* action cluster (end side): refresh, notifications, theme
+              popover (4 accents + light/dark), gradient CTA, avatar chip */}
           <div className="flex shrink-0 items-center gap-1.5 md:gap-2">
             <TopIconButton
               onClick={refreshData}
@@ -875,18 +1153,18 @@ export function AdminShell({ user, children }: { user: AdminShellUser; children:
             >
               <RefreshCw className={cn("h-[18px] w-[18px]", refreshing && "animate-spin")} strokeWidth={1.75} />
             </TopIconButton>
-            {/* v31: the bell now opens the admin's own notifications Popover
+            {/* v31: the bell opens the admin's own notifications Popover
                 (ticket/message counters live in its footer — see the
-                NotificationBell component above) */}
+                NotificationBell component above). v32: wrapper restyled. */}
             <NotificationBell />
-            <AdminThemeModeToggle />
-            {/* v27.1: admin appearance is JUST light/dark now — the v17/v23
-                multi-theme palette picker was removed per the new design */}
+            {/* v32: accent theme popover — 4 color dots + labels + the
+                light/dark segmented toggle (replaces the bare toggle) */}
+            <AccentThemePopover />
             {cta && (
               <Button
                 asChild
                 size="sm"
-                className="zy-cta hidden h-9 bg-primary px-4 text-[13px] font-semibold text-primary-foreground shadow-sm hover:bg-[var(--zy-primary-hover,var(--primary))] sm:inline-flex"
+                className="zy-cta hidden h-9 px-4 text-[13px] font-semibold sm:inline-flex"
               >
                 <Link href={cta.href}>
                   <Plus className="h-4 w-4" strokeWidth={2} />
@@ -894,11 +1172,13 @@ export function AdminShell({ user, children }: { user: AdminShellUser; children:
                 </Link>
               </Button>
             )}
+            {/* v32: admin avatar chip — name + role via the useMe hook */}
+            <TopbarUserChip user={liveUser} onLogout={logout} loggingOut={loggingOut} />
           </div>
         </header>
 
-        {/* page content — 24–32px padding on the flex-1 canvas */}
-        <main className="mx-auto w-full max-w-[1440px] flex-1 p-4 pb-16 md:p-6 lg:p-8">
+        {/* page content — 16–32px padding on the flex-1 canvas */}
+        <main className="mx-auto w-full max-w-[1440px] flex-1 p-4 pb-14 md:p-6 lg:p-8">
           {children}
         </main>
       </div>

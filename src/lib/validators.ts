@@ -280,6 +280,16 @@ export const storeSettingsSchema = z.object({
   workingHours: z.string().max(120).optional().nullable(),
   instagram: z.string().max(200).optional().nullable(),
   telegram: z.string().max(200).optional().nullable(),
+  // v34.1: Telegram shopping-bot link for the footer «خرید از ربات تلگرامی»
+  // button — accepts @username, t.me/… links or any full https URL.
+  telegramBotUrl: z
+    .string()
+    .max(200)
+    .optional()
+    .nullable()
+    .refine((v) => !v || v.startsWith("/") || v.startsWith("https://") || v.startsWith("http://") || v.startsWith("@") || /^t\.me\//i.test(v), {
+      message: "لینک ربات باید @username، t.me/… یا آدرس کامل https باشد",
+    }),
   whatsapp: z.string().max(200).optional().nullable(),
   youtube: z.string().max(200).optional().nullable(),
   twitter: z.string().max(200).optional().nullable(),
@@ -350,6 +360,11 @@ export const storeSettingsSchema = z.object({
       footerNote: z.string().max(200).optional().nullable(),
       /* v30: caption above the countdown digits (countdown-eta template) */
       etaNote: z.string().max(200).optional().nullable(),
+      /* v32 (13-d): repair-page logo override + countdown target (strings;
+       * empty/omitted = designed fallback) */
+      logoUrl: z.string().max(500).optional().nullable(),
+      countdownDays: z.string().max(8).optional().nullable(),
+      countdownHours: z.string().max(8).optional().nullable(),
     })
     .optional()
     .nullable(),

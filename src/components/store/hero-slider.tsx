@@ -8,6 +8,9 @@ import { ChevronLeft, ChevronRight, Sparkles, ShoppingCart, Zap } from "lucide-r
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useChatStore } from "@/lib/stores";
+// v33 (2-d): pure client-safe helper — a bare "/products" buttonUrl is
+// resolved from the button text/title/badge into a filtered product list.
+import { smartSliderUrl } from "@/lib/templates/slide-targets";
 
 export type SliderSlide = {
   id: string;
@@ -130,7 +133,7 @@ export function HeroSlider({ slides }: { slides: SliderSlide[] }) {
                 >
                   {slide.buttonText && (
                     <Button asChild size="lg" className="gold-surface text-primary-foreground hover:opacity-90 rounded-xl h-12 px-7 font-bold shadow-lg">
-                      <Link href={slide.buttonUrl ?? "/products"}>
+                      <Link href={smartSliderUrl({ buttonUrl: slide.buttonUrl, text: slide.buttonText, title: slide.title, badge: slide.badge })}>
                         <ShoppingCart className="h-5 w-5 me-2" />
                         {slide.buttonText}
                       </Link>

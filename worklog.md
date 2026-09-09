@@ -196,3 +196,35 @@ Work Log:
 
 Stage Summary:
 - GitHub channel FULLY VERIFIED end-to-end: push ✓, manifest ✓, zip hash ✓, contents ✓, old-version detection ✓, auto-notification ✓. Any site on 24.0.0+ will see and can install 26.0.0 from GitHub; user data protected by whitelist.
+
+---
+Task ID: 9 (v34.1 port)
+Agent: Z.ai Code (main)
+Task: Take the user's 390MB v34 full package, fix the reported production bugs (AI test 403, install wizard/admin-setup database errors), run a general checkup, add the «خرید از ربات تلگرامی» button to every template footer, rebuild the full package with the build inside, and redeliver.
+
+Work Log:
+- Downloaded the 390MB package via 16-way parallel range-resume; verified CRC; 10,636 entries.
+- Root causes: (1) bundled node_modules/.bin/prisma monolith resolving its wasm engines NEXT TO ITSELF (.bin/) → ENOENT → the /install wizard's database-setup step always failed; (2) /api/ai/test route did not exist (admin «تست اتصال» posts to it) → generic error shown as 403; (3) stale db-seed/catalog.db missing the v34 tables (TemplateContent, TelegramBotSettings, TelegramSubscriber) → TG bot poller boot errors; (4) multi-bundle PrismaClient duplication in production → self-heal double-run → «duplicate column name: storeChrome».
+- Fixes (v34.1 / app 29.0.1): thin .bin/prisma shim delegating to prisma/build/index.js + db-setup.ts CLI resolution order prefers node prisma/build/index.js; ensureDatabaseEnv() env self-heal wired into checkRequirements(); installer/state.ts classifies PrismaClientInitializationError as needsSetup; global lazy+resettable Prisma Proxy client (single instance per process, reset gated to env-heal only — fixes the segfault from resetting mid-query); (store)/error.tsx Persian error boundary; /api/ai/test route with precise Persian 403/401/429/timeout diagnostics + 15s timeout guard; StoreSettings.telegramBotUrl (schema+validator+admin field) with t.me fallback from the configured Telegram bot; TelegramBotChip in all 8 chrome footer variants + legacy shared footer; home-data resolvers never throw.
+- Demo seed DB rebuilt with the full 37-table schema (100 products, 40 demo CUSTOMER accounts, 0 admins, empty InstallationState → wizard stays usable).
+- Production build + package reassembled mirroring the 390MB layout → Taj-Electronics-v34.1-Full.zip (283MB, 9,854 entries) + RELEASE-NOTES-v34.1.md.
+- E2E verified the assembled package twice via scripts/docker-entrypoint.sh (seed → db push → server → wizard all steps → HOME 200; admin login; /api/ai/test Persian diagnostics; sharp OK; zero ENOENT/duplicate-column/crash lines) and browser-verified the sandbox preview (100 products, footer button desktop+mobile on default + chrome templates, admin settings field, AI test button hits the new route, no console errors). Lint: 0 errors.
+
+Stage Summary:
+- Deliverable: Taj-Electronics-v34.1-Full.zip — the v34 full package with every reported bug fixed and the Telegram-bot footer button added.
+- .bin/prisma wasm resolution fixed at two levels; env self-heal + error classification make the wizard self-repair; AI-test route added.
+
+---
+Task ID: 10 (release 29.0.1 → GitHub channel)
+Agent: Z.ai Code (main)
+Task: Publish v34.1 (app 29.0.1) to the official GitHub update channel so every installed store auto-detects and installs it from the admin panel / ./update.sh.
+
+Work Log:
+- Bumped the app version to 29.0.1 (matches the v34.1 release notes) in the repo root + update zip (source package.json, runtime-code package.json, runtime-code .version).
+- Built updates/taj-electronics-update-29.0.1.zip (67.76MB, 2,733 files) mirroring the v34 channel format: allowlisted code (src/, prisma/, scripts/ minus release-update.mjs, public/ minus uploads+downloads, 7 root configs + package.json + bun.lock) PLUS runtime-code/ (the E2E-verified v34.1 standalone build: .next, server.js, prisma, scripts, db-seed, fixed .bin/prisma shim) for ./update.sh standalone no-build swaps. Panel apply discards runtime dirs by design; update.sh applies them.
+- Manifest updates/update-manifest.json: version 29.0.1, zipUrl → raw.githubusercontent.com/…/taj-electronics-update-29.0.1.zip, sha256 c39c028fabf986350cc449962aee7a2900fc7e922af9d87431d07c0245579270, minAppVersion 24.0.0, Persian release notes.
+- Repo tree synced to the v34.1 source (src/prisma/scripts/public minus uploads+downloads, root configs, .env.example, DEPLOY.md, UPDATE-GUIDE.md, README, RELEASE-NOTES-v34 + v34.1, install.sh), db/catalog-seed.db refreshed to the full-schema v34.1 demo seed, updates/update.sh upgraded to the standalone-aware v34 script (self-updating), public/update/update-manifest.json offline fallback pinned to 29.0.1.
+- Old channel zips kept (25.0.0, 26.0.0 — sites on old versions still served); 29.0.1 added as newest.
+
+Stage Summary:
+- Everything needed for «بررسی به‌روزرسانی» → 29.0.1 is staged in this commit; the live channel flips the moment this lands on main.

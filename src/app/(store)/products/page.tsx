@@ -18,7 +18,13 @@ export async function generateMetadata({ searchParams }: { searchParams: SearchP
   const sp = await searchParams;
   const cat = typeof sp.category === "string" ? sp.category : "";
   const q = typeof sp.q === "string" ? sp.q : "";
+  // v33 (2-d): Persian titles for the two new rails (پیشنهادهای ویژه /
+  // محصولات ویژه و انحصاری); q and category keep winning over them.
+  const featuredOnly = sp.featured === "1";
+  const specialOnly = sp.special === "1";
   let title = "همه محصولات";
+  if (featuredOnly) title = "پیشنهادهای ویژه";
+  else if (specialOnly) title = "محصولات ویژه و انحصاری";
   if (cat) {
     const category = await db.category.findUnique({ where: { slug: cat } });
     if (category) title = category.name;
@@ -32,11 +38,19 @@ export default async function ProductsPage({ searchParams }: { searchParams: Sea
   const q = (typeof sp.q === "string" ? sp.q : "").trim();
   const categorySlug = typeof sp.category === "string" ? sp.category : "";
   const brandSlug = typeof sp.brand === "string" ? sp.brand : "";
-  const sort = typeof sp.sort === "string" ? sp.sort : "newest";
+  let sort = typeof sp.sort === "string" ? sp.sort : "newest";
+  // v33 (2-d): lenient alias — a shipped template links ?sort=bestseller
+  // (typo) which used to silently fall back to newest. Map it onto the
+  // canonical "bestselling".
+  if (sort === "bestseller") sort = "bestselling";
   const min = parseInt(typeof sp.min === "string" ? sp.min : "") || 0;
   const max = parseInt(typeof sp.max === "string" ? sp.max : "") || 0;
   const inStock = sp.inStock === "1";
   const onDiscount = sp.discount === "1";
+  // v33 (2-d): homepage rail filters — ?featured=1 (پیشنهادهای ویژه) and
+  // ?special=1 (محصولات ویژه و انحصاری).
+  const featuredOnly = sp.featured === "1";
+  const specialOnly = sp.special === "1";
   const page = parseInt(typeof sp.page === "string" ? sp.page : "1") || 1;
   const limit = 12;
   const skip = (page - 1) * limit;
@@ -59,6 +73,8 @@ export default async function ProductsPage({ searchParams }: { searchParams: Sea
   }
   if (inStock) filters.push({ stock: { gt: 0 } });
   if (onDiscount) filters.push({ discountPrice: { not: null } });
+  if (featuredOnly) filters.push({ featured: true });
+  if (specialOnly) filters.push({ isSpecial: true });
   if (terms.length) {
     for (const t of terms) filters.push({ searchText: { contains: t } });
   }
@@ -97,7 +113,21 @@ export default async function ProductsPage({ searchParams }: { searchParams: Sea
   }
 
   const pages = Math.max(1, Math.ceil(total / limit));
-  const heading = q ? `نتایج جستجو برای «${q}»` : category ? category.name : brand ? `برند ${brand.name}` : "همه محصولات";
+  // v33 (2-d): heading precedence q > category > brand > featured >
+  // special > discount > «همه محصولات».
+  const heading = q
+    ? `نتایج جستجو برای «${q}»`
+    : category
+      ? category.name
+      : brand
+        ? `برند ${brand.name}`
+        : featuredOnly
+          ? "پیشنهادهای ویژه"
+          : specialOnly
+            ? "محصولات ویژه و انحصاری"
+            : onDiscount
+              ? "محصولات تخفیف‌دار"
+              : "همه محصولات";
 
   const buildPageUrl = (p: number) => {
     const params = new URLSearchParams();

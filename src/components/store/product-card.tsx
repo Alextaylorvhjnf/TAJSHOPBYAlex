@@ -106,6 +106,7 @@ export function ProductCard({ product, className }: { product: ProductCardData; 
   return (
     <>
       <article
+        data-product-card=""
         className={cn(
           "group relative rounded-2xl border bg-card overflow-hidden card-hover flex flex-col",
           !product.inStock && "grayscale-[0.4]",

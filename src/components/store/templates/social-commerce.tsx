@@ -19,6 +19,7 @@ import {
   Play, Hash, ShoppingBag, CirclePlus, Eye,
 } from "lucide-react";
 import type { HomeData, TemplateProduct } from "@/lib/templates/types";
+import { RAIL_URLS } from "@/lib/templates/slide-targets";
 import { useCart } from "@/hooks/use-store";
 import { formatPrice, toFaDigits } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -621,7 +622,7 @@ export function SocialCommerceTemplate({ data }: { data: HomeData }) {
       {/* ═══ VERTICAL MASONRY FEED ═══ */}
       {feed.length > 0 && (
         <section className="mx-auto w-full max-w-[1440px] px-4 pt-12" aria-labelledby="sc-feed">
-          <FeedHeader icon={Sparkles} title="فید محصولات" subtitle="پست‌های خریدنی، بی‌وقفه" href="/products" />
+          <FeedHeader icon={Sparkles} title="فید محصولات" subtitle="پست‌های خریدنی، بی‌وقفه" href={RAIL_URLS.newest} />
           <div className="columns-2 gap-3 sm:columns-3 lg:columns-4">
             {feed.map((p, i) => <PostCard key={p.id} product={p} variant={i} />)}
           </div>

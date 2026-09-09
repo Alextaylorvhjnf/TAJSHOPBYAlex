@@ -20,6 +20,7 @@ import {
   ShieldCheck, Gem, Citrus,
 } from "lucide-react";
 import type { HomeData, TemplateProduct } from "@/lib/templates/types";
+import { RAIL_URLS } from "@/lib/templates/slide-targets";
 import { useCart } from "@/hooks/use-store";
 import { formatPrice, toFaDigits } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -755,7 +756,7 @@ export function YaldaNightTemplate({ data }: { data: HomeData }) {
       {data.featured.length > 0 && (
         <section className="mx-auto w-full max-w-[1440px] px-4 pt-14" aria-labelledby="yc-basket">
           <Reveal>
-            <NightHeader icon={Sparkles} title="سبد یلدا" subtitle="انتخاب‌های ویژه برای شب بلند" href="/products" />
+            <NightHeader icon={Sparkles} title="سبد یلدا" subtitle="انتخاب‌های ویژه برای شب بلند" href={RAIL_URLS.featured} />
             <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
               {data.featured.slice(0, 8).map((p) => <YaldaTile key={p.id} product={p} />)}
             </div>
@@ -857,7 +858,7 @@ export function YaldaNightTemplate({ data }: { data: HomeData }) {
       {data.newest.length > 0 && (
         <section className="mx-auto w-full max-w-[1440px] px-4 pt-14" aria-labelledby="yc-newest">
           <Reveal>
-            <NightHeader icon={Moon} title="تازه‌های شب" subtitle="به‌تازگی روی سفره چیده شده" href="/products" />
+            <NightHeader icon={Moon} title="تازه‌های شب" subtitle="به‌تازگی روی سفره چیده شده" href={RAIL_URLS.newest} />
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
               {data.newest.slice(0, 8).map((p) => (
                 <Link key={p.id} href={`/products/${p.slug}`} className="yc-card yc-glass group flex flex-col overflow-hidden rounded-3xl">

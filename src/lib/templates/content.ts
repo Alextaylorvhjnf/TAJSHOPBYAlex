@@ -16,6 +16,9 @@
 
 import { z } from "zod";
 import type { HomeData, TemplateStore } from "./types";
+// v33 (2-d): pure helper — template-content slides/showcases with a bare
+// "/products" link get the same smart keyword treatment as global sliders.
+import { smartSliderUrl } from "./slide-targets";
 
 // ─────────────────────────── content types ───────────────────────────
 
@@ -27,6 +30,17 @@ export type TemplateSlide = {
   subtitle?: string;
   /** optional link target (internal path or https URL) */
   link?: string;
+  /** v32: per-slide countdown — templates that render hero slides show a
+   *  ticking chip (روز/ساعت/دقیقه/ثانیه) over the slide when enabled. */
+  countdownEnabled?: boolean;
+  /** ISO datetime the countdown counts down to (requires countdownEnabled) */
+  countdownTarget?: string;
+  /** short label next to the digits, e.g. «تخفیف بهاره» */
+  countdownLabel?: string;
+  /** v32: slide VIDEO (mp4/webm/mov ≤100MB via /api/upload folder=sliders) —
+   *  when set, the storefront renders a muted autoplay-loop <video> with the
+   *  image as poster instead of the static artwork. */
+  videoUrl?: string;
 };
 
 /** one admin-editable showcase artwork of THIS template */
@@ -74,6 +88,15 @@ export const templateSlideSchema = z.object({
   title: z.string().trim().max(200).optional(),
   subtitle: z.string().trim().max(300).optional(),
   link: z.string().trim().max(1000).optional(),
+  countdownEnabled: z.boolean().optional(),
+  countdownTarget: z
+    .string()
+    .trim()
+    .max(40)
+    .refine((v) => !v || !Number.isNaN(Date.parse(v)), "زمان شمارش معکوس نامعتبر است")
+    .optional(),
+  countdownLabel: z.string().trim().max(120).optional(),
+  videoUrl: z.string().trim().max(1000).optional(),
 });
 
 export const templateShowcaseSchema = z.object({
@@ -118,6 +141,289 @@ export const templateContentSchema = z.object({
   brand: templateBrandSchema.optional(),
 });
 
+// ─────────────────── v32 · per-template DESIGNED defaults ───────────────────
+// Extracted from each template's own designed copy (src/components/store/
+// templates/*.tsx) so the admin editor is NEVER empty: inputs pre-fill with
+// stored override → designed default (below) → global entity value. These
+// defaults are PRESENTATION-ONLY — the render pipeline is unchanged (template
+// non-empty wins over global; empty falls back to the global entities).
+
+export type TemplateTextMeta = {
+  /** Persian label of the key (what the admin edits) */
+  label: string;
+  /** where this value shows up on the storefront (short Persian sentence) */
+  where?: string;
+};
+
+/** the 17 keys gaming-cyber reads from templateContent.texts (v32 redesign) */
+export const GAMING_TEXT_KEYS: Record<string, TemplateTextMeta> = {
+  heroTitle: { label: "تیتر هیرو", where: "هیرو اصلی بالای صفحه — سمت راست ریگ ARGB" },
+  heroSubtitle: { label: "زیرتیتر هیرو", where: "متن توضیحی زیر تیتر هیرو" },
+  ctaLabel: { label: "دکمهٔ اصلی", where: "دکمهٔ لیمویی کنار هیرو" },
+  arenaTitle: { label: "تیتر آرنا", where: "تیتر بخش «اسطوره‌های آرنا»" },
+  arenaSubtitle: { label: "زیرتیتر آرنا", where: "زیرتیتر هدر HUD بخش آرنا" },
+  arenaImage: { label: "تصویر آرنا", where: "قاب تصویر بزرگ بخش آرنا" },
+  gearTitle: { label: "تیتر تجهیزات", where: "تیتر بخش «تجهیزات ARGB»" },
+  gearSubtitle: { label: "زیرتیتر تجهیزات", where: "زیرتیتر هدر HUD تجهیزات" },
+  gearImage: { label: "تصویر تجهیزات", where: "بنر عریض ریگ ARGB بخش تجهیزات" },
+  dealTitle: { label: "تیتر منطقهٔ تخفیف", where: "تیتر بخش DEAL ZONE" },
+  dealSubtitle: { label: "زیرتیتر تخفیف", where: "زیرتیتر هدر HUD منطقهٔ تخفیف" },
+  dealImage: { label: "تصویر منطقهٔ تخفیف", where: "تصویر کنار بلوک‌های تخفیف" },
+  joinTitle: { label: "تیتر بخش عضویت", where: "تیتر بنر CONNECT (بنرشویی بنفش)" },
+  joinText: { label: "متن بخش عضویت", where: "متن توضیحی بنر CONNECT" },
+  joinCtaLabel: { label: "دکمهٔ شروع چت", where: "دکمهٔ گرد بنر CONNECT" },
+  joinCtaUrl: { label: "لینک دکمهٔ عضویت", where: "مقصد دکمهٔ بنر CONNECT (پیش‌فرض: باز کردن چت)" },
+  aiWidgetImage: { label: "تصویر ویجت هوش مصنوعی", where: "تصویر کنار ویجت مشاور هوش مصنوعی" },
+};
+
+/** generic labels shared by the templates that honor the classic keys */
+const COMMON_TEXT_META: Record<string, TemplateTextMeta> = {
+  heroTitle: { label: "تیتر هیرو", where: "تیتر اصلی هیرو (اولین بخش صفحهٔ اصلی)" },
+  heroSubtitle: { label: "زیرتیتر هیرو", where: "متن توضیحی زیر تیتر هیرو" },
+  ctaLabel: { label: "دکمهٔ اصلی", where: "دکمهٔ اصلی کنار هیرو" },
+  secondaryCtaLabel: { label: "دکمهٔ دوم هیرو", where: "دکمهٔ فرعی کنار هیرو" },
+  heroBadge: { label: "نشان هیرو", where: "چیپ کوچک بالای تیتر هیرو" },
+  dealsTitle: { label: "تیتر بخش تخفیف‌ها", where: "تیتر بخش پیشنهادهای تخفیف‌دار" },
+  dealsSubtitle: { label: "زیرتیتر بخش تخفیف‌ها", where: "زیرتیتر بخش تخفیف‌ها" },
+  exclusiveTitle: { label: "تیتر بخش انحصاری‌ها", where: "تیتر بخش محصولات انحصاری" },
+  bestsellersTitle: { label: "تیتر بخش پرفروش‌ها", where: "تیتر بخش پرفروش‌ترین‌ها" },
+  newestTitle: { label: "تیتر بخش تازه‌ها", where: "تیتر بخش جدیدترین محصولات" },
+  storiesTitle: { label: "تیتر بخش استوری‌ها", where: "تیتر نوار استوری‌ها" },
+  aiTitle: { label: "تیتر مشاور هوش مصنوعی", where: "تیتر بخش چت/مشاور خرید" },
+};
+
+/** per-template key → { label, where } (gaming's exact map + generic map for
+ *  the rest; unknown keys fall back to the key itself in the editor) */
+export const TEMPLATE_TEXT_META: Record<string, Record<string, TemplateTextMeta>> = {
+  "gaming-cyber": GAMING_TEXT_KEYS,
+  "modern-tech": {
+    ...COMMON_TEXT_META,
+    ctaLabel: { label: "دکمهٔ اصلی", where: "دکمهٔ اصلی روی اسلایدر هیرو" },
+    heroTitle: { label: "تیتر هیرو", where: "تیتر اسلایدر تمام‌صفحهٔ بالای صفحه (وقتی اسلاید بدون عنوان باشد)" },
+  },
+  "novatrend-clean": COMMON_TEXT_META,
+  "luxury-electronics": COMMON_TEXT_META,
+  "minimal-premium": COMMON_TEXT_META,
+  "future-3d": COMMON_TEXT_META,
+  "neon-noir": COMMON_TEXT_META,
+  "glass-morphism": COMMON_TEXT_META,
+  "startup-light": COMMON_TEXT_META,
+  "superstore-grid": COMMON_TEXT_META,
+  "flash-deals": COMMON_TEXT_META,
+  marketplace: COMMON_TEXT_META,
+};
+
+/** Persian “where does this appear” hints for the slides/showcases tabs */
+export type TemplateContentHints = { slides: string; showcases: string };
+
+export const TEMPLATE_CONTENT_HINTS: Record<string, TemplateContentHints> = {
+  "modern-tech": {
+    slides: "اسلایدها در اسلایدر تمام‌صفحهٔ هیرو با عنوان، زیرعنوان و دکمهٔ CTA رندر می‌شوند (تغییرپذیر با شمارش معکوس و ویدیو).",
+    showcases: "شوکیس‌ها کارت‌های «کمپین‌های ویژه» در میانهٔ صفحه می‌سازند.",
+  },
+  "gaming-cyber": {
+    slides: "هیرو گیمینگ ریگ ARGB رسم‌شده با کد است؛ تصاویر اختصاصی (آرنا/تجهیزات/تخفیف/ویجت) از تب «متن‌ها» مدیریت می‌شوند.",
+    showcases: "شوکیس‌ها کاشی‌های اسپات‌لایت ARGB را جایگزین می‌کنند (هد صورتی/تاکتیکال/فن/کیبورد).",
+  },
+  "novatrend-clean": {
+    slides: "اسلاید اول در قاب حباب کورال هیرو (وقتی محصول هیرو انتخاب نشده باشد) و اسلایدهای ۲ و ۳ به‌عنوان بنرهای کوچک رندر می‌شوند.",
+    showcases: "شوکیس‌ها دو بنر بزرگ «پروموی کورال/مشکی» در بخش بنرهای تبلیغاتی می‌سازند.",
+  },
+  "luxury-electronics": {
+    slides: "اسلاید اول در قاب طلایی هیرو تمام‌عرض با تیتر گرادیانی و افکت شاین رندر می‌شود.",
+    showcases: "شوکیس‌ها کارت‌های پرموی شیشه‌ای این قالب را جایگزین می‌کنند.",
+  },
+  "minimal-premium": {
+    slides: "اسلاید اول داخل پنل شیشه‌ای هیرو (وقتی محصول هیرو نباشد) با گوشه‌های نرم نمایش داده می‌شود.",
+    showcases: "شوکیس‌ها بخش «ویترین‌ها» (کد ۰۷) را پر می‌کنند.",
+  },
+  "future-3d": {
+    slides: "اسلاید اول پس‌زمینهٔ محو هیرو سه‌بعدی است؛ اسلایدهای بعدی در ریل اسلایدها رندر می‌شوند.",
+    showcases: "شوکیس‌ها کارت‌های تیلت سه‌بعدی این قالب را جایگزین می‌کنند.",
+  },
+  "neon-noir": {
+    slides: "اسلایدها در اسلایدر نئونی تمام‌عرض با افکت فلیکر روی آخرین کلمهٔ عنوان رندر می‌شوند.",
+    showcases: "شوکیس‌ها کارت‌های پرموی با حاشیهٔ نئون می‌سازند.",
+  },
+  "glass-morphism": {
+    slides: "اسلاید اول در پنجرهٔ شیشه‌ای شناور هیرو و اسلایدهای بعدی در ریل بنرهای افقی نمایش داده می‌شوند.",
+    showcases: "شوکیس‌ها کارت‌های شیشه‌ای داک ناوبری را جایگزین می‌کنند.",
+  },
+  "startup-light": {
+    slides: "اسلاید اول در کارت مربعی هیرو با تیتر گرادیانی، زیرعنوان و دکمهٔ خرید رندر می‌شود.",
+    showcases: "شوکیس‌ها کارت‌های گرد گرادیانی بخش پرمو را می‌سازند.",
+  },
+  "superstore-grid": {
+    slides: "این قالب اسلایدر ندارد — هیرو از داغ‌ترین تخفیف ساخته می‌شود؛ شوکیس‌ها نوار پرموی سوپرمارکت را پر می‌کنند.",
+    showcases: "شوکیس‌ها تا ۴ کاشی پرموی زرد/قرمز در بخش پرموشن می‌سازند.",
+  },
+  "flash-deals": {
+    slides: "این قالب اسلایدر ندارد — هیرو از داغ‌ترین پیشنهاد فلش ساخته می‌شود.",
+    showcases: "شوکیس‌ها دو کارت پرموی بزرگ زیر باند فروش فلش می‌سازند.",
+  },
+  marketplace: {
+    slides: "این قالب اسلایدر ندارد — «پیشنهاد روز» از محصول برتر ساخته می‌شود.",
+    showcases: "شوکیس‌ها کارت‌های پرموی شیشه‌ای مارکت را جایگزین می‌کنند.",
+  },
+};
+
+/** designed default content per template (the editor pre-fills from this) */
+export const DEFAULT_TEMPLATE_CONTENT: Record<string, Partial<TemplateContentData>> = {
+  "gaming-cyber": {
+    texts: {
+      heroTitle: "آرنای خرید گیمرهای حرفه‌ای",
+      heroSubtitle:
+        "ریگ ARGB رویایی‌ات را همین‌جا بچین — کیس شیشه‌ای، فن‌های نورانی و کارت گرافیک قدرتمند؛ با قیمت رقابتی و ارسال سریع.",
+      ctaLabel: "ورود به آرنا",
+      arenaTitle: "اسطوره‌های آرنا",
+      arenaSubtitle: "کلکسیون گیمینگ تاج — با نور ARGB مثل هیچ‌جای دیگر",
+      arenaImage: "/images/gaming/anime-rig.png",
+      gearTitle: "تجهیزات ARGB",
+      gearSubtitle: "نور آرین‌کمانی روی میز گیمینگ شما — کیبورد، کیس، ماوس‌پد، صندلی و…",
+      gearImage: "/images/gaming/argb-rig.png",
+      dealTitle: "منطقه تخفیف",
+      dealSubtitle: "تخفیف‌های داغ آرنا",
+      dealImage: "/images/gaming/vice-girl.png",
+      joinTitle: "به آرنای تاج بپیوند",
+      joinText:
+        "کوپایلوت هوشمند تاج به انبار و قیمت‌های واقعی وصل است؛ ریگ کامل بچین، تجهیزات را مقایسه کن یا سفارشت را پیگیری کن — همه با یک چت، ۲۴ ساعته.",
+      joinCtaLabel: "شروع چت با کوپایلوت",
+      joinCtaUrl: "#chat",
+      aiWidgetImage: "/images/gaming/stream-girl.png",
+    },
+  },
+  "modern-tech": {
+    texts: {
+      heroTitle: "مقصد بعدی شما برای خرید کالای دیجیتال",
+      heroSubtitle: "همیشه به‌روز، همیشه اصیل — پرچمدارها و گجت‌های روز دنیا با ضمانت اصالت.",
+      ctaLabel: "مشاهده محصولات",
+      dealsTitle: "پیشنهادهای ویژه",
+      dealsSubtitle: "تخفیف‌های شگفت‌انگیز با زمان‌سنج زنده — فرصت بعدی همین حالا",
+      exclusiveTitle: "انتخاب‌های انحصاری",
+      bestsellersTitle: "پرفروش‌ترین‌ها",
+      newestTitle: "جدیدترین‌ها",
+    },
+  },
+  "novatrend-clean": {
+    texts: {
+      heroTitle: "سفیدِ خالص، یک قطره کورال",
+      heroSubtitle: "انتخاب‌های شارژ این هفته را ببین؛ حراج‌های قرمز و پرفروش‌های طلایی منتظرت هستند.",
+      ctaLabel: "شروع خرید",
+      secondaryCtaLabel: "حراج قرمز",
+      newestTitle: "تازه‌های رسیده",
+      bestsellersTitle: "پرفروش‌های طلایی",
+      dealsTitle: "حراج قرمز نواترند",
+    },
+  },
+  "luxury-electronics": {
+    texts: {
+      heroTitle: "تجربه‌ای لوکس از الکترونیکس",
+      heroSubtitle: "گزیدهٔ محصولات لوکس از برندهای معتبر جهانی — با وقارِ مشکی و طلایی.",
+      ctaLabel: "مشاهده مجموعه",
+      storiesTitle: "ویترین استوری",
+    },
+  },
+  "minimal-premium": {
+    texts: {
+      heroTitle: "کمتر، اما بهتر.",
+      heroSubtitle: "هر کالای این فروشگاه با معیارهای سخت‌گیرانهٔ ما انتخاب شده است — بدون حاشیه، فقط کیفیت.",
+      ctaLabel: "مشاهدهٔ محصولات",
+      secondaryCtaLabel: "تخفیف‌دارها",
+    },
+    brand: { tagline: "کمتر، اما بهتر." },
+  },
+  "future-3d": {
+    texts: {
+      heroBadge: "تجربه خرید نسل بعد",
+      heroTitle: "آینده را در سه‌بُعد لمس کنید",
+      heroSubtitle: "دیجیتال‌ترین فروشگاه الکترونیک — کالاها در مدار نئون.",
+      ctaLabel: "ورود به دنیای محصولات",
+      secondaryCtaLabel: "استوری‌های زنده",
+    },
+  },
+  "neon-noir": {
+    texts: {
+      heroTitle: "خرید شبانهٔ وایس‌سیتی",
+      heroSubtitle: "نئون‌ها روشن‌اند؛ تخفیف‌ها تا آخرین لحظهٔ شب می‌سوزند.",
+      ctaLabel: "ورود به وایس‌سیتی",
+      secondaryCtaLabel: "قیمت‌های داغ امشب",
+      aiTitle: "مشاور نیمه‌شب",
+    },
+  },
+  "glass-morphism": {
+    texts: {
+      heroBadge: "تجربه خرید نئو-گلس",
+      heroTitle: "ویترینی که تکنولوژی را مثل فیلم نشان می‌دهد",
+      heroSubtitle: "پنل‌های شیشه‌ای شناور، نور سینمایی و یک لمس قرمز — تجربهٔ خرید نئو-گلس.",
+      ctaLabel: "شروع خرید",
+      secondaryCtaLabel: "تخفیف‌های داغ",
+    },
+  },
+  "startup-light": {
+    texts: {
+      heroTitle: "تکنولوژی را گرم و روشن بخرید",
+      heroSubtitle: "دستگاه‌های هوشمند را با مشاورهٔ واقعی، قیمت شفاف و ارسال سریع تهیه کنید.",
+      ctaLabel: "شروع خرید",
+      secondaryCtaLabel: "تخفیف‌های داغ",
+      dealsTitle: "تخفیف‌های فعال این هفته",
+    },
+  },
+  "superstore-grid": {
+    texts: {
+      heroBadge: "فروش فلش سوپرمارکت",
+      heroTitle: "قیمت بمبی سوپرمارکت دیجیتال",
+      heroSubtitle: "تخفیف‌های زرد و قرمز با شمارش معکوس — سبک تا ۲۴ ساعت ارسال.",
+      ctaLabel: "قیمت بمبی — بزن بریم!",
+      secondaryCtaLabel: "همهٔ تخفیف‌ها",
+    },
+  },
+  "flash-deals": {
+    texts: {
+      heroTitle: "فروش فلش",
+      heroSubtitle: "قیمت‌ها ذوب شده‌اند — موجودی‌ها ذوب می‌شوند",
+      ctaLabel: "دیدن تخفیف‌ها",
+    },
+  },
+  marketplace: {
+    texts: {
+      heroBadge: "پیشنهاد روز مارکت",
+      heroTitle: "پیشنهاد روز مارکت",
+      heroSubtitle: "شبکهٔ چگال قیمت‌محور — همهٔ برندها با نقطه‌های وضعیت نئون.",
+      ctaLabel: "خرید در یک ثانیه",
+    },
+  },
+  /* the remaining templates carry at least the designed brand tagline so the
+   * brand tab pre-fills too (their heroes stay data-driven by design) */
+  "social-commerce": { brand: { tagline: "سوشال نئون فید — استوری‌ها و پست‌های محصول" } },
+  autumn: { brand: { tagline: "اتام گلس — شب پاییزی گرم با هاله‌های کهربایی" } },
+  christmas: { brand: { tagline: "وینتر سایبر — شفق قطبی و شمارش معکوس کریسمس" } },
+  "yalda-night": { brand: { tagline: "یلدا سایبر — آسمان پرستارهٔ نیمه‌شب" } },
+  "art-deco": { brand: { tagline: "دِکو نئون — شکوه دههٔ ۲۰ با خطوط طلایی" } },
+  "retro-vintage": { brand: { tagline: "رترو-فیوچر — کاغذ نیم‌تون با نئون کهربایی" } },
+  "editorial-magazine": { brand: { tagline: "ادیتوریال فیوچر — تایپ نمایشی مشکی" } },
+  "print-catalog": { brand: { tagline: "هولو کاتالوگ — برگه‌های کاغذی با مُهر فویل" } },
+  "mobile-first-pwa": { brand: { tagline: "پرمیوم ریسپانسیو — تجربه‌ای یکپارچه از موبایل تا مانیتور" } },
+  "nexora-tech": { brand: { tagline: "نکسورا سایبر-مینیمال — بنفش لاوندر و لیمویی الکتریکی" } },
+  "techhub-dark": { brand: { tagline: "تک-فیوچریزم — تضاد سینمایی تاریک/روشن" } },
+  "purple-mall": { brand: { tagline: "پرپل نئون مال — کاروسل حلقهٔ نئونی" } },
+  "nova-glass": { brand: { tagline: "نوا گلس لوکس — تیتر متالیک نقره‌ای" } },
+};
+
+/** designed defaults of one template ({} when unknown) */
+export function getTemplateDefaultContent(templateId: string): Partial<TemplateContentData> {
+  return DEFAULT_TEMPLATE_CONTENT[templateId] ?? {};
+}
+
+/** key → { label, where } metadata of one template */
+export function getTemplateTextMeta(templateId: string): Record<string, TemplateTextMeta> {
+  return TEMPLATE_TEXT_META[templateId] ?? {};
+}
+
+/** where-used hints of one template */
+export function getTemplateContentHints(templateId: string): TemplateContentHints | undefined {
+  return TEMPLATE_CONTENT_HINTS[templateId];
+}
+
 // ─────────────────────────── helpers ───────────────────────────
 
 /** a content object with every section empty (the fallback-to-global state) */
@@ -159,7 +465,21 @@ export function sanitizeTemplateContent(value: unknown): TemplateContentData {
   };
 
   if (Array.isArray(raw.slides)) {
-    const slides = cleanList(raw.slides, templateSlideSchema).filter((s) => s.image);
+    const slides = cleanList(raw.slides, templateSlideSchema)
+      .filter((s) => s.image)
+      .map((s) => {
+        const out: TemplateSlide = { image: s.image, ...(s.title ? { title: s.title } : {}) };
+        if (s.subtitle) out.subtitle = s.subtitle;
+        if (s.link) out.link = s.link;
+        if (s.videoUrl) out.videoUrl = s.videoUrl;
+        /* countdown survives only fully-armed (enabled + parseable target) */
+        if (s.countdownEnabled && s.countdownTarget && !Number.isNaN(Date.parse(s.countdownTarget))) {
+          out.countdownEnabled = true;
+          out.countdownTarget = s.countdownTarget;
+          if (s.countdownLabel) out.countdownLabel = s.countdownLabel;
+        }
+        return out;
+      });
     if (slides.length > 0) out.slides = slides;
   }
   if (Array.isArray(raw.showcases)) {
@@ -236,8 +556,21 @@ function toHomeSlide(s: TemplateSlide, i: number): HomeSlide {
     image: s.image,
     mobileImage: null,
     ctaText: null,
-    ctaUrl: s.link?.trim() || null,
+    // v33 (2-d): smart slider target — a specific admin link passes through,
+    // a bare "/products" (or a missing link) is keyword-resolved from the
+    // title/subtitle so the CTA lands on a FILTERED product list. These
+    // template slides never carry a linked product, so no fallback is lost.
+    ctaUrl: smartSliderUrl({ buttonUrl: s.link?.trim() || null, title: s.title, badge: s.subtitle }),
     product: null,
+    /* v32: countdown + video ride along so hero templates can render them */
+    ...(s.videoUrl?.trim() ? { videoUrl: s.videoUrl.trim() } : {}),
+    ...(s.countdownEnabled && s.countdownTarget && !Number.isNaN(Date.parse(s.countdownTarget))
+      ? {
+          countdownEnabled: true,
+          countdownTarget: s.countdownTarget,
+          countdownLabel: s.countdownLabel?.trim() || null,
+        }
+      : {}),
   };
 }
 
@@ -247,7 +580,9 @@ function toHomeShowcase(s: TemplateShowcase, i: number): HomeShowcase {
     title: s.title?.trim() || "",
     subtitle: null,
     image: s.image,
-    buttonUrl: s.link?.trim() || null,
+    // v33 (2-d): smart target — specific link passes, bare "/products"
+    // resolves from the showcase title.
+    buttonUrl: smartSliderUrl({ buttonUrl: s.link?.trim() || null, title: s.title }),
     product: null,
   };
 }

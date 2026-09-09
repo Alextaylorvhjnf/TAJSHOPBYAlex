@@ -38,6 +38,7 @@ import {
   Check,
   CheckCircle2,
   HelpCircle,
+  ImagePlus,
   KeyRound,
   CreditCard,
   Eye,
@@ -80,6 +81,9 @@ import { RepairPage, type MaintenanceScreenData } from "@/components/store/maint
 import { resolveMaintenanceContent } from "@/lib/maintenance";
 /* v29.2: Update Script tab panel (self-contained component from the updater) */
 import { UpdatePanel } from "@/components/admin/update-panel";
+/* v33 (2-c): Telegram store-bot tab panel (token/chat-id/enable + connection
+ * test via /api/admin/settings/telegram(-test)) */
+import { TelegramBotTab } from "./telegram-bot-tab";
 import { formatPrice } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import {
@@ -114,6 +118,7 @@ interface StoreSettings {
   address: string;
   instagram: string | null;
   telegram: string | null;
+  telegramBotUrl: string | null;
   whatsapp: string | null;
   footerText: string;
   description: string | null;
@@ -295,17 +300,22 @@ function MaintenancePreviewDialog({
   );
 }
 
-/* ═══════════════ v30 · «حالت تعمیر» — dedicated maintenance section ═══════════════ */
+/* ═══════════════ v32 (13-d) · «حالت تعمیر» — dedicated maintenance section ═══════════════ */
 
 /**
- * v30 · BIG live template card («انتخاب قالب» section) — renders the REAL
- * repair-page template at its natural 1280px logical width, scaled (CSS
- * transform: scale) into a fixed h-64 mini browser viewport. The templates
- * are min-h-screen pages, so their natural height equals the browser
- * viewport; scaling by 256/innerHeight fits the viewport exactly (each
- * template centers its content, so any horizontal overhang clips
- * symmetrically and invisibly). Selecting a card writes maintenanceTemplate;
- * «پیش‌نمایش زنده» opens the full-size MaintenancePreviewDialog.
+ * v32 (13-d) · COMPACT square live template card («قالب صفحهٔ تعمیر» section) —
+ * the owner asked for small cards instead of the v31 416px monsters: a
+ * SQUARE mini-browser viewport (~aspect-square, 2×2 at ≥sm / 4 columns at
+ * xl) renders the REAL repair-page template — the exact component closed
+ * visitors see, with this form's own words/logo/contacts (even unsaved).
+ * The page's real height is MEASURED with a ResizeObserver (it is h-dvh of
+ * the admin window) and fitted with a CSS transform clamped to [0.16, 0.34],
+ * transform-origin center — the whole page is always fully visible and the
+ * horizontal overhang at 1280px logical width clips symmetrically (each
+ * template centers its content). Clicking the card / «انتخاب این قالب»
+ * writes maintenanceTemplate; «پیش‌نمایش زنده» opens the full-size
+ * MaintenancePreviewDialog. The ACTIVE template wears the GOLDEN ring
+ * («کادر طلایی») the owner asked for.
  */
 function MaintenanceTemplateCard({
   tpl,
@@ -320,13 +330,24 @@ function MaintenanceTemplateCard({
   onSelect: () => void;
   onPreview: () => void;
 }) {
-  /* v30: scale the full-size page into the h-64 (256px) preview area */
+  const boxRef = useRef<HTMLDivElement>(null);
+  const innerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0);
+
   useEffect(() => {
-    const measure = () => setScale(Math.max(0.14, Math.min(0.4, 256 / (window.innerHeight || 800))));
+    const box = boxRef.current;
+    const inner = innerRef.current;
+    if (!box || !inner) return;
+    const measure = () => {
+      const bh = box.clientHeight || 230;
+      const ph = inner.offsetHeight || 900;
+      setScale(Math.max(0.16, Math.min(0.34, bh / ph)));
+    };
     measure();
-    window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
+    const ro = new ResizeObserver(measure);
+    ro.observe(box);
+    ro.observe(inner);
+    return () => ro.disconnect();
   }, []);
 
   /* the exact component closed visitors see — with this form's own words */
@@ -343,75 +364,92 @@ function MaintenanceTemplateCard({
   return (
     <div
       className={cn(
-        "relative flex flex-col rounded-2xl border-2 bg-card p-3 transition-all",
-        active ? "border-primary shadow-xl shadow-primary/20 ring-1 ring-primary/40" : "border-border hover:border-primary/40 hover:shadow-lg"
+        "relative flex flex-col rounded-2xl border bg-card p-2.5 transition-all duration-300",
+        active
+          ? "border-primary shadow-xl shadow-primary/25 ring-2 ring-primary ring-offset-2 ring-offset-background"
+          : "border-border hover:border-primary/50 hover:shadow-lg"
       )}
     >
-      {/* mini browser viewport with the REAL template rendered inside */}
-      <div className="overflow-hidden rounded-xl border border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900">
-        <div className="flex h-7 items-center gap-1.5 border-b border-zinc-200 bg-zinc-100 px-2.5 dark:border-zinc-800 dark:bg-zinc-800/70" dir="ltr">
-          <span aria-hidden className="h-2 w-2 rounded-full bg-red-400/80" />
-          <span aria-hidden className="h-2 w-2 rounded-full bg-amber-400/80" />
-          <span aria-hidden className="h-2 w-2 rounded-full bg-emerald-400/80" />
-          <span dir="ltr" className="ms-1.5 flex-1 truncate rounded-md bg-white/80 px-2 py-0.5 font-mono text-[9px] text-zinc-500 dark:bg-zinc-900/70 dark:text-zinc-400">
-            taj-electronics.ir/{tpl.nameEn}
-          </span>
-        </div>
-        <div className="relative h-64 w-full overflow-hidden">
-          {scale > 0 ? (
-            <div className="absolute inset-0 flex justify-center overflow-hidden">
+      {/* the whole card top (mini browser + name + desc) is one select button */}
+      <button
+        type="button"
+        onClick={onSelect}
+        disabled={active}
+        className="w-full cursor-pointer text-start disabled:cursor-default"
+        aria-label={`انتخاب قالب ${tpl.nameFa}`}
+      >
+        {/* mini square browser viewport with the REAL template inside */}
+        <div className="overflow-hidden rounded-xl border border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900">
+          <div
+            className="flex h-6 items-center gap-1.5 border-b border-zinc-200 bg-zinc-100 px-2 dark:border-zinc-800 dark:bg-zinc-800/70"
+            dir="ltr"
+          >
+            <span aria-hidden className="h-2 w-2 rounded-full bg-red-400/80" />
+            <span aria-hidden className="h-2 w-2 rounded-full bg-amber-400/80" />
+            <span aria-hidden className="h-2 w-2 rounded-full bg-emerald-400/80" />
+            <span
+              dir="ltr"
+              className="ms-1 flex-1 truncate rounded bg-white/80 px-1.5 font-mono text-[8px] text-zinc-500 dark:bg-zinc-900/70 dark:text-zinc-400"
+            >
+              {tpl.nameEn}
+            </span>
+          </div>
+          <div ref={boxRef} className="relative aspect-square w-full overflow-hidden">
+            <div className="absolute inset-0 flex items-center justify-center overflow-hidden">
               <div
-                className="pointer-events-none select-none [transform-origin:top_center]"
+                ref={innerRef}
+                className="pointer-events-none select-none [transform-origin:center]"
                 style={{ width: 1280, transform: `scale(${scale})` }}
               >
                 <RepairPage data={data} />
               </div>
             </div>
-          ) : (
-            <Skeleton className="h-full w-full rounded-none" />
-          )}
+            {scale === 0 && <Skeleton className="absolute inset-0 z-10 rounded-none" />}
+            {active && (
+              <span className="absolute right-1.5 top-1.5 z-10 inline-flex items-center gap-1 rounded-full bg-primary px-2 py-0.5 text-[9px] font-black text-primary-foreground shadow-lg">
+                <Check className="h-3 w-3" />
+                فعال
+              </span>
+            )}
+          </div>
         </div>
-      </div>
 
-      {/* Persian name, 2-line description, active badge, actions */}
-      <div className="flex flex-1 flex-col pt-3">
-        <div className="flex items-center justify-between gap-2">
-          <p className="text-sm font-black">{tpl.nameFa}</p>
-          {active ? (
-            <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 text-[10px] font-black text-primary">
-              <Check className="h-3 w-3" />
-              قالب فعال
+        {/* Persian name + one-line description */}
+        <div className="flex items-center justify-between gap-1.5 px-0.5 pt-2">
+          <p className="truncate text-xs font-black">{tpl.nameFa}</p>
+          {!active && (
+            <span dir="ltr" className="shrink-0 font-mono text-[8px] text-muted-foreground">
+              {tpl.nameEn}
             </span>
-          ) : (
-            <span dir="ltr" className="shrink-0 font-mono text-[9px] text-muted-foreground">{tpl.nameEn}</span>
           )}
         </div>
-        <p className="mt-1.5 min-h-8 text-[11px] leading-4 text-muted-foreground">{tpl.desc}</p>
-        <div className="mt-3 flex items-center gap-2">
-          <Button
-            type="button"
-            size="sm"
-            variant={active ? "outline" : "default"}
-            disabled={active}
-            className="h-9 flex-1 rounded-lg text-[11px] font-black"
-            onClick={onSelect}
-            aria-label={`انتخاب قالب ${tpl.nameFa}`}
-          >
-            {active && <Check className="h-3.5 w-3.5" />}
-            {active ? "قالب فعال" : "انتخاب این قالب"}
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            className="h-9 flex-1 rounded-lg text-[11px] font-bold"
-            onClick={onPreview}
-            aria-label={`پیش‌نمایش زنده قالب ${tpl.nameFa}`}
-          >
-            <Eye className="h-3.5 w-3.5" />
-            پیش‌نمایش زنده
-          </Button>
-        </div>
+        <p className="mt-0.5 line-clamp-1 px-0.5 text-[10px] leading-4 text-muted-foreground">{tpl.desc}</p>
+      </button>
+
+      <div className="flex items-center gap-1.5 pt-2">
+        <Button
+          type="button"
+          size="sm"
+          variant={active ? "outline" : "default"}
+          disabled={active}
+          className="h-8 flex-1 rounded-lg text-[10px] font-black"
+          onClick={onSelect}
+          aria-label={`انتخاب قالب ${tpl.nameFa}`}
+        >
+          {active && <Check className="h-3 w-3" />}
+          {active ? "قالب فعال" : "انتخاب این قالب"}
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          className="h-8 flex-1 rounded-lg text-[10px] font-bold"
+          onClick={onPreview}
+          aria-label={`پیش‌نمایش زنده قالب ${tpl.nameFa}`}
+        >
+          <Eye className="h-3.5 w-3.5" />
+          پیش‌نمایش زنده
+        </Button>
       </div>
     </div>
   );
@@ -423,7 +461,7 @@ function MaintenanceTemplateCard({
  *   ① وضعیت — the maintenance ON/OFF switch card (writes maintenanceMode)
  *   ② اطلاعات تماس و پیام‌ها — every editable word of the repair page +
  *      the phone/email/hours values shown on it
- *   ③ انتخاب قالب — the 4 BIG live template cards
+ *   ③ قالب صفحهٔ تعمیر — the 4 BIG live template cards
  * Saves through the same /api/admin/settings/store PUT as the other tabs.
  */
 function MaintenanceTab() {
@@ -482,8 +520,9 @@ function MaintenanceTab() {
       <div className="space-y-4">
         <Skeleton className="h-36 rounded-xl" />
         <Skeleton className="h-80 rounded-xl" />
-        <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-96 rounded-2xl" />)}
+        {/* v32 (13-d): matches the new COMPACT square template cards */}
+        <div className="mx-auto grid w-full max-w-[36rem] grid-cols-2 gap-3 sm:gap-4 xl:mx-0 xl:max-w-none xl:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-[21.5rem] rounded-2xl" />)}
         </div>
       </div>
     );
@@ -634,27 +673,83 @@ function MaintenanceTab() {
               شمارش معکوس (فقط قالب «شمارش معکوس»)
             </p>
             <div className="md:col-span-2">
-              <Field label="متن بالای شمارش معکوس" htmlFor="mt-etanote" hint={`پیش‌فرض: ${def("etaNote")} — شمارش تا ساعت ۱۸:۰۰ امروز (یا فردا) ادامه دارد`}>
+              <Field label="متن بالای شمارش معکوس" htmlFor="mt-etanote" hint={`پیش‌فرض: ${def("etaNote")}`}>
                 <Input id="mt-etanote" className="rounded-lg" value={texts.etaNote} onChange={(e) => setText("etaNote", e.target.value)} placeholder={def("etaNote")} />
               </Field>
+            </div>
+            {/* v32 (13-d): admin-set countdown target — days + hours on top of
+             * the refresh-proof 18:00 anchor (empty = the designed default) */}
+            <Field label="تعداد روز شمارش" htmlFor="mt-cddays" hint="۰ تا ۳۶۵ — خالی = بدون روز اضافه">
+              <Input
+                id="mt-cddays"
+                type="number"
+                min={0}
+                max={365}
+                dir="ltr"
+                className="rounded-lg"
+                value={texts.countdownDays}
+                onChange={(e) => setText("countdownDays", e.target.value)}
+                placeholder="مثلاً ۲"
+              />
+            </Field>
+            <Field label="تعداد ساعت شمارش" htmlFor="mt-cdhours" hint="۰ تا ۲۳ — خالی = بدون ساعت اضافه">
+              <Input
+                id="mt-cdhours"
+                type="number"
+                min={0}
+                max={23}
+                dir="ltr"
+                className="rounded-lg"
+                value={texts.countdownHours}
+                onChange={(e) => setText("countdownHours", e.target.value)}
+                placeholder="مثلاً ۶"
+              />
+            </Field>
+            <div className="md:col-span-2">
+              <GuideNote>
+                اگر روز یا ساعت را تنظیم کنید، هدف شمارش معکوس «ساعت ۱۸:۰۰ (امروز یا فردا) به‌اضافهٔ مقدار شما» می‌شود و نوار پیشرفت و مراحل تعمیر کل همین مدت را پوشش می‌دهند. هر دو خالی = شمارش کوتاه پیش‌فرض تا ساعت ۱۸:۰۰.
+              </GuideNote>
+            </div>
+
+            <p className="md:col-span-2 flex items-center gap-1.5 text-xs font-black text-muted-foreground">
+              <ImagePlus className="h-3.5 w-3.5 text-primary/70" />
+              لوگوی صفحهٔ تعمیر
+            </p>
+            <div className="md:col-span-2">
+              <ImageUpload
+                label="لوگوی اختصاصی صفحهٔ تعمیر (اختیاری)"
+                folder="branding"
+                height={96}
+                value={texts.logoUrl || null}
+                onChange={(url) => setText("logoUrl", url ?? "")}
+              />
+              <p className="mt-1.5 text-[11px] leading-5 text-muted-foreground">
+                خالی بگذارید تا لوگوی اصلی فروشگاه (تب «برندینگ») روی صفحهٔ تعمیر بیفتد؛ اگر آن هم تنظیم نشده باشد، آیکون آچارِ قالب نمایش داده می‌شود.
+              </p>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* ── Section 3 · انتخاب قالب — the 4 BIG live cards ── */}
+      {/* ── Section 3 · قالب صفحهٔ تعمیر — the 4 COMPACT square live cards ── */}
       <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-sm font-bold">
-            <LayoutTemplate className="h-4 w-4 text-primary" />
-            انتخاب قالب
-          </CardTitle>
+        <CardHeader className="pb-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <CardTitle className="flex items-center gap-2.5 text-base font-black">
+              <span className="grid h-9 w-9 place-items-center rounded-xl bg-primary/10 text-primary">
+                <LayoutTemplate className="h-4 w-4" />
+              </span>
+              قالب صفحهٔ تعمیر
+            </CardTitle>
+            <span className="text-[11px] font-bold text-muted-foreground">۴ قالب آماده</span>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <GuideNote>
-            قالب ظاهر صفحه‌ای را که بازدیدکنندهٔ عادی در حالت تعمیر می‌بیند انتخاب کنید — پیش‌نمایش هر کارت، خودِ همان قالب است و با متن‌ها، لوگو و اطلاعات تماسِ همین فرم (حتی ذخیره‌نشده) به‌روز می‌شود. کارت انتخاب‌شده با کادر طلایی مشخص می‌شود.
+            قالب ظاهر صفحه‌ای را که بازدیدکنندهٔ عادی در حالت تعمیر می‌بیند انتخاب کنید — هر کارت کوک، خودِ همان قالب را به‌صورت زنده و کامل در یک قاب مربعی نشان می‌دهد و با متن‌ها، لوگو و اطلاعات تماسِ همین فرم (حتی ذخیره‌نشده) به‌روز می‌شود. کارت فعال با کادر طلایی مشخص می‌شود؛ برای دیدن قالب در اندازهٔ واقعی، «پیش‌نمایش زنده» را بزنید.
           </GuideNote>
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
+          {/* v32 (13-d): COMPACT square cards — 2×2 at ≥sm, 4 columns at xl */}
+          <div className="mx-auto grid w-full max-w-[36rem] grid-cols-2 gap-3 sm:gap-4 xl:mx-0 xl:max-w-none xl:grid-cols-4">
             {MAINTENANCE_TEMPLATES.map((t) => (
               <MaintenanceTemplateCard
                 key={t.id}
@@ -810,6 +905,18 @@ function StoreTab() {
               </Field>
               <Field label="واتس‌اپ" htmlFor="s-wa">
                 <Input id="s-wa" dir="ltr" className="rounded-lg text-left" value={form.whatsapp ?? ""} onChange={(e) => set("whatsapp", e.target.value)} placeholder="9891…" />
+              </Field>
+            </div>
+            {/* v34.1: «خرید از ربات تلگرامی» — the footer pill button link.
+                Empty = falls back to the configured bot's t.me username
+                (Settings → ربات تلگرامی); set anything to override. */}
+            <div className="sm:col-span-2">
+              <Field
+                label="لینک ربات خرید تلگرامی (دکمه فوتر)"
+                htmlFor="s-tgbot"
+                hint="وقتی پر باشد، در فوتر همه قالب‌ها دکمه «خرید از ربات تلگرامی» نمایش داده می‌شود — @username یا لینک t.me (خالی = خودکار از تنظیمات ربات تلگرامی، اگر ربات فعال باشد)"
+              >
+                <Input id="s-tgbot" dir="ltr" className="rounded-lg text-left" value={form.telegramBotUrl ?? ""} onChange={(e) => set("telegramBotUrl", e.target.value)} placeholder="@TajShopBot یا t.me/TajShopBot" />
               </Field>
             </div>
             <div className="sm:col-span-2">
@@ -1929,6 +2036,10 @@ interface MaintenanceContentForm {
   footerNote: string;
   /* v30: caption above the countdown digits (countdown-eta template) */
   etaNote: string;
+  /* v32 (13-d): repair-page logo override + countdown target ("" = default) */
+  logoUrl: string;
+  countdownDays: string;
+  countdownHours: string;
 }
 
 /** parse the raw JSON string into an editable all-strings form */
@@ -1936,7 +2047,7 @@ function parseMaintenanceContentForm(raw: string | null | undefined): Maintenanc
   const empty: MaintenanceContentForm = {
     titleSuffix: "", badge: "", description: "", phoneLabel: "", emailLabel: "",
     hoursLabel: "", trackingTitle: "", trackingDesc: "", trackingButton: "", footerNote: "",
-    etaNote: "",
+    etaNote: "", logoUrl: "", countdownDays: "", countdownHours: "",
   };
   if (!raw?.trim()) return empty;
   try {
@@ -3134,7 +3245,7 @@ function TemplateFooterLinksEditor({
  * history.replaceState (no navigation, no re-render churn).
  * v29.2: added the «به‌روزرسانی» tab — the Update Script panel (the
  * owner's «یه دونه هم گزینه اضافه کنیم به اسم Update Script»). */
-const SETTINGS_TABS = ["store", "maintenance", "branding", "appearance", "footer", "payment", "ai", "smtp", "update"] as const;
+const SETTINGS_TABS = ["store", "maintenance", "branding", "appearance", "footer", "payment", "ai", "smtp", "telegram", "update"] as const;
 type SettingsTabId = (typeof SETTINGS_TABS)[number];
 
 function useSettingsTab(): [SettingsTabId, (v: string) => void] {
@@ -3178,6 +3289,9 @@ export default function AdminSettingsPage() {
           <TabsTrigger value="payment" className="rounded-lg">درگاه‌های پرداخت</TabsTrigger>
           <TabsTrigger value="ai" className="rounded-lg">هوش مصنوعی</TabsTrigger>
           <TabsTrigger value="smtp" className="rounded-lg">ایمیل و SMTP</TabsTrigger>
+          {/* v33 (2-c): Telegram store bot — token, admin chat ids, welcome text,
+              enable + connection test + live status. */}
+          <TabsTrigger value="telegram" className="rounded-lg">ربات تلگرامی</TabsTrigger>
           <TabsTrigger value="update" className="rounded-lg">به‌روزرسانی اسکریپت</TabsTrigger>
         </TabsList>
         <TabsContent value="store" className="mt-4"><StoreTab /></TabsContent>
@@ -3188,6 +3302,7 @@ export default function AdminSettingsPage() {
         <TabsContent value="payment" className="mt-4"><PaymentTab /></TabsContent>
         <TabsContent value="ai" className="mt-4"><AITab /></TabsContent>
         <TabsContent value="smtp" className="mt-4"><SMTPTab /></TabsContent>
+        <TabsContent value="telegram" className="mt-4"><TelegramBotTab /></TabsContent>
         {/* v29.2: Update Script — check for a new version, download + apply
             it (code-only; data/db/uploads never touched). Self-contained
             panel from @/components/admin/update-panel. */}

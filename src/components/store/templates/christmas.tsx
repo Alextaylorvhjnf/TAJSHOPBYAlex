@@ -21,6 +21,7 @@ import {
   Truck, Megaphone, ArrowLeft,
 } from "lucide-react";
 import type { HomeData, TemplateProduct } from "@/lib/templates/types";
+import { RAIL_URLS } from "@/lib/templates/slide-targets";
 import { useCart } from "@/hooks/use-store";
 import { formatPrice, toFaDigits } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -771,7 +772,7 @@ export function ChristmasTemplate({ data }: { data: HomeData }) {
       {data.featured.length > 0 && (
         <section className="mx-auto w-full max-w-[1440px] px-4 pt-14" aria-labelledby="wc-featured">
           <Reveal>
-            <WinterHeader icon={Sparkles} title="انتخاب‌های ویژه" subtitle="فلگ‌شیپ‌های ویترین سایبری" href="/products" />
+            <WinterHeader icon={Sparkles} title="انتخاب‌های ویژه" subtitle="فلگ‌شیپ‌های ویترین سایبری" href={RAIL_URLS.featured} />
             <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
               {data.featured.slice(0, 8).map((p) => (
                 <GiftCard key={p.id} product={p} globalDeadline={globalDeadline} showClock={timerOn} />
@@ -875,7 +876,7 @@ export function ChristmasTemplate({ data }: { data: HomeData }) {
       {data.newest.length > 0 && (
         <section className="mx-auto w-full max-w-[1440px] px-4 pt-14" aria-labelledby="wc-newest">
           <Reveal>
-            <WinterHeader icon={Snowflake} title="تازه‌رسیده‌ها" subtitle="برف تازه‌ی ویترین" href="/products" />
+            <WinterHeader icon={Snowflake} title="تازه‌رسیده‌ها" subtitle="برف تازه‌ی ویترین" href={RAIL_URLS.newest} />
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
               {data.newest.slice(0, 8).map((p) => (
                 <Link key={p.id} href={`/products/${p.slug}`} className="wc-card wc-glass group flex flex-col overflow-hidden rounded-3xl">

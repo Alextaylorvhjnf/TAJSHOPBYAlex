@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { db, ensureRuntimeSchema } from "@/lib/db";
 import { ADMIN_ROLES } from "@/lib/auth";
 
@@ -43,6 +44,15 @@ function prismaCode(e: unknown): string | undefined {
   return undefined;
 }
 
+/** v33/v34.1: DB cannot even be initialized (env var missing, file unopenable,
+ * engine failure). Not transient — the store is down either way, so the
+ * wizard is the only surface that can repair it. */
+function isDbInitError(e: unknown): boolean {
+  if (e instanceof Prisma.PrismaClientInitializationError) return true;
+  const msg = String((e as Error)?.message ?? e);
+  return /Environment variable not found|unable to open database file|Engine.*not (?:found|started)/i.test(msg);
+}
+
 async function compute(): Promise<InstallStatus> {
   // v29.1: heal missing v29 columns first (upgraded volumes) — never let a
   // schema drift turn into a fail-open "installed" verdict that hides the
@@ -62,6 +72,12 @@ async function compute(): Promise<InstallStatus> {
     }
     // row missing (but table exists) → fall through to legacy detection
   } catch (e) {
+    if (isDbInitError(e)) {
+      // v33/v34.1: database unreachable at the client level (no DATABASE_URL /
+      // bad path) → the store cannot run; route to the wizard for self-repair
+      // (its first step rewrites .env with a canonical DATABASE_URL).
+      return { installed: false, needsSetup: true, source: "fresh" };
+    }
     const code = prismaCode(e);
     if (code !== "P2021" && code !== "P2022") {
       // unknown/transient error → fail-open: never break the live store
@@ -88,6 +104,9 @@ async function compute(): Promise<InstallStatus> {
     }
     return { installed: false, needsSetup: true, source: "fresh" };
   } catch (e) {
+    if (isDbInitError(e)) {
+      return { installed: false, needsSetup: true, source: "fresh" };
+    }
     const code = prismaCode(e);
     if (code === "P2021" || code === "P2022") {
       // users table absent → truly fresh database

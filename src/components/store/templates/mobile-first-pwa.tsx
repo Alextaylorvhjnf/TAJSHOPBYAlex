@@ -1,74 +1,93 @@
 "use client";
 
 /**
- * TEMPLATE · mobile-first-pwa — «پوستهٔ اپ آینده» (v25 · futuristic app shell)
- * ---------------------------------------------------------------------------
- * The store as a FUTURISTIC PHONE APP:
- *  - desktop: a max-w-[430px] device-ish app column (rounded frame, notch
- *    hint, ambient glow) floating on a dark #090B10 workspace
- *  - mobile: the column IS the app (frame decorations hidden)
- *  - dark app UI #0E1117 with glass surfaces, big search hero,
- *    SNAP-SCROLL wheels (scroll-snap-type: x mandatory) for stories /
- *    categories / deals / VIP products, and a GLASS BOTTOM TAB BAR
- *    (خانه / دسته‌ها / سبد / پروفایل — real routes, sticky at the bottom
- *    of the app column, never fixed to the viewport; the layout owns the
- *    page chrome)
+ * TEMPLATE · mobile-first-pwa — «پرمیوم ریسپانسیو» (v32 · task 14-a FULL REDESIGN)
+ * --------------------------------------------------------------------------------
+ * The rejected "app shell in a 430px phone frame" concept is GONE. This is a
+ * premium RESPONSIVE storefront — one fluid layout from 360px phones to
+ * ultrawide desktops (no device frame, no app tab bar, no snap wheels):
  *
- * The chrome header is retuned to the app's dark palette via CSS vars
- * scoped to [data-chrome-header] inside the template's <style>. The
- * app-style chrome footer already rides dark tokens — left untouched.
- * No registered features.
+ *  · deep teal-charcoal canvas (#071314) with emerald #10B981 → teal #2DD4BF
+ *    gradients (distinct family — no indigo/blue defaults, no other
+ *    template's palette)
+ *  · HERO with two ParallaxBand ribbons drifting vertically on scroll + a
+ *    3D FlipOnScroll showcase card (the slide artwork "turns like a book
+ *    page") + a glowing floating product chip (GlowOnScroll)
+ *  · refined product grids (2/3/4/5 cols), image-led category tiles,
+ *    numbered bestsellers, FlipOnScroll exclusive cards (alternating page
+ *    turns), a full-bleed parallax showcase band, brand strip, FAQ
+ *  · the whole page breathes through the shared scroll-fx system
+ *    (./scroll-fx) — every entrance is SSR-safe (visible without JS) and
+ *    disabled under prefers-reduced-motion
+ *
+ * The registry id stays `mobile-first-pwa` (DB rows, AUTH_VARIANT_MAP,
+ * MEGA_MENU_STYLES, chrome config and content defaults keep resolving);
+ * only its admin display name/desc changed («پرمیوم ریسپانسیو»).
+ * The H6 chrome header + F8 footer ride their own tokens; the header is
+ * retuned to the teal palette via CSS vars scoped to [data-chrome-header].
  */
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
-  Package, Check, ChevronLeft, Star, Flame, ShoppingCart, Timer, Zap,
+  Package, Check, ChevronLeft, Star, Flame, ShoppingCart, Timer,
   BadgeCheck, TrendingUp, HelpCircle, Smartphone, Laptop, Computer, Cpu,
   Monitor, Gamepad2, Watch, HardDrive, Keyboard, Mouse, Camera, Speaker,
-  Wifi, BatteryCharging, Projector, Headphones, LayoutGrid, Search, Mic,
-  Home, User, Gem, Sparkles, Rocket, Boxes, Bell, ArrowLeft,
+  Wifi, BatteryCharging, Projector, Headphones, LayoutGrid, Sparkles,
+  Rocket, Boxes, Gem, Truck, ShieldCheck, Headphones as Support, CreditCard,
 } from "lucide-react";
 import type { HomeData, TemplateProduct } from "@/lib/templates/types";
+import { RAIL_URLS } from "@/lib/templates/slide-targets";
 import { useCart } from "@/hooks/use-store";
 import { formatPrice, toFaDigits } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { Reveal } from "../reveal";
 import { StoriesRow, type StoryItem } from "../stories-row";
 import { SlideArt } from "./slide-image";
 import { TemplateHeader } from "./chrome/header";
 import { TemplateFooter } from "./chrome/footer";
 import { TEMPLATE_CHROME } from "./chrome/config";
+import { RevealOnScroll, FlipOnScroll, ParallaxBand, GlowOnScroll, sfxStagger, SCROLL_FX_CSS } from "./scroll-fx";
 
-/* category slug → lucide icon */
+/* category slug → lucide icon (image-less category tiles) */
 const CAT_ICONS: Record<string, React.ElementType> = {
   mobile: Smartphone, laptop: Laptop, "desktop-pc": Computer, "pc-parts": Cpu,
   monitor: Monitor, console: Gamepad2, accessories: Headphones, powerbank: BatteryCharging,
-  charger: Zap, headphones: Headphones, earbuds: Zap, "smart-watch": Watch,
+  charger: Timer, headphones: Headphones, earbuds: Timer, "smart-watch": Watch,
   "smart-gadgets": Watch, projector: Projector, network: Wifi, storage: HardDrive,
   keyboard: Keyboard, mouse: Mouse, webcam: Camera, speaker: Speaker,
 };
 
-/* ── app-style section heading ────────────────────────────────────── */
-function AppHead({
-  kicker, title, icon: Icon = Sparkles,
-}: { kicker: string; title: string; icon?: React.ElementType }) {
+/* ═══ 1 · section heading ═══════════════════════════════════════════ */
+function PrHead({
+  kicker, title, icon: Icon = Sparkles, id, href, hot = false, action,
+}: {
+  kicker: string; title: string; icon?: React.ElementType; id?: string; href?: string; hot?: boolean;
+  action?: React.ReactNode;
+}) {
   return (
-    <div className="mb-3.5 flex items-center gap-3">
-      <span className="mf-kicker-icon grid h-9 w-9 shrink-0 place-items-center rounded-xl text-white">
-        <Icon className="h-4.5 w-4.5" aria-hidden />
-      </span>
-      <div className="min-w-0 flex-1">
-        <p className="text-[10px] font-black tracking-[0.14em] text-violet-300/80">{kicker}</p>
-        <h2 className="mt-0.5 truncate text-[15.5px] font-black leading-7 text-[#E6EAF2]">{title}</h2>
+    <div className="mb-5 flex items-center justify-between gap-3 md:mb-6 md:gap-5">
+      <div className="flex min-w-0 items-center gap-3.5">
+        <span className={cn("pr-kicker grid h-11 w-11 shrink-0 place-items-center rounded-2xl", hot && "pr-kicker-hot")} aria-hidden>
+          <Icon className="h-5 w-5" />
+        </span>
+        <div className="min-w-0">
+          <p className={cn("pr-kick truncate text-[10px] font-black tracking-[0.18em]", hot && "pr-kick-hot")}>{kicker}</p>
+          <h2 id={id} className="mt-1 truncate text-lg font-black leading-7 md:text-2xl md:leading-9">{title}</h2>
+        </div>
       </div>
+      {action ?? (href && (
+        <Link href={href} className="pr-more hidden h-11 shrink-0 items-center gap-1.5 rounded-full px-5 text-[12px] font-black sm:flex">
+          مشاهدهٔ همه
+          <ChevronLeft className="h-4 w-4" aria-hidden />
+        </Link>
+      ))}
     </div>
   );
 }
 
-/* ── hydration-safe countdown chip ────────────────────────────────── */
-function AppCountdown({ endsAt }: { endsAt?: string | null }) {
+/* ═══ 2 · hydration-safe countdown chip ═════════════════════════════ */
+function PrCountdown({ endsAt }: { endsAt?: string | null }) {
   const [left, setLeft] = useState<string | null>(null);
   useEffect(() => {
     const target = endsAt ? new Date(endsAt).getTime() : NaN;
@@ -91,15 +110,15 @@ function AppCountdown({ endsAt }: { endsAt?: string | null }) {
     return () => window.clearInterval(t);
   }, [endsAt]);
   return (
-    <p className="flex items-center gap-1.5 rounded-xl border border-violet-400/30 bg-violet-500/10 px-3 py-1.5 text-[12px] font-black text-violet-200 tabular-nums" role="timer" aria-label="زمان باقی‌مانده">
-      <Timer className="h-3.5 w-3.5" aria-hidden />
+    <p className="pr-timer flex h-11 items-center gap-1.5 rounded-2xl px-3.5 text-[12.5px] font-black tabular-nums" role="timer" aria-label="زمان باقی‌مانده">
+      <Timer className="h-4 w-4" aria-hidden />
       {left ?? "—"}
     </p>
   );
 }
 
-/* ── compact app product tile (used in wheels + grids) ────────────── */
-function AppTile({ product }: { product: TemplateProduct }) {
+/* ═══ 3 · premium product card ══════════════════════════════════════ */
+function PremiumCard({ product }: { product: TemplateProduct }) {
   const { add } = useCart();
   const [added, setAdded] = useState(false);
 
@@ -115,53 +134,48 @@ function AppTile({ product }: { product: TemplateProduct }) {
   };
 
   return (
-    <article
-      className={cn(
-        "mf-card flex flex-col overflow-hidden rounded-3xl border border-white/[0.07] bg-[#161B26]",
-        !product.inStock && "opacity-55 grayscale-[0.35]"
-      )}
-    >
-      <Link href={`/products/${product.slug}`} aria-label={product.name} className="relative block aspect-square bg-[#0E1117]">
+    <article className={cn("pr-card group flex flex-col overflow-hidden rounded-3xl", !product.inStock && "opacity-55 grayscale-[0.35]")}>
+      <Link href={`/products/${product.slug}`} aria-label={product.name} className="relative block aspect-square">
         {product.mainImage ? (
           <Image
             src={product.mainImage}
             alt={product.name}
             fill
-            sizes="(max-width: 768px) 46vw, 220px"
-            className="object-contain p-4 transition-transform duration-500 group-hover:scale-[1.05]"
+            sizes="(max-width: 640px) 46vw, (max-width: 1024px) 31vw, 18vw"
+            className="object-contain p-4 transition-transform duration-500 group-hover:scale-[1.06]"
             loading="lazy"
           />
         ) : (
-          <span className="grid h-full place-items-center text-slate-600">
-            <Package className="h-10 w-10" aria-hidden />
+          <span className="grid h-full place-items-center">
+            <Package className="h-10 w-10 pr-dim-icon" aria-hidden />
           </span>
         )}
         {product.discountPercent > 0 && (
-          <span className="absolute start-2 top-2 rounded-lg bg-violet-500 px-2 py-0.5 text-[10px] font-black text-white tabular-nums">
+          <span className="pr-off absolute start-3 top-3 rounded-xl px-2 py-1 text-[10.5px] font-black text-white tabular-nums">
             {product.discountPercent.toLocaleString("fa-IR")}٪
           </span>
         )}
         {product.inStock ? (
-          <span aria-hidden className="absolute end-2 top-2 h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#34D399]" />
+          <span aria-hidden className="absolute end-3 top-3 h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#34D399]" />
         ) : (
-          <span className="absolute end-2 top-2 rounded-lg bg-slate-700 px-2 py-0.5 text-[9px] font-bold text-slate-200">اتمام</span>
+          <span className="pr-stock-out absolute end-3 top-3 rounded-lg px-2 py-0.5 text-[9.5px] font-bold">اتمام موجودی</span>
         )}
       </Link>
-      <div className="flex flex-1 flex-col gap-1 p-3">
-        <p className="flex items-center gap-1 truncate text-[10px] text-slate-500">
-          <BadgeCheck className="h-3 w-3 shrink-0 text-violet-400/70" aria-hidden />
+      <div className="flex flex-1 flex-col gap-1.5 p-4">
+        <p className="flex items-center gap-1 truncate text-[10.5px] font-bold pr-mute">
+          <BadgeCheck className="h-3.5 w-3.5 shrink-0 pr-acc-soft" aria-hidden />
           {product.brand.name}
         </p>
-        <Link href={`/products/${product.slug}`} className="line-clamp-2 min-h-10 text-[12px] font-bold leading-[18px] text-[#E6EAF2]">
+        <Link href={`/products/${product.slug}`} className="line-clamp-2 min-h-11 text-[13px] font-bold leading-[22px]">
           {product.name}
         </Link>
-        <div className="mt-auto pt-1">
+        <div className="mt-auto pt-1.5">
           {product.discountPercent > 0 && (
-            <p className="text-[10px] leading-4 text-slate-500 price-old tabular-nums">{formatPrice(product.price)} تومان</p>
+            <p className="text-[10.5px] leading-4 pr-mute price-old tabular-nums">{formatPrice(product.price)} تومان</p>
           )}
-          <p className={cn("text-[14.5px] font-black leading-6 text-[#E6EAF2] tabular-nums", product.discountPercent > 0 && "text-violet-300")}>
+          <p className={cn("text-[15px] font-black leading-7 tabular-nums", product.discountPercent > 0 && "pr-acc")}>
             {formatPrice(product.effectivePrice)}
-            <span className="text-[9px] font-normal text-slate-500"> تومان</span>
+            <span className="text-[9.5px] font-normal pr-mute"> تومان</span>
           </p>
           <button
             type="button"
@@ -169,11 +183,11 @@ function AppTile({ product }: { product: TemplateProduct }) {
             disabled={!product.inStock}
             aria-label={`افزودن ${product.name} به سبد`}
             className={cn(
-              "mf-buy mt-2 flex h-10 w-full items-center justify-center gap-1.5 rounded-xl text-[11.5px] font-black text-white transition-all active:scale-[0.97]",
-              !product.inStock && "cursor-not-allowed !bg-slate-800 !text-slate-500"
+              "pr-buy mt-2.5 flex h-11 w-full items-center justify-center gap-1.5 rounded-2xl text-[12px] font-black text-white transition-all active:scale-[0.97]",
+              !product.inStock && "cursor-not-allowed !bg-transparent !border !text-slate-500"
             )}
           >
-            {added ? <Check className="h-4 w-4" aria-hidden /> : <ShoppingCart className="h-4 w-4" aria-hidden />}
+            {added ? <Check className="h-4.5 w-4.5" aria-hidden /> : <ShoppingCart className="h-4.5 w-4.5" aria-hidden />}
             {product.inStock ? (added ? "افزوده شد" : "افزودن به سبد") : "ناموجود"}
           </button>
         </div>
@@ -182,20 +196,18 @@ function AppTile({ product }: { product: TemplateProduct }) {
   );
 }
 
-/* ═════════════════════ TEMPLATE ═════════════════════ */
+/* ═══════════════════════ TEMPLATE ═══════════════════════ */
 export function MobileFirstPwaTemplate({ data }: { data: HomeData }) {
   const { store, counts } = data;
   const chrome = TEMPLATE_CHROME["mobile-first-pwa"];
 
-  /* app banner rotation */
+  /* optional per-template hero copy (Admin → محتوای قالب‌ها — additive) */
+  const texts = data.templateContent?.texts ?? {};
+  const tagline = data.templateContent?.brand?.tagline ?? "پرمیوم ریسپانسیو · تجربه‌ای یکپارچه از موبایل تا مانیتور";
+
   const slides = data.slides ?? [];
-  const [bannerIdx, setBannerIdx] = useState(0);
-  const banner = slides.length > 0 ? slides[Math.min(bannerIdx, slides.length - 1)] : null;
-  useEffect(() => {
-    if (slides.length <= 1) return;
-    const t = window.setInterval(() => setBannerIdx((i) => (i + 1) % slides.length), 5500);
-    return () => window.clearInterval(t);
-  }, [slides.length]);
+  const heroSlide = slides[0] ?? null;
+  const railSlides = slides.slice(1, 6);
 
   const stories = useMemo<StoryItem[]>(() =>
     (data.stories ?? []).map((s) => ({
@@ -216,720 +228,772 @@ export function MobileFirstPwaTemplate({ data }: { data: HomeData }) {
   }, [data.discounted, data.featured]);
   const dealTimer = deals.find((p) => p.discountEndsAt)?.discountEndsAt ?? store.timerEndsAt ?? null;
 
-  const featured = (data.featured ?? []).slice(0, 6);
+  const featured = (data.featured ?? []).slice(0, 8);
   const bestsellers = (data.bestsellers ?? []).slice(0, 6);
-  const exclusive = (data.exclusive ?? []).slice(0, 8);
-  const newest = (data.newest ?? []).slice(0, 6);
+  const exclusive = (data.exclusive ?? []).slice(0, 3);
+  const newest = (data.newest ?? []).slice(0, 8);
+  const showcases = (data.showcases ?? []).slice(0, 3);
   const hasAnyProduct = deals.length > 0 || featured.length > 0 || bestsellers.length > 0 || exclusive.length > 0 || newest.length > 0;
 
-  /* decorative bottom tab navigation — REAL routes */
-  const tabs = [
-    { href: "/", label: "خانه", icon: Home, active: true },
-    { href: "/products", label: "دسته‌ها", icon: LayoutGrid, active: false },
-    { href: "/cart", label: "سبد", icon: ShoppingCart, active: false },
-    { href: "/account", label: "پروفایل", icon: User, active: false },
+  /* hero showcase fallbacks: slide → featured product → pure gradient */
+  const heroVisual = heroSlide ?? null;
+  const heroProduct = heroSlide?.product ?? data.featured[0] ?? data.bestsellers[0] ?? null;
+  const totalSold = (data.bestsellers ?? []).reduce((n, p) => n + p.soldCount, 0);
+
+  const stats = [
+    { v: counts.products, l: "کالای آمادهٔ ارسال" },
+    { v: counts.brands, l: "برند معتبر" },
+    { v: counts.categories, l: "دسته‌بندی فعال" },
+    { v: totalSold, l: "فروش موفق" },
+  ];
+
+  const benefits = [
+    { icon: Truck, t: "ارسال سریع به سراسر ایران" },
+    { icon: ShieldCheck, t: "ضمانت اصالت کالا" },
+    { icon: Support, t: "پشتیبانی ۲۴ ساعته" },
+    { icon: CreditCard, t: "پرداخت امن و مطمئن" },
   ];
 
   return (
     <div data-template-chrome="1" data-tpl="mobile-first-pwa" className="w-full">
       <TemplateHeader data={data} cfg={chrome.header} />
-      {/* NOTE: announcement/ticker renders inside the template's own H6
-          chrome header — the in-app notice below is the app-style echo. */}
-      <div className="mf-workspace relative w-full pb-10 pt-6 md:py-10">
-        <span aria-hidden className="mf-glow" />
+      {/* NOTE: the announcement/ticker renders inside the template's own H6
+          chrome header — never duplicated in the body. */}
 
-        {/* ═══ THE APP COLUMN (device frame on desktop) ═══ */}
-        <div className="mf-app relative mx-auto flex w-full max-w-[430px] flex-col overflow-clip md:min-h-[80vh] md:rounded-[2.75rem] md:border md:border-white/10 md:shadow-[0_40px_120px_-40px_rgba(139,92,246,.45)]">
-          {/* notch hint */}
-          <span aria-hidden className="mf-notch absolute start-1/2 top-2.5 z-30 hidden h-6 w-24 -translate-x-1/2 rounded-full bg-black/90 md:block" />
+      <div className="relative w-full overflow-clip">
+        {/* ambient top wash */}
+        <span aria-hidden className="pr-aurora" />
 
-          <div className="flex flex-1 flex-col gap-7 px-4 pb-6 pt-4 md:pt-12">
-            {/* ═══ 1 · greeting + big search hero ═══ */}
-            <section aria-labelledby="mf-hello" className="taj-slide-start">
-              <div className="flex items-center gap-3">
-                <span className="mf-avatar grid h-12 w-12 shrink-0 place-items-center rounded-2xl text-[17px] font-black text-white" aria-hidden>
-                  {store.storeName.slice(0, 1)}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <h1 id="mf-hello" className="truncate text-[16px] font-black leading-6 text-[#E6EAF2]">
-                    سلام، به {store.storeName} خوش آمدید
-                  </h1>
-                  <p className="mt-0.5 flex items-center gap-1 text-[10.5px] text-slate-500 tabular-nums">
-                    <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_#34D399]" />
-                    اپ فعال · {toFaDigits(counts.products.toLocaleString("fa-IR"))} کالا آمادهٔ ارسال
-                  </p>
-                </div>
-                {store.announcementActive && store.announcement && (
-                  <span className="mf-notice relative grid h-10 w-10 shrink-0 place-items-center rounded-2xl text-violet-200" title={store.announcement}>
-                    <Bell className="h-4.5 w-4.5" aria-hidden />
-                    <span aria-hidden className="mf-notice-dot absolute end-2 top-2 h-1.5 w-1.5 rounded-full bg-fuchsia-400" />
-                  </span>
-                )}
+        {/* ═══ 1 · HERO — parallax ribbons + flip showcase ═══ */}
+        <section aria-labelledby="pr-hero" className="relative mx-auto w-full max-w-7xl px-4 pb-14 pt-10 md:pb-20 md:pt-16">
+          {/* drifting ribbons — the "top-to-bottom" scroll motion */}
+          <ParallaxBand className="pr-ribbon pr-ribbon-a" speed={0.22} range={150} />
+          <ParallaxBand className="pr-ribbon pr-ribbon-b" speed={0.13} range={110} />
+
+          <div className="relative grid grid-cols-1 items-center gap-12 lg:grid-cols-[1.02fr_.98fr] lg:gap-16">
+            {/* copy column */}
+            <RevealOnScroll variant="start" className="relative z-10 text-center lg:text-start">
+              <p className="pr-eyebrow inline-flex items-center gap-2 rounded-full px-4 py-2 text-[11px] font-black">
+                <Sparkles className="h-4 w-4" aria-hidden />
+                {tagline}
+              </p>
+              <h1 id="pr-hero" className="mt-6 text-4xl font-black leading-[1.15] tracking-tight md:text-6xl md:leading-[1.08]">
+                {texts.heroTitle ?? store.storeName}
+              </h1>
+              <p dir="ltr" className="mt-3 text-[11px] font-black uppercase tracking-[0.34em] pr-acc-soft">
+                {store.storeNameEn} · PREMIUM RESPONSIVE
+              </p>
+              <p className="mx-auto mt-5 max-w-xl text-[13.5px] leading-8 pr-mute md:text-[14.5px] md:leading-9 lg:mx-0">
+                {texts.heroSubtitle ?? (store.announcementActive && store.announcement
+                  ? store.announcement
+                  : "چیدمانی حرفه‌ای که با هر صفحه‌نمایشی هم‌قد می‌شود؛ از موبایل جیبی تا مانیتور بزرگ — با حرکت، عمق و نورِ زندهٔ اسکرول.")}
+              </p>
+              <div className="mt-8 flex flex-wrap items-center justify-center gap-3.5 lg:justify-start">
+                <Link href="/products" className="pr-btn flex h-12 items-center gap-2 rounded-2xl px-8 text-[13px] font-black text-white">
+                  ورود به فروشگاه
+                  <ChevronLeft className="h-4.5 w-4.5" aria-hidden />
+                </Link>
+                <Link href="/products?discount=1" className="pr-btn-ghost flex h-12 items-center gap-2 rounded-2xl px-7 text-[13px] font-black">
+                  <Flame className="h-4.5 w-4.5 pr-kick-hot-icon" aria-hidden />
+                  پیشنهادهای ویژه
+                </Link>
               </div>
+              <dl className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {stats.map((s) => (
+                  <div key={s.l} className="pr-stat rounded-2xl p-3.5 text-center lg:text-start">
+                    <dd className="text-xl font-black tabular-nums pr-acc md:text-2xl">{toFaDigits(s.v.toLocaleString("fa-IR"))}</dd>
+                    <dt className="mt-1 text-[10px] font-bold tracking-[0.08em] pr-mute">{s.l}</dt>
+                  </div>
+                ))}
+              </dl>
+            </RevealOnScroll>
 
-              {/* big search hero — a real link styled as the app search field */}
-              <Link
-                href="/products"
-                aria-label="جستجوی محصولات"
-                className="mf-search mt-4 flex h-14 items-center gap-3 rounded-[1.75rem] border border-white/10 bg-white/[0.06] px-4 backdrop-blur-xl transition-colors hover:border-violet-400/50"
-              >
-                <Search className="h-5 w-5 shrink-0 text-slate-400" aria-hidden />
-                <span className="min-w-0 flex-1 truncate text-[12.5px] text-slate-400">جستجوی محصول، برند یا دسته…</span>
-                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-violet-500/20 text-violet-300">
-                  <Mic className="h-4 w-4" aria-hidden />
-                </span>
-              </Link>
-
-              {store.announcementActive && store.announcement && (
-                <div className="mf-notice-card mt-3 flex items-center gap-2.5 rounded-2xl px-4 py-3">
-                  <Sparkles className="h-4 w-4 shrink-0 text-fuchsia-300" aria-hidden />
-                  {store.announcementLink ? (
-                    <Link href={store.announcementLink} className="min-w-0 truncate text-[11.5px] font-bold text-violet-100">
-                      {store.announcement}
+            {/* visual column — the book-page flip showcase */}
+            <div className="relative mx-auto w-full max-w-[520px]">
+              <FlipOnScroll degrees={56} origin="start">
+                <div className="pr-showcase relative">
+                  <span aria-hidden className="pr-ring" />
+                  <div className="pr-hero-card relative overflow-hidden rounded-[2rem]">
+                    <Link
+                      href={heroVisual?.ctaUrl ?? (heroProduct ? `/products/${heroProduct.slug}` : "/products")}
+                      aria-label={heroVisual?.title ?? store.storeName}
+                      className="group relative block aspect-[4/3]"
+                    >
+                      {heroVisual ? (
+                        <SlideArt slide={heroVisual} alt={heroVisual.title} fill priority sizes="(max-width: 1024px) 92vw, 520px" className="object-cover transition-transform duration-[1400ms] group-hover:scale-[1.04]" />
+                      ) : heroProduct?.mainImage ? (
+                        <Image src={heroProduct.mainImage} alt={heroProduct.name} fill priority sizes="(max-width: 1024px) 92vw, 520px" className="object-contain p-10 transition-transform duration-[1400ms] group-hover:scale-[1.05]" />
+                      ) : (
+                        <span className="grid h-full place-items-center">
+                          <Gem className="h-16 w-16 pr-dim-icon" aria-hidden />
+                        </span>
+                      )}
+                      <span aria-hidden className="absolute inset-0 bg-gradient-to-t from-[#04100F]/85 via-transparent to-transparent" />
+                      {heroVisual && (
+                        <span className="absolute bottom-4 start-4 end-4 flex flex-col gap-1">
+                          <span className="line-clamp-1 text-[15px] font-black text-white">{heroVisual.title}</span>
+                          {heroVisual.subtitle && <span className="line-clamp-1 text-[11.5px] text-white/70">{heroVisual.subtitle}</span>}
+                        </span>
+                      )}
                     </Link>
-                  ) : (
-                    <p className="min-w-0 truncate text-[11.5px] font-bold text-violet-100">{store.announcement}</p>
+                  </div>
+
+                  {/* floating product chip — lights ramp on with GlowOnScroll */}
+                  {heroProduct && (
+                    <GlowOnScroll className="absolute -bottom-7 -start-3 z-10 md:-start-8" color="#2DD4BF" size={34}>
+                      <Link href={`/products/${heroProduct.slug}`} className="pr-float-card flex items-center gap-3 rounded-2xl p-3 pe-5">
+                        <span className="relative grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-xl">
+                          {heroProduct.mainImage ? (
+                            <Image src={heroProduct.mainImage} alt={heroProduct.name} fill sizes="56px" className="object-contain p-1" />
+                          ) : (
+                            <Package className="h-6 w-6 pr-dim-icon" aria-hidden />
+                          )}
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block max-w-[150px] truncate text-[12px] font-black">{heroProduct.name}</span>
+                          <span className="mt-0.5 block text-[13px] font-black tabular-nums pr-acc">
+                            {formatPrice(heroProduct.discountPrice ?? heroProduct.price)}
+                            <span className="text-[9px] font-normal pr-mute"> تومان</span>
+                          </span>
+                        </span>
+                        <span className="sfx-lamp ms-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl pr-lamp" aria-hidden>
+                          <ShoppingCart className="h-4 w-4" />
+                        </span>
+                      </Link>
+                    </GlowOnScroll>
                   )}
                 </div>
-              )}
-            </section>
+              </FlipOnScroll>
+            </div>
+          </div>
+        </section>
 
-            {/* ═══ 2 · app banner (auto-rotating) ═══ */}
-            {banner && (
-              <section aria-label="بنرهای اسلایدی اپ" className="taj-slide-end">
-                <div className="mf-banner relative overflow-hidden rounded-[1.75rem] border border-white/[0.07]">
+        {/* ═══ 2 · benefits strip ═══ */}
+        <section aria-label="خدمات فروشگاه" className="mx-auto w-full max-w-7xl px-4 pb-10">
+          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {benefits.map((b, i) => (
+              <li key={b.t}>
+                <RevealOnScroll variant="zoom" delay={sfxStagger(i, 60)}>
+                  <div className="pr-chip flex h-12 items-center justify-center gap-2.5 rounded-2xl px-4 text-[11.5px] font-black">
+                    <b.icon className="h-4.5 w-4.5 shrink-0 pr-acc" aria-hidden />
+                    {b.t}
+                  </div>
+                </RevealOnScroll>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        {/* ═══ 3 · slides rail «کالکشن‌های ویژه» ═══ */}
+        {railSlides.length > 0 && (
+          <section aria-labelledby="pr-rail" className="mx-auto w-full max-w-7xl px-4 pb-12">
+            <RevealOnScroll>
+              <PrHead id="pr-rail" kicker="COLLECTIONS" title="کالکشن‌های ویژه" icon={Gem} href="/products" />
+            </RevealOnScroll>
+            <div className="pr-rail">
+              {railSlides.map((s, i) => (
+                <RevealOnScroll key={s.id} variant="tilt" delay={sfxStagger(i, 90)} className="w-40 shrink-0 snap-start sm:w-44">
                   <Link
-                    href={banner.ctaUrl ?? (banner.product ? `/products/${banner.product.slug}` : "/products")}
-                    aria-label={banner.title}
-                    className="relative block aspect-[16/10]"
+                    href={s.ctaUrl ?? (s.product ? `/products/${s.product.slug}` : "/products")}
+                    aria-label={s.title}
+                    className="pr-card group relative block aspect-[3/4] overflow-hidden rounded-3xl"
                   >
-                    <SlideArt slide={banner} alt={banner.title} fill sizes="430px" className="object-cover" priority />
-                    <span aria-hidden className="absolute inset-0 bg-gradient-to-t from-[#0E1117]/95 via-[#0E1117]/25 to-transparent" />
-                    <span className="absolute bottom-3.5 start-4 end-4 flex flex-col gap-1">
-                      <span className="line-clamp-1 text-[14px] font-black text-[#E6EAF2]">{banner.title}</span>
-                      {banner.subtitle && <span className="line-clamp-1 text-[11px] text-slate-300/80">{banner.subtitle}</span>}
-                      <span className="mf-buy mt-1.5 flex h-10 w-fit items-center gap-1.5 rounded-xl px-4 text-[11.5px] font-black text-white">
-                        {banner.ctaText ?? "مشاهده"}
-                        <ChevronLeft className="h-4 w-4" aria-hidden />
+                    <SlideArt slide={s} alt={s.title} fill sizes="176px" className="object-cover transition-transform duration-700 group-hover:scale-[1.06]" loading="lazy" />
+                    <span aria-hidden className="absolute inset-0 bg-gradient-to-t from-[#04100F]/90 via-[#04100F]/20 to-transparent" />
+                    <span className="absolute bottom-3 start-3 end-3 flex flex-col gap-1">
+                      <span className="line-clamp-2 text-[12.5px] font-black leading-5 text-white">{s.title}</span>
+                      {s.subtitle && <span className="line-clamp-1 text-[10px] text-white/65">{s.subtitle}</span>}
+                      <span className="pr-rail-cta mt-1.5 inline-flex h-9 w-fit items-center gap-1 rounded-xl px-3.5 text-[10.5px] font-black text-white">
+                        {s.ctaText ?? "مشاهده"}
+                        <ChevronLeft className="h-3.5 w-3.5" aria-hidden />
                       </span>
                     </span>
                   </Link>
-                  {slides.length > 1 && (
-                    <div className="absolute bottom-3 end-4 flex items-center gap-1.5" role="tablist" aria-label="انتخاب بنر">
-                      {slides.map((s, i) => (
-                        <button
-                          key={s.id}
-                          type="button"
-                          role="tab"
-                          aria-selected={i === bannerIdx}
-                          aria-label={`بنر ${toFaDigits(String(i + 1))}`}
-                          onClick={() => setBannerIdx(i)}
-                          className={cn("h-1.5 rounded-full transition-all", i === bannerIdx ? "w-5 bg-violet-400" : "w-1.5 bg-white/30")}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </section>
-            )}
+                </RevealOnScroll>
+              ))}
+            </div>
+          </section>
+        )}
 
-            {/* ═══ 3 · STORIES WHEEL (snap) ═══ */}
-            {stories.length > 0 && (
-              <section aria-label="استوری‌های اپ">
-                <AppHead kicker="STORIES" title="استوری‌های امروز" icon={Sparkles} />
-                <StoriesRow stories={stories} />
-              </section>
-            )}
+        {/* ═══ 4 · STORIES ═══ */}
+        {stories.length > 0 && (
+          <section aria-label={`استوری‌های فروشگاه (${toFaDigits(counts.stories)} استوری)`} className="mx-auto w-full max-w-7xl px-4 pb-12">
+            <RevealOnScroll>
+              <PrHead kicker="STORIES" title={`استوری‌های امروز · ${toFaDigits(counts.stories)} قسمت`} icon={Sparkles} />
+              <StoriesRow stories={stories} />
+            </RevealOnScroll>
+          </section>
+        )}
 
-            {/* ═══ 4 · CATEGORY WHEEL (snap) ═══ */}
-            {data.categories.length > 0 && (
-              <section aria-label="دسته‌بندی‌های اپ">
-                <AppHead kicker="CATEGORIES" title="دسته‌ها را بچرخانید" icon={LayoutGrid} />
-                <div className="mf-wheel">
-                  {data.categories.slice(0, 12).map((c) => {
-                    const Icon = CAT_ICONS[c.slug] ?? Boxes;
-                    return (
-                      <Link key={c.id} href={`/products?category=${c.slug}`} className="flex w-[76px] shrink-0 snap-start flex-col items-center gap-1.5">
-                        <span className="mf-cat-tile grid h-[64px] w-[64px] place-items-center overflow-hidden rounded-[1.4rem] border border-white/[0.08] bg-[#161B26]">
-                          {c.image ? (
-                            <Image src={c.image} alt={c.name} fill sizes="64px" className="object-cover" loading="lazy" />
-                          ) : (
-                            <Icon className="h-6 w-6 text-violet-300" aria-hidden />
-                          )}
-                        </span>
-                        <span className="w-full truncate text-center text-[10px] font-bold text-[#E6EAF2]">{c.name}</span>
-                      </Link>
-                    );
-                  })}
-                </div>
-              </section>
-            )}
-
-            {/* ═══ 5 · FLASH DEALS WHEEL (snap) ═══ */}
-            {deals.length > 0 && (
-              <section aria-labelledby="mf-deals">
-                <div className="mb-3.5 flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <span className="mf-kicker-icon mf-kicker-hot grid h-9 w-9 shrink-0 place-items-center rounded-xl text-white">
-                      <Flame className="h-4.5 w-4.5" aria-hidden />
-                    </span>
-                    <div>
-                      <p className="text-[10px] font-black tracking-[0.14em] text-fuchsia-300/90">FLASH DEALS</p>
-                      <h2 id="mf-deals" className="mt-0.5 truncate text-[15.5px] font-black leading-7 text-[#E6EAF2]">پیشنهادهای شگفت اپ</h2>
-                    </div>
-                  </div>
-                  <AppCountdown endsAt={dealTimer} />
-                </div>
-                <div className="mf-wheel">
-                  {deals.map((p) => (
-                    <article key={p.id} className="mf-card group flex w-40 shrink-0 snap-start flex-col overflow-hidden rounded-3xl border border-white/[0.07] bg-[#161B26]">
-                      <Link href={`/products/${p.slug}`} aria-label={p.name} className="relative block aspect-square bg-[#0E1117]">
-                        {p.mainImage ? (
-                          <Image src={p.mainImage} alt={p.name} fill sizes="160px" className="object-contain p-3 transition-transform duration-500 group-hover:scale-[1.06]" loading="lazy" />
+        {/* ═══ 5 · CATEGORIES — image-led tiles ═══ */}
+        {data.categories.length > 0 && (
+          <section aria-labelledby="pr-cats" className="mx-auto w-full max-w-7xl px-4 pb-14">
+            <RevealOnScroll>
+              <PrHead id="pr-cats" kicker="CATEGORIES" title="خرید بر اساس دسته‌بندی" icon={LayoutGrid} href="/products" />
+            </RevealOnScroll>
+            <ul className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 lg:grid-cols-6">
+              {data.categories.slice(0, 12).map((c, i) => {
+                const Icon = CAT_ICONS[c.slug] ?? Boxes;
+                return (
+                  <li key={c.id}>
+                    <RevealOnScroll variant="tilt" delay={sfxStagger(i, 60, 10)}>
+                      <Link href={`/products?category=${c.slug}`} className="pr-card group relative block aspect-[4/5] overflow-hidden rounded-3xl">
+                        {c.image ? (
+                          <Image src={c.image} alt={`تصویر ${c.name}`} fill sizes="(max-width: 640px) 46vw, 16vw" className="object-cover transition-transform duration-700 group-hover:scale-[1.08]" loading="lazy" />
                         ) : (
-                          <span className="grid h-full place-items-center text-slate-600"><Package className="h-9 w-9" aria-hidden /></span>
-                        )}
-                        {p.discountPercent > 0 && (
-                          <span className="mf-hot-chip absolute start-2 top-2 rounded-lg px-2 py-0.5 text-[10px] font-black text-white tabular-nums">
-                            {p.discountPercent.toLocaleString("fa-IR")}٪
+                          <span className="grid h-full place-items-center pr-cat-void">
+                            <Icon className="h-9 w-9 pr-acc" aria-hidden />
                           </span>
                         )}
+                        <span aria-hidden className="absolute inset-0 bg-gradient-to-t from-[#04100F]/92 via-[#04100F]/25 to-transparent" />
+                        <span className="absolute bottom-3 start-3 end-3 text-center">
+                          <span className="block truncate text-[12.5px] font-black text-white">{c.name}</span>
+                          <span className="mt-0.5 block text-[9.5px] font-bold tabular-nums text-white/60">{toFaDigits(c.productCount.toLocaleString("fa-IR"))} کالا</span>
+                        </span>
                       </Link>
-                      <div className="flex flex-col gap-1 p-3">
-                        <Link href={`/products/${p.slug}`} className="line-clamp-2 min-h-9 text-[11.5px] font-bold leading-[17px] text-[#E6EAF2]">{p.name}</Link>
-                        <p className={cn("text-[13.5px] font-black leading-6 tabular-nums", p.discountPercent > 0 ? "text-fuchsia-300" : "text-[#E6EAF2]")}>
+                    </RevealOnScroll>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        )}
+
+        {/* ═══ 6 · DEALS — the lights-on band ═══ */}
+        {deals.length > 0 && (
+          <section aria-labelledby="pr-deals" className="mx-auto w-full max-w-7xl px-4 pb-14">
+            <RevealOnScroll>
+              <PrHead id="pr-deals" kicker="FLASH DEALS" title="پیشنهادهای ویژهٔ امروز" icon={Flame} href="/products?discount=1" hot action={<PrCountdown endsAt={dealTimer} />} />
+            </RevealOnScroll>
+            <GlowOnScroll color="#2DD4BF" size={56}>
+              <div className="pr-deal-band grid grid-cols-2 gap-3.5 rounded-[2rem] p-4 sm:grid-cols-3 md:p-6 lg:grid-cols-4 xl:grid-cols-5">
+                {deals.map((p, i) => (
+                  <RevealOnScroll key={p.id} variant="tilt" delay={sfxStagger(i, 55)}>
+                    <PremiumCard product={p} />
+                  </RevealOnScroll>
+                ))}
+              </div>
+            </GlowOnScroll>
+          </section>
+        )}
+
+        {/* ═══ 7 · FEATURED grid ═══ */}
+        {featured.length > 0 && (
+          <section aria-labelledby="pr-featured" className="mx-auto w-full max-w-7xl px-4 pb-14">
+            <RevealOnScroll>
+              <PrHead id="pr-featured" kicker="FOR YOU" title="منتخب فروشگاه" icon={Gem} href="/products?sort=rating" />
+            </RevealOnScroll>
+            <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 lg:grid-cols-4">
+              {featured.map((p, i) => (
+                <RevealOnScroll key={p.id} variant="tilt" delay={sfxStagger(i, 60)}>
+                  <PremiumCard product={p} />
+                </RevealOnScroll>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* ═══ 8 · BESTSELLERS — numbered ledger ═══ */}
+        {bestsellers.length > 0 && (
+          <section aria-labelledby="pr-best" className="mx-auto w-full max-w-7xl px-4 pb-14">
+            <RevealOnScroll>
+              <PrHead id="pr-best" kicker="TOP CHART" title="پرفروش‌های این هفته" icon={TrendingUp} href={RAIL_URLS.bestsellers} />
+            </RevealOnScroll>
+            <RevealOnScroll variant="zoom">
+              <div className="pr-card flex flex-col divide-y pr-divide rounded-3xl">
+                {bestsellers.map((p, i) => (
+                  <Link key={p.id} href={`/products/${p.slug}`} className="group flex items-center gap-3.5 p-3.5 md:gap-4 md:p-4">
+                    <span className="pr-rank w-8 shrink-0 text-center text-lg font-black tabular-nums md:text-xl" aria-hidden>
+                      {toFaDigits(String(i + 1).padStart(2, "0"))}
+                    </span>
+                    <span className="pr-thumb relative grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-2xl md:h-16 md:w-16">
+                      {p.mainImage ? (
+                        <Image src={p.mainImage} alt={p.name} fill sizes="64px" className="object-contain p-1.5" loading="lazy" />
+                      ) : (
+                        <Package className="h-6 w-6 pr-dim-icon" aria-hidden />
+                      )}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[13px] font-bold group-hover:pr-acc">{p.name}</span>
+                      <span className="mt-1 flex items-center gap-1.5 text-[10px] font-bold pr-mute tabular-nums">
+                        <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" aria-hidden />
+                        {p.rating > 0 ? toFaDigits(p.rating.toLocaleString("fa-IR")) : "جدید"}
+                        <span className="pr-dotsep" aria-hidden>·</span>
+                        {p.soldCount.toLocaleString("fa-IR")} فروش
+                      </span>
+                    </span>
+                    <span className="shrink-0 text-[13.5px] font-black tabular-nums pr-acc">{formatPrice(p.effectivePrice)}</span>
+                  </Link>
+                ))}
+              </div>
+            </RevealOnScroll>
+          </section>
+        )}
+
+        {/* ═══ 9 · EXCLUSIVE — pages turning in the vault ═══ */}
+        {exclusive.length > 0 && (
+          <section aria-labelledby="pr-vip" className="mx-auto w-full max-w-7xl px-4 pb-14">
+            <RevealOnScroll>
+              <PrHead id="pr-vip" kicker="EXCLUSIVE" title="گاوصندوق انحصاری" icon={Gem} />
+            </RevealOnScroll>
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {exclusive.map((p, i) => (
+                <FlipOnScroll key={p.id} degrees={58} origin={i % 2 === 0 ? "start" : "end"} delay={sfxStagger(i, 130, 3)}>
+                  <article className="pr-vip group flex flex-col overflow-hidden rounded-[1.75rem]">
+                    <Link href={`/products/${p.slug}`} aria-label={p.name} className="relative block aspect-[5/4]">
+                      {p.mainImage ? (
+                        <Image src={p.mainImage} alt={p.name} fill sizes="(max-width: 640px) 92vw, (max-width: 1024px) 46vw, 31vw" className="object-contain p-7 transition-transform duration-700 group-hover:scale-[1.06]" loading="lazy" />
+                      ) : (
+                        <span className="grid h-full place-items-center"><Gem className="h-12 w-12 pr-dim-icon" aria-hidden /></span>
+                      )}
+                      <span className="pr-vip-chip absolute start-3 top-3 rounded-xl px-2.5 py-1 text-[9.5px] font-black tracking-[0.12em] text-white">انحصاری</span>
+                    </Link>
+                    <div className="flex items-center gap-3 p-4">
+                      <div className="min-w-0 flex-1">
+                        <Link href={`/products/${p.slug}`} className="line-clamp-1 text-[13.5px] font-black">{p.name}</Link>
+                        <p className="mt-1 text-[14px] font-black tabular-nums pr-acc">
                           {formatPrice(p.effectivePrice)}
-                          <span className="text-[9px] font-normal text-slate-500"> تومان</span>
+                          <span className="text-[9.5px] font-normal pr-mute"> تومان</span>
                         </p>
                       </div>
-                    </article>
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {/* ═══ 6 · FEATURED GRID (2 cols inside the phone) ═══ */}
-            {featured.length > 0 && (
-              <section aria-labelledby="mf-featured">
-                <AppHead kicker="FOR YOU" title="منتخب برای شما" icon={Gem} />
-                <div className="grid grid-cols-2 gap-3">
-                  {featured.map((p) => (
-                    <AppTile key={p.id} product={p} />
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {/* ═══ 7 · BESTSELLERS LIST ═══ */}
-            {bestsellers.length > 0 && (
-              <section aria-labelledby="mf-best">
-                <AppHead kicker="TOP CHART" title="پرفروش‌های این هفته" icon={TrendingUp} />
-                <div className="mf-card flex flex-col divide-y divide-white/[0.06] rounded-3xl border border-white/[0.07]">
-                  {bestsellers.map((p, i) => (
-                    <Link key={p.id} href={`/products/${p.slug}`} className="group flex items-center gap-3 p-3">
-                      <span className="w-6 shrink-0 text-center text-[13px] font-black text-violet-400/80 tabular-nums" aria-hidden>
-                        {toFaDigits(String(i + 1).padStart(2, "0"))}
-                      </span>
-                      <span className="relative grid h-13 w-13 shrink-0 place-items-center overflow-hidden rounded-xl bg-[#0E1117]">
-                        {p.mainImage ? (
-                          <Image src={p.mainImage} alt={p.name} fill sizes="52px" className="object-contain p-1" loading="lazy" />
-                        ) : (
-                          <Package className="h-5 w-5 text-slate-600" aria-hidden />
-                        )}
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-[12px] font-bold text-[#E6EAF2] group-hover:text-violet-300">{p.name}</span>
-                        <span className="mt-0.5 flex items-center gap-1 text-[9.5px] text-slate-500 tabular-nums">
-                          <Star className="h-3 w-3 fill-amber-400 text-amber-400" aria-hidden />
-                          {p.rating > 0 ? toFaDigits(p.rating.toLocaleString("fa-IR")) : "جدید"}
-                          <span className="text-slate-600">·</span>
-                          {p.soldCount.toLocaleString("fa-IR")} فروش
-                        </span>
-                      </span>
-                      <span className="shrink-0 text-[12.5px] font-black text-violet-300 tabular-nums">{formatPrice(p.effectivePrice)}</span>
-                    </Link>
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {/* ═══ 8 · VIP EXCLUSIVE WHEEL (snap) ═══ */}
-            {exclusive.length > 0 && (
-              <section aria-labelledby="mf-vip">
-                <AppHead kicker="VIP ONLY" title="فقط در اپ، فقط برای شما" icon={Gem} />
-                <div className="mf-wheel">
-                  {exclusive.map((p) => (
-                    <article key={p.id} className="mf-vip-card group relative w-40 shrink-0 snap-start overflow-hidden rounded-3xl p-2.5">
-                      <Link href={`/products/${p.slug}`} aria-label={p.name} className="relative block aspect-[3/4] overflow-hidden rounded-2xl bg-[#0E1117]">
-                        {p.mainImage ? (
-                          <Image src={p.mainImage} alt={p.name} fill sizes="160px" className="object-contain p-3 transition-transform duration-500 group-hover:scale-[1.06]" loading="lazy" />
-                        ) : (
-                          <span className="grid h-full place-items-center text-slate-600"><Package className="h-9 w-9" aria-hidden /></span>
-                        )}
-                        <span className="absolute start-2 top-2 rounded-lg bg-gradient-to-l from-fuchsia-500 to-violet-600 px-2 py-0.5 text-[8.5px] font-black text-white">VIP</span>
+                      <Link href={`/products/${p.slug}`} className="pr-buy flex h-11 shrink-0 items-center gap-1.5 rounded-2xl px-5 text-[11.5px] font-black text-white">
+                        مشاهده
+                        <ChevronLeft className="h-4 w-4" aria-hidden />
                       </Link>
-                      <p className="mt-2 line-clamp-1 text-[11.5px] font-bold text-[#E6EAF2]">{p.name}</p>
-                      <p className="mt-0.5 text-[13px] font-black text-fuchsia-300 tabular-nums">
-                        {formatPrice(p.effectivePrice)}
-                        <span className="text-[9px] font-normal text-slate-500"> تومان</span>
-                      </p>
-                    </article>
-                  ))}
-                </div>
-              </section>
-            )}
+                    </div>
+                  </article>
+                </FlipOnScroll>
+              ))}
+            </div>
+          </section>
+        )}
 
-            {/* ═══ 9 · NEWEST GRID ═══ */}
-            {newest.length > 0 && (
-              <section aria-labelledby="mf-new">
-                <AppHead kicker="JUST LANDED" title="تازه رسیدها" icon={Rocket} />
-                <div className="grid grid-cols-2 gap-3">
-                  {newest.map((p) => (
-                    <AppTile key={p.id} product={p} />
-                  ))}
-                </div>
-              </section>
-            )}
+        {/* ═══ 10 · NEWEST grid ═══ */}
+        {newest.length > 0 && (
+          <section aria-labelledby="pr-new" className="mx-auto w-full max-w-7xl px-4 pb-14">
+            <RevealOnScroll>
+              <PrHead id="pr-new" kicker="JUST LANDED" title="تازه رسیدها" icon={Rocket} href="/products?sort=newest" />
+            </RevealOnScroll>
+            <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 lg:grid-cols-4">
+              {newest.map((p, i) => (
+                <RevealOnScroll key={p.id} variant="tilt" delay={sfxStagger(i, 60)}>
+                  <PremiumCard product={p} />
+                </RevealOnScroll>
+              ))}
+            </div>
+          </section>
+        )}
 
-            {/* ═══ 10 · SHOWCASE CARDS ═══ */}
-            {(data.showcases ?? []).length > 0 && (
-              <section aria-label="بنرهای ویژهٔ اپ">
-                <AppHead kicker="MOMENTS" title="لحظه‌های ویژه" icon={Sparkles} />
-                <div className="flex flex-col gap-3">
-                  {data.showcases.slice(0, 3).map((sc) => (
+        {/* ═══ 11 · SHOWCASES — parallax band + duo ═══ */}
+        {showcases.length > 0 && (
+          <section aria-label="بنرهای ویژهٔ فروشگاه" className="pb-14">
+            {/* full-bleed parallax feature */}
+            {showcases[0] && (
+              <div className="relative h-[380px] overflow-hidden md:h-[460px]">
+                <ParallaxBand className="absolute inset-x-0 -top-[18%] h-[136%]" speed={0.2} range={120}>
+                  <Image src={showcases[0].image} alt={showcases[0].title} fill sizes="100vw" className="object-cover" loading="lazy" />
+                </ParallaxBand>
+                <span aria-hidden className="absolute inset-0 bg-gradient-to-t from-[#04100F]/95 via-[#04100F]/45 to-[#04100F]/15" />
+                <RevealOnScroll variant="zoom" className="relative z-10 mx-auto flex h-full max-w-7xl flex-col items-center justify-center px-4 text-center">
+                  <h3 className="max-w-2xl text-2xl font-black leading-[1.3] text-white md:text-4xl">{showcases[0].title}</h3>
+                  {showcases[0].subtitle && (
+                    <p className="mt-3 max-w-xl text-[13px] leading-8 text-white/70">{showcases[0].subtitle}</p>
+                  )}
+                  <Link
+                    href={showcases[0].buttonUrl ?? (showcases[0].product ? `/products/${showcases[0].product.slug}` : "/products")}
+                    className="pr-btn mt-7 flex h-12 items-center gap-2 rounded-2xl px-8 text-[13px] font-black text-white"
+                  >
+                    {showcases[0].product ? "مشاهدهٔ کالا" : "مشاهدهٔ مجموعه"}
+                    <ChevronLeft className="h-4.5 w-4.5" aria-hidden />
+                  </Link>
+                </RevealOnScroll>
+              </div>
+            )}
+            {/* duo cards */}
+            {showcases.length > 1 && (
+              <div className="mx-auto mt-6 grid max-w-7xl grid-cols-1 gap-5 px-4 sm:grid-cols-2">
+                {showcases.slice(1, 3).map((sc, i) => (
+                  <RevealOnScroll key={sc.id} variant={i === 0 ? "start" : "end"}>
                     <Link
-                      key={sc.id}
                       href={sc.buttonUrl ?? (sc.product ? `/products/${sc.product.slug}` : "/products")}
-                      className="mf-card relative block overflow-hidden rounded-3xl border border-white/[0.07]"
+                      className="pr-card group relative block overflow-hidden rounded-3xl"
+                      aria-label={sc.title}
                     >
-                      <div className="relative aspect-[16/8]">
-                        <Image src={sc.image} alt={sc.title} fill sizes="430px" className="object-cover" loading="lazy" />
-                        <span aria-hidden className="absolute inset-0 bg-gradient-to-l from-[#0E1117]/90 via-[#0E1117]/30 to-transparent" />
-                      </div>
-                      <div className="absolute inset-y-0 end-0 flex w-full max-w-[60%] flex-col justify-center gap-1 p-4">
-                        <h3 className="text-[13.5px] font-black leading-6 text-[#E6EAF2]">{sc.title}</h3>
-                        {sc.subtitle && <p className="line-clamp-2 text-[10.5px] leading-5 text-slate-400">{sc.subtitle}</p>}
-                        <span className="mf-buy mt-1 inline-flex h-9 w-fit items-center gap-1.5 rounded-xl px-3.5 text-[11px] font-black text-white">
-                          برو
-                          <ChevronLeft className="h-3.5 w-3.5" aria-hidden />
+                      <span className="relative block aspect-[16/7]">
+                        <Image src={sc.image} alt={sc.title} fill sizes="(max-width: 640px) 92vw, 46vw" className="object-cover transition-transform duration-700 group-hover:scale-[1.05]" loading="lazy" />
+                        <span aria-hidden className="absolute inset-0 bg-gradient-to-l from-[#04100F]/90 via-[#04100F]/30 to-transparent" />
+                      </span>
+                      <span className="absolute inset-y-0 end-0 flex w-full max-w-[62%] flex-col justify-center gap-1.5 p-5">
+                        <span className="line-clamp-1 text-[15px] font-black text-white">{sc.title}</span>
+                        {sc.subtitle && <span className="line-clamp-2 text-[11px] leading-5 text-white/65">{sc.subtitle}</span>}
+                        <span className="pr-rail-cta mt-1.5 inline-flex h-10 w-fit items-center gap-1.5 rounded-xl px-4 text-[11px] font-black text-white">
+                          برو ببینیم
+                          <ChevronLeft className="h-4 w-4" aria-hidden />
                         </span>
-                      </div>
+                      </span>
                     </Link>
-                  ))}
-                </div>
-              </section>
+                  </RevealOnScroll>
+                ))}
+              </div>
             )}
+          </section>
+        )}
 
-            {/* ═══ 11 · BRAND CHIPS ═══ */}
-            {(data.brands ?? []).length > 0 && (
-              <section aria-label="برندهای اپ">
-                <AppHead kicker="BRANDS" title="برندهای موجود" icon={BadgeCheck} />
-                <ul className="flex flex-wrap gap-2">
-                  {data.brands.map((b) => (
-                    <li key={b.id}>
-                      <Link href={`/products?brand=${b.slug}`} className="mf-chip flex h-9 items-center gap-1.5 rounded-full px-3.5 text-[11px] font-bold text-[#E6EAF2]">
+        {/* ═══ 12 · BRANDS ═══ */}
+        {(data.brands ?? []).length > 0 && (
+          <section aria-label="برندهای موجود" className="mx-auto w-full max-w-7xl px-4 pb-14">
+            <RevealOnScroll>
+              <PrHead kicker="BRANDS" title="برندهای موجود در فروشگاه" icon={BadgeCheck} href="/products" />
+              <ul className="flex flex-wrap gap-2.5">
+                {(data.brands ?? []).map((b, i) => (
+                  <li key={b.id}>
+                    <RevealOnScroll variant="fade" delay={sfxStagger(i, 45, 12)}>
+                      <Link href={`/products?brand=${b.slug}`} className="pr-chip flex h-11 items-center gap-2 rounded-full px-4.5 text-[12px] font-bold">
                         {b.logo ? (
-                          <Image src={b.logo} alt={b.name} width={16} height={16} className="h-4 w-4 rounded-full object-contain" />
+                          <Image src={b.logo} alt={b.name} width={18} height={18} className="h-4.5 w-4.5 rounded-full object-contain" />
                         ) : (
-                          <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-violet-400" />
+                          <span aria-hidden className="h-2 w-2 rounded-full pr-acc-dot" />
                         )}
                         {b.name}
                       </Link>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            )}
+                    </RevealOnScroll>
+                  </li>
+                ))}
+              </ul>
+            </RevealOnScroll>
+          </section>
+        )}
 
-            {/* ═══ 12 · FAQ ═══ */}
-            {(data.faq ?? []).length > 0 && (
-              <section aria-labelledby="mf-faq">
-                <AppHead kicker="HELP" title="سؤال دارید؟" icon={HelpCircle} />
-                <div className="flex flex-col gap-2">
-                  {data.faq.map((f, i) => (
-                    <details key={i} className="mf-card group rounded-2xl border border-white/[0.07] p-3.5">
-                      <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2.5 text-[12px] font-bold text-[#E6EAF2]">
-                        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-violet-500/15 text-[10.5px] font-black text-violet-300 tabular-nums">
+        {/* ═══ 13 · FAQ ═══ */}
+        {(data.faq ?? []).length > 0 && (
+          <section aria-labelledby="pr-faq" className="mx-auto w-full max-w-7xl px-4 pb-16">
+            <RevealOnScroll>
+              <PrHead id="pr-faq" kicker="HELP" title="سؤال دارید؟" icon={HelpCircle} />
+              <div className="flex flex-col gap-2.5">
+                {(data.faq ?? []).map((f, i) => (
+                  <RevealOnScroll key={i} variant="fade" delay={sfxStagger(i, 50, 6)}>
+                    <details className="pr-card group rounded-2xl p-4">
+                      <summary className="flex min-h-11 cursor-pointer list-none items-center gap-3 text-[13px] font-bold">
+                        <span className="pr-faq-n grid h-8 w-8 shrink-0 place-items-center rounded-xl text-[11px] font-black tabular-nums">
                           {(i + 1).toLocaleString("fa-IR")}
                         </span>
                         {f.h}
-                        <ChevronLeft className="ms-auto h-4 w-4 shrink-0 text-slate-500 transition-transform group-open:-rotate-90" aria-hidden />
+                        <ChevronLeft className="ms-auto h-4.5 w-4.5 shrink-0 pr-mute transition-transform group-open:-rotate-90" aria-hidden />
                       </summary>
-                      <p className="mt-2.5 border-t border-white/[0.06] pt-2.5 text-[11.5px] leading-6 text-slate-400">{f.p}</p>
+                      <p className="mt-3 border-t pr-divide pt-3 text-[12px] leading-7 pr-mute">{f.p}</p>
                     </details>
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {/* ═══ 13 · APP STATS ═══ */}
-            <section aria-label="آمار اپ" className="pb-2">
-              <div className="mf-stats grid grid-cols-4 gap-2">
-                {[
-                  { icon: Package, value: counts.products },
-                  { icon: LayoutGrid, value: counts.categories },
-                  { icon: BadgeCheck, value: counts.brands },
-                  { icon: Sparkles, value: counts.stories },
-                ].map((s) => (
-                  <div key={s.value + s.icon.name} className="flex flex-col items-center gap-1 rounded-2xl border border-white/[0.06] bg-white/[0.03] p-2.5">
-                    <s.icon className="h-4 w-4 text-violet-300/80" aria-hidden />
-                    <span className="text-[14px] font-black text-[#E6EAF2] tabular-nums">{toFaDigits(s.value.toLocaleString("fa-IR"))}</span>
-                  </div>
+                  </RevealOnScroll>
                 ))}
               </div>
-            </section>
+            </RevealOnScroll>
+          </section>
+        )}
 
-            {/* empty state */}
-            {!hasAnyProduct && (
-              <section className="py-16 text-center">
-                <Smartphone className="mx-auto mb-4 h-12 w-12 text-violet-400/60" aria-hidden />
-                <h2 className="text-[15px] font-black text-[#E6EAF2]">اپ هنوز خالی است</h2>
-                <p className="mt-2 text-[12px] leading-6 text-slate-500">
-                  به‌زودی قفسه‌ها پر می‌شوند؛ از{" "}
-                  <Link href="/products" className="font-bold text-violet-300">آرشیو محصولات</Link> بازدید کنید.
-                </p>
-              </section>
-            )}
-          </div>
-
-          {/* ═══ GLASS BOTTOM TAB BAR — sticky within the app column ═══ */}
-          <nav
-            aria-label="ناوبری اپ"
-            className="sticky bottom-0 z-30 mt-auto border-t border-white/[0.08] bg-[#0E1117]/85 backdrop-blur-xl"
-            style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
-          >
-            <ul className="grid grid-cols-4">
-              {tabs.map((t) => (
-                <li key={t.href}>
-                  <Link
-                    href={t.href}
-                    aria-label={t.label}
-                    aria-current={t.active ? "page" : undefined}
-                    className={cn(
-                      "flex h-16 flex-col items-center justify-center gap-1 text-[10px] font-bold transition-colors",
-                      t.active ? "text-violet-300" : "text-slate-500 hover:text-[#E6EAF2]"
-                    )}
-                  >
-                    <span className={cn(
-                      "grid h-9 w-14 place-items-center rounded-2xl transition-colors",
-                      t.active && "bg-violet-500/20 shadow-[inset_0_0_0_1px_rgba(139,92,246,.4)]"
-                    )}>
-                      <t.icon className={cn("h-5 w-5", t.active && "drop-shadow-[0_0_8px_rgba(139,92,246,.8)]")} aria-hidden />
-                    </span>
-                    {t.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </nav>
-        </div>
-
-        {/* desktop hint under the frame */}
-        <p className="mx-auto mt-6 hidden max-w-[430px] items-center justify-center gap-2 text-center text-[10.5px] text-slate-600 md:flex">
-          <ArrowLeft className="h-3.5 w-3.5" aria-hidden />
-          تجربهٔ اپ {store.storeName} — روی گوشی تمام‌صفحه نمایش داده می‌شود
-        </p>
+        {/* ═══ empty state ═══ */}
+        {!hasAnyProduct && (
+          <section className="mx-auto max-w-7xl px-4 py-20 text-center">
+            <Gem className="mx-auto mb-5 h-14 w-14 pr-acc-soft" aria-hidden />
+            <h2 className="text-lg font-black">قفسه‌ها هنوز در حال چیده‌شدن هستند</h2>
+            <p className="mx-auto mt-3 max-w-md text-[12.5px] leading-7 pr-mute">
+              به‌زودی محصولات نمایشگاه پر می‌شوند؛ از{" "}
+              <Link href="/products" className="font-black pr-acc">آرشیو محصولات</Link>{" "}
+              بازدید کنید.
+            </p>
+          </section>
+        )}
       </div>
       <TemplateFooter data={data} cfg={chrome.footer} />
 
-      {/* ═══ scoped template CSS (single plain <style>) ═══ */}
-      <style>{`
-[data-tpl="mobile-first-pwa"] {
-  background-color: #090B10;
-}
-/* retune the app-bar chrome header to the dark app palette (vars scoped
-   to the header element only — the app-style footer keeps its own native
-   dark tokens and must NOT be flipped) */
-[data-tpl="mobile-first-pwa"] [data-chrome-header] {
-  --background: #0E1117;
-  --foreground: #E6EAF2;
-  --card: #161B26;
-  --card-foreground: #E6EAF2;
-  --muted: #1A2029;
-  --muted-foreground: #98A2B3;
-  --border: rgba(148, 163, 184, 0.14);
-  --input: rgba(148, 163, 184, 0.14);
-  --primary: #8B5CF6;
-  --primary-foreground: #FFFFFF;
-  --popover: #161B26;
-  --popover-foreground: #E6EAF2;
-  --accent: #1A2029;
-  --accent-foreground: #E6EAF2;
-  background-color: #0E1117 !important;
-  color: #E6EAF2;
-}
-[data-tpl="mobile-first-pwa"] [data-chrome-header] .bg-violet-100 { background-color: rgba(139, 92, 246, 0.16) !important; }
-[data-tpl="mobile-first-pwa"] [data-chrome-header] .hover\\:bg-violet-200:hover { background-color: rgba(139, 92, 246, 0.26) !important; }
-[data-tpl="mobile-first-pwa"] [data-chrome-header] .bg-violet-500\\/15 { background-color: rgba(139, 92, 246, 0.16) !important; }
-[data-tpl="mobile-first-pwa"] [data-chrome-header] .bg-violet-500\\/25 { background-color: rgba(139, 92, 246, 0.26) !important; }
-[data-tpl="mobile-first-pwa"] [data-chrome-header] .text-violet-700 { color: #C4B5FD !important; }
-[data-tpl="mobile-first-pwa"] [data-chrome-header] .text-violet-600 { color: #A78BFA !important; }
-[data-tpl="mobile-first-pwa"] [data-chrome-header] .text-violet-400 { color: #A78BFA !important; }
-[data-tpl="mobile-first-pwa"] [data-chrome-header] .text-violet-300 { color: #C4B5FD !important; }
-
-/* ── the app column: dark app tokens (scoped, footer-safe) ── */
-[data-tpl="mobile-first-pwa"] .mf-app {
-  --background: #0E1117;
-  --foreground: #E6EAF2;
-  --card: #161B26;
-  --card-foreground: #E6EAF2;
-  --muted: #1A2029;
-  --muted-foreground: #98A2B3;
-  --border: rgba(148, 163, 184, 0.14);
-  --input: rgba(148, 163, 184, 0.14);
-  --primary: #8B5CF6;
-  --primary-foreground: #FFFFFF;
-  --popover: #161B26;
-  --popover-foreground: #E6EAF2;
-  background-color: #0E1117;
-  color: #E6EAF2;
-}
-[data-tpl="mobile-first-pwa"] .mf-workspace { position: relative; isolation: isolate; }
-
-/* ambient glow behind the device frame */
-[data-tpl="mobile-first-pwa"] .mf-glow {
-  position: absolute; inset-inline: 0; top: 8%; height: 420px; z-index: -1;
-  background:
-    radial-gradient(300px 260px at 32% 40%, rgba(139, 92, 246, 0.28), transparent 70%),
-    radial-gradient(260px 220px at 68% 60%, rgba(217, 70, 239, 0.2), transparent 70%);
-  filter: blur(30px);
-  pointer-events: none;
-}
-
-/* ── snap wheels ── */
-[data-tpl="mobile-first-pwa"] .mf-wheel {
-  display: flex; gap: 12px;
-  overflow-x: auto;
-  scroll-snap-type: x mandatory;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none; -ms-overflow-style: none;
-  padding-block: 4px;
-}
-[data-tpl="mobile-first-pwa"] .mf-wheel::-webkit-scrollbar { display: none; }
-
-/* ── app atoms ── */
-[data-tpl="mobile-first-pwa"] .mf-avatar {
-  background: linear-gradient(135deg, #8B5CF6, #D946EF);
-  box-shadow: 0 8px 22px -8px rgba(139, 92, 246, 0.8);
-}
-[data-tpl="mobile-first-pwa"] .mf-kicker-icon {
-  background: linear-gradient(135deg, #8B5CF6, #D946EF);
-  box-shadow: 0 6px 16px -6px rgba(139, 92, 246, 0.75);
-}
-[data-tpl="mobile-first-pwa"] .mf-kicker-hot {
-  background: linear-gradient(135deg, #D946EF, #EF4444);
-  box-shadow: 0 6px 16px -6px rgba(217, 70, 239, 0.75);
-}
-[data-tpl="mobile-first-pwa"] .mf-search { box-shadow: 0 14px 40px -22px rgba(139, 92, 246, 0.6); }
-[data-tpl="mobile-first-pwa"] .mf-notice-card {
-  border: 1px solid rgba(217, 70, 239, 0.25);
-  background: linear-gradient(90deg, rgba(139, 92, 246, 0.14), rgba(217, 70, 239, 0.08));
-}
-[data-tpl="mobile-first-pwa"] .mf-notice-dot { animation: mf-blink 1.6s ease-in-out infinite; }
-@keyframes mf-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
-[data-tpl="mobile-first-pwa"] .mf-banner { box-shadow: 0 18px 50px -24px rgba(139, 92, 246, 0.55); }
-
-/* ── cards + buy buttons ── */
-[data-tpl="mobile-first-pwa"] .mf-card { transition: border-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease; }
-[data-tpl="mobile-first-pwa"] .mf-card:hover {
-  border-color: rgba(139, 92, 246, 0.4);
-  transform: translateY(-2px);
-  box-shadow: 0 14px 34px -18px rgba(139, 92, 246, 0.55);
-}
-[data-tpl="mobile-first-pwa"] .mf-vip-card {
-  border: 1px solid rgba(217, 70, 239, 0.25);
-  background: linear-gradient(165deg, rgba(46, 34, 66, 0.8), rgba(22, 27, 38, 0.9));
-}
-[data-tpl="mobile-first-pwa"] .mf-buy {
-  background-image: linear-gradient(100deg, #8B5CF6, #D946EF);
-  box-shadow: 0 8px 20px -8px rgba(139, 92, 246, 0.75);
-  background-size: 170% 100%;
-  transition: background-position 0.45s ease, box-shadow 0.3s ease;
-}
-[data-tpl="mobile-first-pwa"] .mf-buy:hover { background-position: 90% 0; box-shadow: 0 10px 26px -8px rgba(217, 70, 239, 0.8); }
-[data-tpl="mobile-first-pwa"] .mf-buy:disabled { cursor: not-allowed; }
-[data-tpl="mobile-first-pwa"] .mf-hot-chip {
-  background: linear-gradient(90deg, #EF4444, #D946EF);
-  box-shadow: 0 4px 12px -4px rgba(217, 70, 239, 0.8);
-}
-[data-tpl="mobile-first-pwa"] .mf-chip {
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(8px);
-  white-space: nowrap;
-  transition: background-color 0.25s ease, border-color 0.25s ease;
-}
-[data-tpl="mobile-first-pwa"] .mf-chip:hover { background: rgba(139, 92, 246, 0.16); border-color: rgba(139, 92, 246, 0.45); }
-[data-tpl="mobile-first-pwa"] .mf-stats { background: transparent; }
-[data-tpl="mobile-first-pwa"] .mf-cat-tile { transition: border-color 0.3s ease, transform 0.3s ease; }
-[data-tpl="mobile-first-pwa"] .mf-cat-tile:hover { border-color: rgba(139, 92, 246, 0.45); transform: translateY(-2px); }
-
-@media (prefers-reduced-motion: reduce) {
-  [data-tpl="mobile-first-pwa"] .mf-notice-dot { animation: none !important; }
-}
-
-/* ═══════════════ LIGHT-MODE SKIN (v26fix · additive only — dark rules above stay untouched) ═══════════════ */
-html:not(.dark) [data-tpl="mobile-first-pwa"] {
-  --background: #F4F7FB;
-  --foreground: #1A2029;
-  --card: #FFFFFF;
-  --card-foreground: #1A2029;
-  --muted: #E9EEF5;
-  --muted-foreground: #566373;
-  --border: rgba(26, 32, 41, 0.12);
-  --input: rgba(26, 32, 41, 0.14);
-  --primary: #7C3AED;
-  --primary-foreground: #FFFFFF;
-  --accent: #E9EEF5;
-  --accent-foreground: #1A2029;
-  --popover: #FFFFFF;
-  --popover-foreground: #1A2029;
-  background-color: #F4F7FB;
-  color: #1A2029;
-}
-
-/* ── app-bar chrome header retune → light app palette (dark rules above use !important, so must these) ── */
-html:not(.dark) [data-tpl="mobile-first-pwa"] [data-chrome-header] {
-  --background: #F4F7FB;
-  --foreground: #1A2029;
-  --card: #FFFFFF;
-  --card-foreground: #1A2029;
-  --muted: #E9EEF5;
-  --muted-foreground: #566373;
-  --border: rgba(26, 32, 41, 0.12);
-  --input: rgba(26, 32, 41, 0.14);
-  --primary: #7C3AED;
-  --primary-foreground: #FFFFFF;
-  --popover: #FFFFFF;
-  --popover-foreground: #1A2029;
-  --accent: #E9EEF5;
-  --accent-foreground: #1A2029;
-  background-color: #F4F7FB !important;
-  color: #1A2029;
-}
-html:not(.dark) [data-tpl="mobile-first-pwa"] [data-chrome-header] .bg-violet-100 { background-color: rgba(139, 92, 246, 0.12) !important; }
-html:not(.dark) [data-tpl="mobile-first-pwa"] [data-chrome-header] .hover\\:bg-violet-200:hover { background-color: rgba(139, 92, 246, 0.2) !important; }
-html:not(.dark) [data-tpl="mobile-first-pwa"] [data-chrome-header] .bg-violet-500\\/15 { background-color: rgba(139, 92, 246, 0.12) !important; }
-html:not(.dark) [data-tpl="mobile-first-pwa"] [data-chrome-header] .bg-violet-500\\/25 { background-color: rgba(139, 92, 246, 0.2) !important; }
-html:not(.dark) [data-tpl="mobile-first-pwa"] [data-chrome-header] .text-violet-700 { color: #6D28D9 !important; }
-html:not(.dark) [data-tpl="mobile-first-pwa"] [data-chrome-header] .text-violet-600 { color: #7C3AED !important; }
-html:not(.dark) [data-tpl="mobile-first-pwa"] [data-chrome-header] .text-violet-400 { color: #7C3AED !important; }
-html:not(.dark) [data-tpl="mobile-first-pwa"] [data-chrome-header] .text-violet-300 { color: #6D28D9 !important; }
-
-/* ── the app column → light device surface ── */
-html:not(.dark) [data-tpl="mobile-first-pwa"] .mf-app {
-  --background: #F4F7FB;
-  --foreground: #1A2029;
-  --card: #FFFFFF;
-  --card-foreground: #1A2029;
-  --muted: #E9EEF5;
-  --muted-foreground: #566373;
-  --border: rgba(26, 32, 41, 0.12);
-  --input: rgba(26, 32, 41, 0.14);
-  --primary: #7C3AED;
-  --primary-foreground: #FFFFFF;
-  --popover: #FFFFFF;
-  --popover-foreground: #1A2029;
-  background-color: #FFFFFF;
-  color: #1A2029;
-}
-
-/* ── surfaces & wells ── */
-html:not(.dark) [data-tpl="mobile-first-pwa"] .bg-\\[\\#161B26\\] { background-color: #FFFFFF; }
-html:not(.dark) [data-tpl="mobile-first-pwa"] .bg-\\[\\#0E1117\\] { background-color: #EEF2F8; }
-html:not(.dark) [data-tpl="mobile-first-pwa"] .bg-\\[\\#0E1117\\]\\/85 { background-color: rgba(255, 255, 255, 0.9); }
-html:not(.dark) [data-tpl="mobile-first-pwa"] .bg-white\\/\\[0\\.06\\] { background-color: rgba(26, 32, 41, 0.045); }
-html:not(.dark) [data-tpl="mobile-first-pwa"] .bg-white\\/\\[0\\.03\\] { background-color: rgba(26, 32, 41, 0.03); }
-html:not(.dark) [data-tpl="mobile-first-pwa"] .bg-white\\/30 { background-color: rgba(26, 32, 41, 0.28); }
-html:not(.dark) [data-tpl="mobile-first-pwa"] .bg-slate-700 { background-color: #E2E8F0; }
-html:not(.dark) [data-tpl="mobile-first-pwa"] .\\!bg-slate-800 { background-color: #E3E9F2 !important; }
-html:not(.dark) [data-tpl="mobile-first-pwa"] .\\!text-slate-500 { color: #566373 !important; }
-
-/* ── ink & muted slate text → ink scale ── */
-html:not(.dark) [data-tpl="mobile-first-pwa"] .text-\\[\\#E6EAF2\\] { color: #1A2029; }
-html:not(.dark) [data-tpl="mobile-first-pwa"] .hover\\:text-\\[\\#E6EAF2\\]:hover { color: #1A2029; }
-html:not(.dark) [data-tpl="mobile-first-pwa"] .text-slate-200 { color: #475569; }
-html:not(.dark) [data-tpl="mobile-first-pwa"] .text-slate-300\\/80 { color: rgba(51, 65, 85, 0.8); }
-html:not(.dark) [data-tpl="mobile-first-pwa"] .text-slate-400 { color: #64748B; }
-html:not(.dark) [data-tpl="mobile-first-pwa"] .text-slate-500 { color: #566373; }
-html:not(.dark) [data-tpl="mobile-first-pwa"] .text-slate-600 { color: #6B7686; }
-
-/* ── violet / fuchsia accents → light-readable (same hue families) ── */
-html:not(.dark) [data-tpl="mobile-first-pwa"] .text-violet-100 { color: #5B21B6; }
-html:not(.dark) [data-tpl="mobile-first-pwa"] .text-violet-200 { color: #6D28D9; }
-html:not(.dark) [data-tpl="mobile-first-pwa"] .text-violet-300 { color: #7C3AED; }
-html:not(.dark) [data-tpl="mobile-first-pwa"] .text-violet-300\\/80 { color: rgba(124, 58, 237, 0.85); }
-html:not(.dark) [data-tpl="mobile-first-pwa"] .text-violet-300\\/40 { color: rgba(124, 58, 237, 0.5); }
-html:not(.dark) [data-tpl="mobile-first-pwa"] .text-violet-400\\/60 { color: rgba(124, 58, 237, 0.62); }
-html:not(.dark) [data-tpl="mobile-first-pwa"] .text-violet-400\\/70 { color: rgba(124, 58, 237, 0.75); }
-html:not(.dark) [data-tpl="mobile-first-pwa"] .text-violet-400\\/80 { color: rgba(124, 58, 237, 0.85); }
-html:not(.dark) [data-tpl="mobile-first-pwa"] .group-hover\\:text-violet-300\\:is\\(\\:where\\(\\.group\\)\\:hover \\*\\) { color: #7C3AED; }
-html:not(.dark) [data-tpl="mobile-first-pwa"] .border-violet-400\\/30 { border-color: rgba(124, 58, 237, 0.35); }
-html:not(.dark) [data-tpl="mobile-first-pwa"] .hover\\:border-violet-400\\/50:hover { border-color: rgba(124, 58, 237, 0.5); }
-html:not(.dark) [data-tpl="mobile-first-pwa"] .text-fuchsia-300 { color: #C026D3; }
-html:not(.dark) [data-tpl="mobile-first-pwa"] .text-fuchsia-300\\/90 { color: rgba(192, 38, 211, 0.92); }
-html:not(.dark) [data-tpl="mobile-first-pwa"] .text-amber-400 { color: #B45309; }
-html:not(.dark) [data-tpl="mobile-first-pwa"] .fill-amber-400 { fill: #F59E0B; }
-
-/* ── hairlines ── */
-html:not(.dark) [data-tpl="mobile-first-pwa"] .border-white\\/10 { border-color: rgba(26, 32, 41, 0.12); }
-html:not(.dark) [data-tpl="mobile-first-pwa"] .md\\:border-white\\/10 { border-color: rgba(26, 32, 41, 0.12); }
-html:not(.dark) [data-tpl="mobile-first-pwa"] .border-white\\/\\[0\\.06\\] { border-color: rgba(26, 32, 41, 0.09); }
-html:not(.dark) [data-tpl="mobile-first-pwa"] .border-white\\/\\[0\\.07\\] { border-color: rgba(26, 32, 41, 0.1); }
-html:not(.dark) [data-tpl="mobile-first-pwa"] .border-white\\/\\[0\\.08\\] { border-color: rgba(26, 32, 41, 0.12); }
-html:not(.dark) [data-tpl="mobile-first-pwa"] :where(.divide-white\\/\\[0\\.06\\] > :not(:last-child)) { border-color: rgba(26, 32, 41, 0.09); }
-
-/* ── banner/showcase image veils → light veils (same geometry) ── */
-html:not(.dark) [data-tpl="mobile-first-pwa"] .from-\\[\\#0E1117\\]\\/95 { --tw-gradient-from: rgba(244, 247, 251, 0.96); }
-html:not(.dark) [data-tpl="mobile-first-pwa"] .via-\\[\\#0E1117\\]\\/25 { --tw-gradient-via: rgba(244, 247, 251, 0.3); }
-html:not(.dark) [data-tpl="mobile-first-pwa"] .from-\\[\\#0E1117\\]\\/90 { --tw-gradient-from: rgba(244, 247, 251, 0.92); }
-html:not(.dark) [data-tpl="mobile-first-pwa"] .via-\\[\\#0E1117\\]\\/30 { --tw-gradient-via: rgba(244, 247, 251, 0.34); }
-
-/* ── violet glows softened ── */
-html:not(.dark) [data-tpl="mobile-first-pwa"] .md\\:shadow-\\[0_40px_120px_-40px_rgba\\(139\\,92\\,246\\,\\.45\\)\\] { --tw-shadow: 0 40px 120px -40px rgba(124, 58, 237, 0.3); }
-html:not(.dark) [data-tpl="mobile-first-pwa"] .drop-shadow-\\[0_0_8px_rgba\\(139\\,92\\,246\\,\\.8\\)\\] { --tw-drop-shadow: drop-shadow(0 0 8px rgba(124, 58, 237, 0.5)); }
-
-/* ── .text-white blanket → ink; restored on gradient/violet surfaces that STAY colored ── */
-html:not(.dark) [data-tpl="mobile-first-pwa"] .text-white { color: #1A2029; }
-html:not(.dark) [data-tpl="mobile-first-pwa"] .mf-kicker-icon { color: #FFFFFF; }
-html:not(.dark) [data-tpl="mobile-first-pwa"] .mf-avatar { color: #FFFFFF; }
-html:not(.dark) [data-tpl="mobile-first-pwa"] .mf-buy { color: #FFFFFF; }
-html:not(.dark) [data-tpl="mobile-first-pwa"] .mf-hot-chip { color: #FFFFFF; }
-html:not(.dark) [data-tpl="mobile-first-pwa"] .bg-violet-500.text-white { color: #FFFFFF; }
-html:not(.dark) [data-tpl="mobile-first-pwa"] .from-fuchsia-500.text-white { color: #FFFFFF; }
-html:not(.dark) [data-tpl="mobile-first-pwa"] .bg-black\\/70.text-white { color: #FFFFFF; }
-html:not(.dark) [data-tpl="mobile-first-pwa"] .fill-white { fill: #FFFFFF; }
-
-/* ── scoped helper classes → light variants ── */
-html:not(.dark) [data-tpl="mobile-first-pwa"] .mf-glow {
-  background:
-    radial-gradient(300px 260px at 32% 40%, rgba(139, 92, 246, 0.16), transparent 70%),
-    radial-gradient(260px 220px at 68% 60%, rgba(217, 70, 239, 0.12), transparent 70%);
-}
-html:not(.dark) [data-tpl="mobile-first-pwa"] .mf-avatar { box-shadow: 0 8px 22px -8px rgba(124, 58, 237, 0.45); }
-html:not(.dark) [data-tpl="mobile-first-pwa"] .mf-kicker-icon { box-shadow: 0 6px 16px -6px rgba(124, 58, 237, 0.4); }
-html:not(.dark) [data-tpl="mobile-first-pwa"] .mf-kicker-hot { box-shadow: 0 6px 16px -6px rgba(217, 70, 239, 0.4); }
-html:not(.dark) [data-tpl="mobile-first-pwa"] .mf-search { box-shadow: 0 14px 40px -22px rgba(124, 58, 237, 0.35); }
-html:not(.dark) [data-tpl="mobile-first-pwa"] .mf-notice-card {
-  border-color: rgba(217, 70, 239, 0.3);
-  background: linear-gradient(90deg, rgba(139, 92, 246, 0.1), rgba(217, 70, 239, 0.06));
-}
-html:not(.dark) [data-tpl="mobile-first-pwa"] .mf-banner { box-shadow: 0 18px 50px -24px rgba(124, 58, 237, 0.32); }
-html:not(.dark) [data-tpl="mobile-first-pwa"] .mf-card:hover {
-  border-color: rgba(124, 58, 237, 0.4);
-  box-shadow: 0 14px 34px -18px rgba(124, 58, 237, 0.28);
-}
-html:not(.dark) [data-tpl="mobile-first-pwa"] .mf-vip-card {
-  border-color: rgba(217, 70, 239, 0.3);
-  background: linear-gradient(165deg, rgba(139, 92, 246, 0.07), rgba(255, 255, 255, 0.92));
-}
-html:not(.dark) [data-tpl="mobile-first-pwa"] .mf-buy { box-shadow: 0 8px 20px -8px rgba(124, 58, 237, 0.45); }
-html:not(.dark) [data-tpl="mobile-first-pwa"] .mf-buy:hover { box-shadow: 0 10px 26px -8px rgba(217, 70, 239, 0.45); }
-html:not(.dark) [data-tpl="mobile-first-pwa"] .mf-hot-chip { box-shadow: 0 4px 12px -4px rgba(217, 70, 239, 0.45); }
-html:not(.dark) [data-tpl="mobile-first-pwa"] .mf-chip { border-color: rgba(26, 32, 41, 0.12); background: rgba(255, 255, 255, 0.72); }
-html:not(.dark) [data-tpl="mobile-first-pwa"] .mf-chip:hover { background: rgba(139, 92, 246, 0.12); border-color: rgba(124, 58, 237, 0.45); }
-html:not(.dark) [data-tpl="mobile-first-pwa"] .mf-cat-tile:hover { border-color: rgba(124, 58, 237, 0.45); }
-`}</style>
+      {/* ═══ scoped template CSS + shared scroll-fx system (single plain <style>) ═══ */}
+      <style>{PREMIUM_CSS + SCROLL_FX_CSS}</style>
     </div>
   );
 }
+
+/* ═══════════════════════ scoped CSS ═══════════════════════
+ * Token-driven (CSS vars on [data-tpl]) so the light-mode skin is one
+ * small var block. Prefix pr- (premium responsive).                  */
+const PREMIUM_CSS = `
+[data-tpl="mobile-first-pwa"]{
+  --pr-bg:#071314; --pr-surface:#0D1D1F; --pr-surface2:#122527; --pr-deep:#0A1719;
+  --pr-ink:#E8F5F3; --pr-mute:#92B2B2; --pr-acc:#2DD4BF; --pr-acc-text:#34D399;
+  --pr-line:rgba(148,199,196,.13); --pr-line2:rgba(148,199,196,.2);
+  --pr-em:#10B981; --pr-rose:#FB7185; --pr-gold:#F5C46B;
+  background-color:var(--pr-bg);
+  color:var(--pr-ink);
+}
+[data-tpl="mobile-first-pwa"] ::selection{background:rgba(45,212,191,.32);color:#E8F5F3}
+[data-tpl="mobile-first-pwa"] a:focus-visible,[data-tpl="mobile-first-pwa"] button:focus-visible,[data-tpl="mobile-first-pwa"] summary:focus-visible{outline:2px solid var(--pr-acc);outline-offset:3px}
+
+/* headline gradient */
+[data-tpl="mobile-first-pwa"] .pr-acc{color:var(--pr-acc)}
+[data-tpl="mobile-first-pwa"] .pr-acc-soft{color:rgba(45,212,191,.75)}
+[data-tpl="mobile-first-pwa"] .pr-acc-dot{background:var(--pr-acc)}
+[data-tpl="mobile-first-pwa"] .pr-mute{color:var(--pr-mute)}
+[data-tpl="mobile-first-pwa"] .pr-dim-icon{color:rgba(148,199,196,.4)}
+[data-tpl="mobile-first-pwa"] .pr-dotsep{color:var(--pr-line2)}
+
+/* ambient wash + parallax ribbons */
+[data-tpl="mobile-first-pwa"] .pr-aurora{
+  position:absolute; inset-inline:0; top:0; height:640px; pointer-events:none; z-index:0;
+  background:
+    radial-gradient(560px 300px at 78% 12%, rgba(16,185,129,.16), transparent 70%),
+    radial-gradient(480px 280px at 18% 28%, rgba(45,212,191,.12), transparent 70%);
+  filter:blur(28px);
+}
+[data-tpl="mobile-first-pwa"] .pr-ribbon{position:absolute; z-index:0; pointer-events:none; border-radius:999px; filter:blur(2px)}
+[data-tpl="mobile-first-pwa"] .pr-ribbon-a{
+  top:-12%; height:118%; width:min(15vw,150px); inset-inline-start:6%;
+  background:linear-gradient(180deg, rgba(45,212,191,0) 0%, rgba(45,212,191,.14) 28%, rgba(16,185,129,.2) 55%, rgba(45,212,191,.05) 82%, rgba(45,212,191,0) 100%);
+}
+[data-tpl="mobile-first-pwa"] .pr-ribbon-b{
+  top:-8%; height:112%; width:min(9vw,90px); inset-inline-end:10%;
+  background:linear-gradient(180deg, rgba(16,185,129,0) 0%, rgba(16,185,129,.16) 40%, rgba(45,212,191,.1) 70%, rgba(16,185,129,0) 100%);
+  filter:blur(6px); opacity:.8;
+}
+
+/* hero atoms */
+[data-tpl="mobile-first-pwa"] .pr-eyebrow{
+  border:1px solid rgba(45,212,191,.35);
+  background:linear-gradient(90deg, rgba(16,185,129,.14), rgba(45,212,191,.08));
+  color:var(--pr-acc);
+}
+[data-tpl="mobile-first-pwa"] .pr-stat{border:1px solid var(--pr-line); background:rgba(45,212,191,.04)}
+[data-tpl="mobile-first-pwa"] .pr-showcase{margin-bottom:2rem}
+[data-tpl="mobile-first-pwa"] .pr-ring{
+  position:absolute; inset:-9% -7%; z-index:-1; border-radius:2.6rem;
+  background:conic-gradient(from 120deg, rgba(45,212,191,.5), rgba(16,185,129,.08), rgba(45,212,191,.35), rgba(16,185,129,.05), rgba(45,212,191,.5));
+  -webkit-mask:radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2px));
+  mask:radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2px));
+  animation:pr-spin 26s linear infinite;
+}
+@keyframes pr-spin{to{transform:rotate(1turn)}}
+[data-tpl="mobile-first-pwa"] .pr-hero-card{
+  border:1px solid rgba(45,212,191,.3);
+  background:var(--pr-surface);
+  box-shadow:0 42px 110px -48px rgba(16,185,129,.5), inset 0 1px 0 rgba(255,255,255,.04);
+}
+[data-tpl="mobile-first-pwa"] .pr-float-card{
+  border:1px solid rgba(45,212,191,.4);
+  background:linear-gradient(140deg, rgba(18,37,39,.96), rgba(10,23,25,.92));
+  backdrop-filter:blur(14px);
+  box-shadow:0 22px 60px -26px rgba(16,185,129,.55);
+}
+[data-tpl="mobile-first-pwa"] .pr-lamp{
+  background:linear-gradient(135deg, var(--pr-em), var(--pr-acc));
+  color:#fff;
+  box-shadow:0 0 16px rgba(45,212,191,.55);
+}
+
+/* buttons */
+[data-tpl="mobile-first-pwa"] .pr-btn{
+  background-image:linear-gradient(100deg, var(--pr-em), var(--pr-acc));
+  background-size:170% 100%;
+  box-shadow:0 14px 34px -14px rgba(16,185,129,.65);
+  transition:background-position .5s ease, box-shadow .3s ease, transform .2s ease;
+}
+[data-tpl="mobile-first-pwa"] .pr-btn:hover{background-position:90% 0; box-shadow:0 18px 44px -14px rgba(45,212,191,.7)}
+[data-tpl="mobile-first-pwa"] .pr-btn-ghost{
+  border:1px solid rgba(45,212,191,.4);
+  background:rgba(45,212,191,.06);
+  color:var(--pr-ink);
+  transition:background-color .3s ease, border-color .3s ease;
+}
+[data-tpl="mobile-first-pwa"] .pr-btn-ghost:hover{background:rgba(45,212,191,.14); border-color:rgba(45,212,191,.6)}
+[data-tpl="mobile-first-pwa"] .pr-kick-hot-icon{color:var(--pr-rose)}
+
+/* section heads */
+[data-tpl="mobile-first-pwa"] .pr-kicker{
+  background:linear-gradient(135deg, var(--pr-em), var(--pr-acc));
+  color:#fff;
+  box-shadow:0 10px 26px -10px rgba(16,185,129,.7);
+}
+[data-tpl="mobile-first-pwa"] .pr-kicker-hot{background:linear-gradient(135deg, #F43F5E, #FB7185); box-shadow:0 10px 26px -10px rgba(244,63,94,.6)}
+[data-tpl="mobile-first-pwa"] .pr-kick{color:rgba(45,212,191,.8)}
+[data-tpl="mobile-first-pwa"] .pr-kick-hot{color:var(--pr-rose)}
+[data-tpl="mobile-first-pwa"] .pr-more{border:1px solid var(--pr-line2); color:var(--pr-ink); background:rgba(45,212,191,.04); transition:background-color .25s ease, border-color .25s ease}
+[data-tpl="mobile-first-pwa"] .pr-more:hover{background:rgba(45,212,191,.12); border-color:rgba(45,212,191,.5)}
+[data-tpl="mobile-first-pwa"] .pr-timer{border:1px solid rgba(244,63,94,.4); background:rgba(244,63,94,.1); color:#FDA4AF}
+[data-tpl="mobile-first-pwa"] .pr-faq-n{background:rgba(45,212,191,.12); color:var(--pr-acc)}
+
+/* surfaces */
+[data-tpl="mobile-first-pwa"] .pr-card{
+  border:1px solid var(--pr-line);
+  background:var(--pr-surface);
+  transition:border-color .3s ease, transform .3s ease, box-shadow .3s ease;
+}
+[data-tpl="mobile-first-pwa"] .pr-card:hover{border-color:rgba(45,212,191,.45); transform:translateY(-3px); box-shadow:0 18px 44px -22px rgba(16,185,129,.5)}
+[data-tpl="mobile-first-pwa"] .pr-chip{border:1px solid var(--pr-line); background:rgba(45,212,191,.05); backdrop-filter:blur(8px); transition:background-color .25s ease, border-color .25s ease}
+[data-tpl="mobile-first-pwa"] .pr-chip:hover{background:rgba(45,212,191,.12); border-color:rgba(45,212,191,.5)}
+[data-tpl="mobile-first-pwa"] .pr-divide{border-color:var(--pr-line)}
+[data-tpl="mobile-first-pwa"] .pr-thumb{background:var(--pr-deep); border:1px solid var(--pr-line)}
+[data-tpl="mobile-first-pwa"] .pr-rank{color:rgba(45,212,191,.55)}
+[data-tpl="mobile-first-pwa"] .pr-stock-out{background:#334155; color:#CBD5E1}
+[data-tpl="mobile-first-pwa"] .pr-off{background:linear-gradient(90deg, #F43F5E, #FB7185); box-shadow:0 6px 16px -6px rgba(244,63,94,.7)}
+[data-tpl="mobile-first-pwa"] .pr-cat-void{background:radial-gradient(120px 120px at 50% 40%, rgba(45,212,191,.14), var(--pr-surface))}
+[data-tpl="mobile-first-pwa"] .pr-buy{
+  background-image:linear-gradient(100deg, var(--pr-em), var(--pr-acc));
+  background-size:170% 100%;
+  box-shadow:0 12px 28px -12px rgba(16,185,129,.7);
+  transition:background-position .45s ease, box-shadow .3s ease;
+}
+[data-tpl="mobile-first-pwa"] .pr-buy:hover{background-position:90% 0}
+[data-tpl="mobile-first-pwa"] .pr-rail-cta{background-image:linear-gradient(100deg, var(--pr-em), var(--pr-acc)); box-shadow:0 10px 24px -12px rgba(16,185,129,.8)}
+
+/* deals band (GlowOnScroll target) */
+[data-tpl="mobile-first-pwa"] .pr-deal-band{
+  border:1px solid rgba(45,212,191,.28);
+  background:
+    radial-gradient(640px 220px at 85% -10%, rgba(16,185,129,.14), transparent 70%),
+    linear-gradient(180deg, rgba(18,37,39,.9), rgba(13,29,31,.75));
+}
+
+/* vip flip cards */
+[data-tpl="mobile-first-pwa"] .pr-vip{
+  border:1px solid rgba(45,212,191,.3);
+  background:linear-gradient(165deg, rgba(18,37,39,.96), rgba(10,23,25,.94));
+  box-shadow:0 26px 70px -34px rgba(16,185,129,.45);
+}
+[data-tpl="mobile-first-pwa"] .pr-vip-chip{background:linear-gradient(90deg, #059669, #14B8A6)}
+
+/* slides rail */
+[data-tpl="mobile-first-pwa"] .pr-rail{
+  display:flex; gap:14px;
+  overflow-x:auto;
+  scroll-snap-type:x mandatory;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-width:none; -ms-overflow-style:none;
+  padding-block:4px;
+}
+[data-tpl="mobile-first-pwa"] .pr-rail::-webkit-scrollbar{display:none}
+
+/* group-hover on bestseller name */
+[data-tpl="mobile-first-pwa"] .group:hover .group-hover\:pr-acc{color:var(--pr-acc)}
+
+@media (prefers-reduced-motion: reduce){
+  [data-tpl="mobile-first-pwa"] .pr-ring{animation:none !important}
+}
+
+/* ── retune the H6 chrome header onto the teal canvas (dark mode) ── */
+[data-tpl="mobile-first-pwa"] [data-chrome-header]{
+  --background:#E8F5F3;
+  --foreground:#E8F5F3;
+  --card:#0D1D1F;
+  --card-foreground:#E8F5F3;
+  --muted:#122527;
+  --muted-foreground:#92B2B2;
+  --border:rgba(148,199,196,.16);
+  --input:rgba(148,199,196,.16);
+  --primary:#10B981;
+  --primary-foreground:#FFFFFF;
+  --popover:#0D1D1F;
+  --popover-foreground:#E8F5F3;
+  --accent:#122527;
+  --accent-foreground:#E8F5F3;
+  background-color:#0A1719 !important;
+  color:#E8F5F3;
+}
+[data-tpl="mobile-first-pwa"] [data-chrome-header] .bg-violet-100 { background-color: rgba(45,212,191,.13) !important; }
+[data-tpl="mobile-first-pwa"] [data-chrome-header] .hover\\:bg-violet-200:hover { background-color: rgba(45,212,191,.22) !important; }
+[data-tpl="mobile-first-pwa"] [data-chrome-header] .bg-violet-500\\/15 { background-color: rgba(45,212,191,.14) !important; }
+[data-tpl="mobile-first-pwa"] [data-chrome-header] .bg-violet-500\\/25 { background-color: rgba(45,212,191,.24) !important; }
+[data-tpl="mobile-first-pwa"] [data-chrome-header] .bg-violet-600 { background-color: #10B981 !important; }
+[data-tpl="mobile-first-pwa"] [data-chrome-header] .hover\\:bg-violet-700:hover { background-color: #059669 !important; }
+[data-tpl="mobile-first-pwa"] [data-chrome-header] .bg-violet-500 { background-color: #2DD4BF !important; }
+[data-tpl="mobile-first-pwa"] [data-chrome-header] .text-violet-700 { color: #99F6E4 !important; }
+[data-tpl="mobile-first-pwa"] [data-chrome-header] .text-violet-600 { color: #2DD4BF !important; }
+[data-tpl="mobile-first-pwa"] [data-chrome-header] .text-violet-400 { color: #2DD4BF !important; }
+[data-tpl="mobile-first-pwa"] [data-chrome-header] .text-violet-300 { color: #5EEAD4 !important; }
+[data-tpl="mobile-first-pwa"] [data-chrome-header] .border-violet-300 { border-color: rgba(45,212,191,.45) !important; }
+[data-tpl="mobile-first-pwa"] [data-chrome-header] .border-violet-400\\/40 { border-color: rgba(45,212,191,.4) !important; }
+[data-tpl="mobile-first-pwa"] [data-chrome-header] .from-violet-500 { --tw-gradient-from: #10B981 !important; }
+[data-tpl="mobile-first-pwa"] [data-chrome-header] .to-violet-700 { --tw-gradient-to: #059669 !important; }
+
+/* ═══ LIGHT-MODE SKIN (v26fix convention · additive — one var block + header retune) ═══ */
+html:not(.dark) [data-tpl="mobile-first-pwa"]{
+  --pr-bg:#F0F6F5; --pr-surface:#FFFFFF; --pr-surface2:#E9F2F1; --pr-deep:#F6FAF9;
+  --pr-ink:#0E2B29; --pr-mute:#537371; --pr-acc:#0F766E; --pr-acc-text:#0D9488;
+  --pr-line:rgba(14,43,41,.12); --pr-line2:rgba(14,43,41,.18);
+  --pr-em:#0D9488; --pr-rose:#E11D48; --pr-gold:#B07318;
+  background-color:#F0F6F5;
+  color:#0E2B29;
+}
+html:not(.dark) [data-tpl="mobile-first-pwa"] ::selection{background:rgba(13,148,136,.25);color:#0E2B29}
+html:not(.dark) [data-tpl="mobile-first-pwa"] .pr-acc-soft{color:#0F766E}
+html:not(.dark) [data-tpl="mobile-first-pwa"] .pr-dim-icon{color:#7FA5A2}
+html:not(.dark) [data-tpl="mobile-first-pwa"] .pr-aurora{
+  background:
+    radial-gradient(560px 300px at 78% 12%, rgba(13,148,136,.12), transparent 70%),
+    radial-gradient(480px 280px at 18% 28%, rgba(45,212,191,.14), transparent 70%);
+}
+html:not(.dark) [data-tpl="mobile-first-pwa"] .pr-ribbon-a{background:linear-gradient(180deg, rgba(13,148,136,0) 0%, rgba(13,148,136,.12) 30%, rgba(45,212,191,.2) 55%, rgba(13,148,136,.05) 82%, rgba(13,148,136,0) 100%)}
+html:not(.dark) [data-tpl="mobile-first-pwa"] .pr-ribbon-b{background:linear-gradient(180deg, rgba(45,212,191,0) 0%, rgba(45,212,191,.18) 40%, rgba(13,148,136,.1) 70%, rgba(45,212,191,0) 100%)}
+html:not(.dark) [data-tpl="mobile-first-pwa"] .pr-eyebrow{border-color:rgba(13,148,136,.4); background:linear-gradient(90deg, rgba(13,148,136,.1), rgba(45,212,191,.1)); color:#0F766E}
+html:not(.dark) [data-tpl="mobile-first-pwa"] .pr-stat{background:#FFFFFF; border-color:rgba(14,43,41,.1)}
+html:not(.dark) [data-tpl="mobile-first-pwa"] .pr-hero-card{border-color:rgba(13,148,136,.3); background:#FFFFFF; box-shadow:0 36px 90px -44px rgba(13,148,136,.35)}
+html:not(.dark) [data-tpl="mobile-first-pwa"] .pr-ring{opacity:.5}
+html:not(.dark) [data-tpl="mobile-first-pwa"] .pr-float-card{border-color:rgba(13,148,136,.4); background:linear-gradient(140deg, rgba(255,255,255,.97), rgba(233,242,241,.94)); box-shadow:0 22px 60px -26px rgba(13,148,136,.4)}
+html:not(.dark) [data-tpl="mobile-first-pwa"] .pr-lamp{box-shadow:0 0 14px rgba(13,148,136,.4)}
+html:not(.dark) [data-tpl="mobile-first-pwa"] .pr-btn{background-image:linear-gradient(100deg,#0D9488,#14B8A6); box-shadow:0 14px 34px -16px rgba(13,148,136,.5)}
+html:not(.dark) [data-tpl="mobile-first-pwa"] .pr-btn-ghost{border-color:rgba(13,148,136,.45); background:rgba(13,148,136,.05); color:#0E2B29}
+html:not(.dark) [data-tpl="mobile-first-pwa"] .pr-btn-ghost:hover{background:rgba(13,148,136,.12)}
+html:not(.dark) [data-tpl="mobile-first-pwa"] .pr-kick{color:#0F766E}
+html:not(.dark) [data-tpl="mobile-first-pwa"] .pr-kick-hot{color:#E11D48}
+html:not(.dark) [data-tpl="mobile-first-pwa"] .pr-timer{border-color:rgba(225,29,72,.35); background:rgba(225,29,72,.06); color:#BE123C}
+html:not(.dark) [data-tpl="mobile-first-pwa"] .pr-faq-n{background:rgba(13,148,136,.1); color:#0F766E}
+html:not(.dark) [data-tpl="mobile-first-pwa"] .pr-card{background:#FFFFFF}
+html:not(.dark) [data-tpl="mobile-first-pwa"] .pr-card:hover{border-color:rgba(13,148,136,.45); box-shadow:0 18px 44px -24px rgba(13,148,136,.3)}
+html:not(.dark) [data-tpl="mobile-first-pwa"] .pr-chip{border-color:rgba(14,43,41,.12); background:rgba(255,255,255,.8)}
+html:not(.dark) [data-tpl="mobile-first-pwa"] .pr-chip:hover{background:rgba(13,148,136,.08)}
+html:not(.dark) [data-tpl="mobile-first-pwa"] .pr-thumb{background:#F6FAF9}
+html:not(.dark) [data-tpl="mobile-first-pwa"] .pr-rank{color:rgba(15,118,110,.6)}
+html:not(.dark) [data-tpl="mobile-first-pwa"] .pr-buy{background-image:linear-gradient(100deg,#0D9488,#14B8A6); box-shadow:0 12px 28px -14px rgba(13,148,136,.55)}
+html:not(.dark) [data-tpl="mobile-first-pwa"] .pr-rail-cta{background-image:linear-gradient(100deg,#0D9488,#14B8A6)}
+html:not(.dark) [data-tpl="mobile-first-pwa"] .pr-off{background:linear-gradient(90deg,#E11D48,#F43F5E)}
+html:not(.dark) [data-tpl="mobile-first-pwa"] .pr-stock-out{background:#E2E8F0; color:#475569}
+html:not(.dark) [data-tpl="mobile-first-pwa"] .pr-cat-void{background:radial-gradient(120px 120px at 50% 40%, rgba(45,212,191,.25), #FFFFFF)}
+html:not(.dark) [data-tpl="mobile-first-pwa"] .pr-deal-band{
+  border-color:rgba(13,148,136,.3);
+  background:
+    radial-gradient(640px 220px at 85% -10%, rgba(13,148,136,.1), transparent 70%),
+    linear-gradient(180deg, rgba(255,255,255,.96), rgba(233,242,241,.8));
+}
+html:not(.dark) [data-tpl="mobile-first-pwa"] .pr-vip{border-color:rgba(13,148,136,.32); background:linear-gradient(165deg, #FFFFFF, rgba(233,242,241,.95)); box-shadow:0 26px 70px -36px rgba(13,148,136,.35)}
+html:not(.dark) [data-tpl="mobile-first-pwa"] .pr-vip-chip{background:linear-gradient(90deg,#0F766E,#0D9488)}
+/* dark hero image veils stay (they sit ON photos) */
+
+/* chrome header → light teal */
+html:not(.dark) [data-tpl="mobile-first-pwa"] [data-chrome-header]{
+  --background:#F0F6F5;
+  --foreground:#0E2B29;
+  --card:#FFFFFF;
+  --card-foreground:#0E2B29;
+  --muted:#E9F2F1;
+  --muted-foreground:#537371;
+  --border:rgba(14,43,41,.12);
+  --input:rgba(14,43,41,.14);
+  --primary:#0D9488;
+  --primary-foreground:#FFFFFF;
+  --popover:#FFFFFF;
+  --popover-foreground:#0E2B29;
+  --accent:#E9F2F1;
+  --accent-foreground:#0E2B29;
+  background-color:#F0F6F5 !important;
+  color:#0E2B29;
+}
+html:not(.dark) [data-tpl="mobile-first-pwa"] [data-chrome-header] .bg-violet-100 { background-color: rgba(13,148,136,.1) !important; }
+html:not(.dark) [data-tpl="mobile-first-pwa"] [data-chrome-header] .hover\\:bg-violet-200:hover { background-color: rgba(13,148,136,.18) !important; }
+html:not(.dark) [data-tpl="mobile-first-pwa"] [data-chrome-header] .bg-violet-500\\/15 { background-color: rgba(13,148,136,.1) !important; }
+html:not(.dark) [data-tpl="mobile-first-pwa"] [data-chrome-header] .bg-violet-500\\/25 { background-color: rgba(13,148,136,.2) !important; }
+html:not(.dark) [data-tpl="mobile-first-pwa"] [data-chrome-header] .bg-violet-600 { background-color: #0D9488 !important; }
+html:not(.dark) [data-tpl="mobile-first-pwa"] [data-chrome-header] .hover\\:bg-violet-700:hover { background-color: #0F766E !important; }
+html:not(.dark) [data-tpl="mobile-first-pwa"] [data-chrome-header] .bg-violet-500 { background-color: #14B8A6 !important; }
+html:not(.dark) [data-tpl="mobile-first-pwa"] [data-chrome-header] .text-violet-700 { color: #0F766E !important; }
+html:not(.dark) [data-tpl="mobile-first-pwa"] [data-chrome-header] .text-violet-600 { color: #0D9488 !important; }
+html:not(.dark) [data-tpl="mobile-first-pwa"] [data-chrome-header] .text-violet-400 { color: #0D9488 !important; }
+html:not(.dark) [data-tpl="mobile-first-pwa"] [data-chrome-header] .text-violet-300 { color: #0F766E !important; }
+html:not(.dark) [data-tpl="mobile-first-pwa"] [data-chrome-header] .border-violet-300 { border-color: rgba(13,148,136,.45) !important; }
+html:not(.dark) [data-tpl="mobile-first-pwa"] [data-chrome-header] .border-violet-400\\/40 { border-color: rgba(13,148,136,.4) !important; }
+html:not(.dark) [data-tpl="mobile-first-pwa"] [data-chrome-header] .from-violet-500 { --tw-gradient-from: #0D9488 !important; }
+html:not(.dark) [data-tpl="mobile-first-pwa"] [data-chrome-header] .to-violet-700 { --tw-gradient-to: #0F766E !important; }
+`;

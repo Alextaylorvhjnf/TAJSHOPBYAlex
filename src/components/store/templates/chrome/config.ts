@@ -80,6 +80,51 @@ export function getMegaMenuStyle(id: string | null | undefined): MegaMenuStyle {
   return MEGA_MENU_STYLES[id ?? ""] ?? "tree";
 }
 
+/* ══ v32 (task 14-b): STORE-WIDE CHROME LOOK OPTIONS ══════════════════
+ * Admin option tables for the «هدر و فوتر» builder upgrades — the header
+ * SKIN, the primary nav item ORDER, where the theme/cart/account actions
+ * sit and the product-card hover effect. Pure data (Persian labels for the
+ * admin UI); values are validated server-side by parseStoreChrome
+ * (src/lib/settings.ts) and stored in StoreSettings.storeChrome — they
+ * apply to the shared storefront header AND every template chrome header
+ * (gaming-cyber's bespoke header is unaffected). */
+
+/** header skins — one scoped CSS layer over the existing header structure */
+export const STORE_HEADER_SKINS: readonly { value: string; label: string; desc: string }[] = [
+  { value: "classic", label: "کلاسیک", desc: "ظاهر فعلی و پیش‌فرض هدر — بدون تغییر" },
+  { value: "crystalline", label: "کریستالی", desc: "شیشه‌ی تراش‌خورده با لبه‌های منشوری و درخشش نور" },
+  { value: "liquid-glass", label: "لیکوئید گلس", desc: "شیشه‌ی مایع با بلور شدید، ناوبری قرصی شناور و عبور نور" },
+  { value: "minimal", label: "مینیمال", desc: "فوق‌تمیز با خط مویی و پس‌زمینه‌ی ساده و بی‌افکت" },
+];
+
+/** primary nav items (the ChromeHeaderNav buttons) — draggable in admin */
+export const STORE_NAV_ITEMS: readonly { value: string; label: string }[] = [
+  { value: "home", label: "خانه" },
+  { value: "shop", label: "فروشگاه" },
+  { value: "categories", label: "دسته‌بندی‌ها" },
+  { value: "about", label: "درباره ما" },
+  { value: "contact", label: "تماس با ما" },
+];
+
+/** the designed (default) order — nothing changes until the admin saves */
+export const DEFAULT_NAV_ORDER: readonly string[] = STORE_NAV_ITEMS.map((i) => i.value);
+
+/** where the theme-toggle / cart / account buttons sit */
+export const STORE_ACTIONS_MODES: readonly { value: string; label: string; desc: string }[] = [
+  { value: "grouped", label: "کنار هم در انتها", desc: "کلید تاریک/روشن، سبد و حساب کاربری گروهی در انتهای ردیف (پیش‌فرض فعلی)" },
+  { value: "split", label: "مجزا", desc: "کلید تاریک/روشن کنار لوگو در ابتدای ردیف؛ سبد و حساب در انتها" },
+];
+
+/** product-card hover effects (live-previewed in admin, RTL-correct) */
+export const STORE_HOVER_FX: readonly { value: string; label: string; desc: string }[] = [
+  { value: "none", label: "بدون افکت (فعلی)", desc: "رفتار فعلی کارت محصول — بزرگ‌نمایی ملایم تصویر" },
+  { value: "flip3d", label: "چرخش سه‌بعدی", desc: "تصویر با چرخش عمق‌دار سه‌بعدی می‌چرخد" },
+  { value: "topdown", label: "از بالا به پایین", desc: "تصویر از بالا به پایین سُر می‌خورد" },
+  { value: "slide", label: "چپ به راست", desc: "تصویر از چپ به راست حرکت می‌کند (سازگار با راست‌چین)" },
+  { value: "fade", label: "محو - ظهور", desc: "تصویر محو است و با هاور ظاهر می‌شود" },
+  { value: "bigzoom", label: "بزرگنمایی + سایه", desc: "بزرگ‌تر شدن تصویر با سایه‌ی پررنگ‌تر روی کارت" },
+];
+
 export type HeaderCfg = {
   /** template id — attached once at module load so chrome components can
    *  look up their own admin override from HomeData.store.chromeOverridesMap */
@@ -119,6 +164,12 @@ export type HeaderCfg = {
   showAccount?: boolean;
   showCart?: boolean;
   showThemeToggle?: boolean;
+  /** v32 (14-b): store-wide actions placement (Admin → ظاهر → هدر و فوتر
+   *  → «جای کلیدها») — "split" moves the dark/light key to the START of the
+   *  header row (next to the logo) while account + cart stay at the end;
+   *  undefined/"grouped" = all three together at the end (current look).
+   *  Threaded from data.store.storeChrome by TemplateHeader. */
+  actionsMode?: "grouped" | "split";
 };
 
 export type FooterCfg = {
