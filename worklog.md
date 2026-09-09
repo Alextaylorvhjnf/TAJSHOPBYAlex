@@ -472,3 +472,20 @@ Work Log:
 
 Stage Summary:
 - Admin-selectable header skins + drag-reorder nav + product hover effects with live preview, persisted store-wide via storeChrome.
+
+---
+Task ID: 15
+Agent: main (Z.ai Code)
+Task: تکمیل v32 (۲۷.۰.۰) — موج‌های 13/14 + بذر محصولات/بنرها + QA مرورگر + ساخت انتشار + تحویل بدون push.
+
+Work Log:
+- موج ۱۳ (۷ ایجنت): 13-a به‌روزرسانی بدون تنظیمات، 13-b پنل ادمین + دمو-دیتا، 13-c محتوای قالب‌ها ۲.۰، 13-d تعمیر ۲.۰، 13-e آواتار، 13-f گیمینگ، 13-g لوکس+ویجت AI — سه تای آخر روی «گزارش» تایم‌اوت خوردند ولی کارشان کامل در درخت نشست (tsc/lint پاک) و ورودی‌های worklogشان توسط main بازسازی شد.
+- موج ۱۴: 14-a scroll-fx + پرمیوم ریسپانسیو + مدرن‌سازی کاتالوگ/سوپراستور (JSX شکسته ترمیم شد)، 14-b هدر-بیلدر + هاور (storeChrome + دnd)، 14-c-2 مگامنوی جمع‌وجور + آیکون‌ها؛ 14-c-1 با ۲۰۰ نوبت تایم‌اوت خورد ولی اسکریپت رزومable ساخت.
+- محصولات: سهمیهٔ z-ai image-search قفل شد (429 طولانی) → main دو fallback به اسکریپت اضافه کرد: Wikimedia Commons + Bing Images (دامنه‌های مطمئن) + سقف 1600KB + ۱۰ نامزد → **۱۰۰/۱۰۰ محصول با تصویر منطبق در هر دو DB** (verify: صفر خطا).
+- بنرها: تولید AI هم 429 → fallback Bing با وایت‌لیست دامنه‌های پرس رسمی (apple.com/walmart/amazon/playstation/notebookcheck) + نرمال‌سازی sharp به ۱۶۰۰×۹۰۰ → ۵ بنر v32 + درج ۳ اسلایدر + ۲ شوکیس در هر دو DB.
+- QA مرورگر: کش .next خراب باعث پنیک Turbopack شد → rm -rf .next حل شد. لاگین/کوکی ادمین، داشبورد (سلام + ۵۲ نمودار)، هر ۴ قالب کلیدی (gaming rig+بدون سوایپ، luxury اسلایدر ۴ سگمنت + فریم‌محتوادار، premium-resp sfx فعال)، صفحهٔ محتوای قالب‌ها (پیش‌فرض‌ها)، تعمیر (۴ کارت مربعی + لوگو + تایمر)، به‌روزرسانی (بدون ورودی مانیفست)، appearance (هاور/اسکین‌ها) — همه سبز؛ اسلایدرهای v32 در HTML خانه رندر شدند؛ /api/health ok.
+- انتشار: bump ۲۶→۲۷.۰.۰ (package.json/update.sh/release-update.mjs) + RELEASE-NOTES-v32.md + ورودی changelog README؛ release-update.mjs --no-push → کامیت 7cb615b + updates/taj-electronics-update-27.0.0.zip + مانیفست؛ git archive → بستهٔ کامل ۸۱۹ فایل / 86,972,450 بایت / SHA-256 33ad2439a392f31be67c58442184f70c4d8f3635f3074924e6ad0b32dad71e60.
+- تحویل (بدون push طبق خواستهٔ کاربر): download/taj-electronics-v32.zip + «Taj Electronics Main V13 VC.zip» (هر دو v32) + public/downloads/ + litterbox ۷۲ ساعته lcce1v.zip (hash دانلودشده تطبیق کامل) و eiucj6.zip + gofile https://gofile.io/d/glbAvoCA (md5 2acee0dd2323955aecf70ebc7beaf7cd). فایل‌های v31 از download/ حذف شدند تا فقط v32 پیوست شود.
+
+Stage Summary:
+- v32 نهایی: همهٔ خواسته‌های کاربر اعمال و راستی‌آزمایی شد؛ ۱۰۰ محصول + ۵ بنر؛ بستهٔ ۸۷MB آمادهٔ دانلود از تسک/لینک‌ها؛ گیت‌هاب دست‌نخورده (کاربر خودش push می‌کند).
