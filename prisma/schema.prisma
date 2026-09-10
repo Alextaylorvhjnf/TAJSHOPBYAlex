@@ -562,6 +562,11 @@ model StoreSettings {
   workingHours         String?
   instagram            String?
   telegram             String?
+  // v34.1: «خرید از ربات تلگرامی» — optional URL/username of the store's
+  // Telegram SHOPPING BOT; every template footer renders a buy-from-bot
+  // pill button when set (falls back automatically to the configured bot's
+  // t.me username; empty = the button is hidden).
+  telegramBotUrl       String?
   whatsapp             String?
   youtube              String?
   twitter              String?

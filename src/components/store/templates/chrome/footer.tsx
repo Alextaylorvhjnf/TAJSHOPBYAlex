@@ -35,7 +35,7 @@ import { cn } from "@/lib/utils";
 import {
   ACCENT_CLASSES, chromeSurface, isDarkColor, resolveChromePalette, themeChromeStyle, pickEnum, CHROME_ACCENTS, CHROME_LOGOS, CHROME_ROWS,
   type ChromeAccent, type ChromeTint,
-  ChromeLogo, ChromeBrandStrip, AlaruzCredit, PhoneChip, CopyrightLine,
+  ChromeLogo, ChromeBrandStrip, AlaruzCredit, PhoneChip, CopyrightLine, TelegramBotChip,
 } from "./bits";
 import type { FooterCfg } from "./config";
 
@@ -224,6 +224,7 @@ function FooterMega({ data, cfg, a, onDark, tint, store, announcement, chromeSty
             </p>
             <div className="mt-4 flex flex-wrap items-center gap-2">
               <PhoneChip phone={store.phone} a={a} onDark={onDark} />
+              <TelegramBotChip url={store.telegramBotUrl} a={a} onDark={onDark} />
               <span className={cn("inline-flex h-10 items-center gap-1.5 rounded-full border px-4 text-[11px] font-bold", onDark ? "border-white/15 bg-white/5 text-background/70" : "border-border bg-card text-muted-foreground")}>
                 <CreditCard className={cn("h-3.5 w-3.5", a && a.text)} aria-hidden />
                 پرداخت امن
@@ -360,6 +361,7 @@ function FooterCenter({ data, cfg, a, onDark, tint, store, announcement, chromeS
           ))}
         </nav>
         <PhoneChip phone={store.phone} a={a} onDark={onDark} />
+        <TelegramBotChip url={store.telegramBotUrl} a={a} onDark={onDark} />
         {/* v19: infinite brand marquee loop */}
         {cfg.brandStrip !== "none" && data.brands.length > 0 && (
           <ChromeBrandStrip brands={data.brands} a={a} onDark={onDark} marquee max={8} dur={cfg.brandSpeed} />
@@ -397,6 +399,7 @@ function FooterMinimal({ data, cfg, a, onDark, tint, store, announcement, chrome
             ))}
           </nav>
           <PhoneChip phone={store.phone} a={a} onDark={onDark} />
+          <TelegramBotChip url={store.telegramBotUrl} a={a} onDark={onDark} />
         </div>
         {cfg.brandStrip !== "none" && data.brands.length > 0 && (
           <div className={cn("mt-6 border-t pt-5", onDark ? "border-white/10" : "border-border")}>
@@ -438,6 +441,7 @@ function FooterBand({ data, cfg, a, onDark, tint, store, announcement, chromeSty
           </p>
           <div className="mt-5 flex flex-wrap gap-2">
             <PhoneChip phone={store.phone} a={a} onDark={onDark} />
+            <TelegramBotChip url={store.telegramBotUrl} a={a} onDark={onDark} />
             <span className={cn("inline-flex h-10 items-center gap-1.5 rounded-full border px-4 text-[11px] font-bold", onDark ? "border-white/15 bg-white/5 text-background/70" : "border-border bg-card text-muted-foreground")}>
               <ShieldCheck className={cn("h-3.5 w-3.5", a && a.text)} aria-hidden />
               ضمانت اصالت کالا
@@ -554,6 +558,7 @@ function FooterContact({ data, cfg, a, onDark, tint, store, announcement, chrome
             ))}
             <Link href="/products" className={cn("text-[11.5px] font-bold transition-colors hover:opacity-70", onDark ? "text-background/75" : "text-muted-foreground")}>فروشگاه</Link>
           </nav>
+          <TelegramBotChip url={store.telegramBotUrl} a={a} onDark={onDark} />
         </div>
         {cfg.brandStrip !== "none" && data.brands.length > 0 && (
           <div className={cn("mt-7 border-t pt-6", onDark ? "border-white/10" : "border-border")}>
@@ -725,6 +730,7 @@ function FooterColumns({ data, cfg, a, onDark, tint, store, announcement, chrome
             </p>
             <div className="mt-5 flex flex-wrap gap-2">
               <PhoneChip phone={store.phone} a={a} onDark={onDark} />
+              <TelegramBotChip url={store.telegramBotUrl} a={a} onDark={onDark} />
             </div>
             {/* v31: gaming social row — real links, neon hover glow */}
             {cfg.social && <ChromeSocialRow onDark={onDark} />}
@@ -787,6 +793,7 @@ function FooterMagazine({ data, cfg, a, onDark, tint, store, announcement, chrom
             </p>
             <div className="mt-5 flex flex-wrap gap-2">
               <PhoneChip phone={store.phone} a={a} onDark={onDark} />
+              <TelegramBotChip url={store.telegramBotUrl} a={a} onDark={onDark} />
             </div>
           </div>
           <nav aria-label="ستون دسته‌بندی‌ها" className={cn("md:border-s md:ps-8", onDark ? "md:border-white/10" : "md:border-border")}>
@@ -903,6 +910,7 @@ function FooterApp({ data, cfg, a, onDark, tint, store, announcement, chromeStyl
         </p>
         <div className="flex flex-wrap justify-center gap-2">
           <PhoneChip phone={store.phone} a={a} onDark={onDark} />
+          <TelegramBotChip url={store.telegramBotUrl} a={a} onDark={onDark} />
           {infoLinkList(data, 2).map((l) => (
             <Link
               key={l.slug}

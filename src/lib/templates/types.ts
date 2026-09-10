@@ -175,6 +175,10 @@ export type TemplateStore = {
   };
   phone: string | null;
   currency: string;
+  /** v34.1: Telegram shopping-bot link — when present every template footer
+   *  renders the «خرید از ربات تلگرامی» pill button pointing at it.
+   *  Accepts @username / t.me/… / full https URL. null = hidden. */
+  telegramBotUrl?: string | null;
   /** v29: admin-uploaded MAIN logo (Branding → «لوگوی اصلی») — chrome
    *  headers/footers render it instead of the letter-mark when present. */
   logo?: string | null;

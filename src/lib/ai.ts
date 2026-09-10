@@ -1449,7 +1449,7 @@ export async function testAIConnection(): Promise<{ success: boolean; message: s
     if (wantsGap && !gapKey) {
       return { success: false, message: "سرویس GapGPT انتخاب شده ولی کلیدی ثبت نشده — کلید API خود را از gapgpt.app (کلیدهای API) بسازید و در تنظیمات وارد کنید." };
     }
-    const out = await callBuiltinLLM("Reply with the single word: OK", [{ role: "user", content: "ping" }], 0, 64);
+    const out = await callBuiltinLLMWithTimeout("Reply with the single word: OK", [{ role: "user", content: "ping" }], 0, 64, 15_000);
     return { success: !!out, message: out ? `اتصال موفق (موتور داخلی) — پاسخ: ${out.slice(0, 40)}` : "پاسخی دریافت نشد" };
   } catch (e) {
     if (gapKey) {
@@ -1740,8 +1740,23 @@ function classifyEngineError(provider: string, err: unknown): string {
   if (/config|z-ai-config|configuration file/i.test(raw)) {
     return "سرور شما برای موتور داخلی هوش مصنوعی مجاز نیست — فایل پیکربندی موتور (.z-ai-config) روی این سرور یافت نشد. راه‌حل: از تب هوش مصنوعی، سرویس «GapGPT API» را با کلید اختصاصی خودتان انتخاب کنید — پاسخ‌گویی به مشتری‌ها ادامه می‌یابد.";
   }
+  /* v34.1: 403/401 from the builtin engine (z-ai-web-dev-sdk gateway) on a
+     FOREIGN server — the classic «تست هوش مصنوعی ارور 403 می‌دهد» report.
+     Say exactly what it means and how to fix it, instead of dumping the
+     raw SDK error. */
+  if (/status\s*40[13]|forbidden|unauthorized|\b403\b/i.test(raw)) {
+    return (
+      "موتور داخلی هوش مصنوعی فقط در محیط دموی ساختِ همین نسخه فعال است و روی سرور شما مجاز نیست (خطای ۴۰۳). " +
+      "راه‌حل قطعی: از تنظیمات ← تب «هوش مصنوعی»، سرویس‌دهنده را روی «GapGPT API» بگذارید و کلید API خود را از gapgpt.app بسازید و وارد کنید، سپس دوباره تست بگیرید. " +
+      "تا آن موقع ویجت چت فروشگاه به‌صورت خودکار با موتور قطعی داخلی (جستجوی محصول، قیمت، موجودی و پیگیری سفارش) به مشتری‌ها پاسخ می‌دهد."
+    );
+  }
   if (/timeout|LLM_TIMEOUT|abort/i.test(raw)) {
     return "پاسخ موتور هوش مصنوعی بیش از حد طول کشید (Timeout) — دوباره تلاش کنید.";
+  }
+  /* v34.1: rate-limited builtin gateway (429) — transient, a retry fixes it */
+  if (/status\s*429|too many requests/i.test(raw)) {
+    return "موتور هوش مصنوعی موقتاً پردازش‌های زیاد دارد (۴۲۹) — چند لحظه بعد دوباره تست بگیرید.";
   }
   if (/fetch failed|ECONN|ENOTFOUND|network|dns/i.test(raw)) {
     return provider === "gapgpt"

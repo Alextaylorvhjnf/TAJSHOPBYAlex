@@ -45,9 +45,9 @@ export async function GET(req: Request) {
         releasedAt: manifest.releasedAt,
         minAppVersion: manifest.minAppVersion,
         // "source" = source-run (dev / bun) — full effect after panel apply;
-        // "standalone" = prebuilt Docker image — panel apply delivers public/+
-        // prisma/ inside the container, full src changes need ./update.sh on
-        // the server host (the panel shows a hint).
+        // "standalone" = prebuilt runtime (v34 full install / Docker) — since
+        // 29.0.2 the panel apply swaps the compiled runtime itself (the zip
+        // carries it), so the panel shows an informational note only.
         runtime: isStandaloneRuntime() ? "standalone" : "source",
       },
       200,

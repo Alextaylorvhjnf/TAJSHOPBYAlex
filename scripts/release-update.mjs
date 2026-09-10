@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /* ────────────────────────────────────────────────────────────────────────
- * scripts/release-update.mjs — maintainer release tool (v34)
+ * scripts/release-update.mjs — maintainer release tool (v33)
  * ────────────────────────────────────────────────────────────────────────
  * Builds + publishes a new app update to the store's GitHub repo
  * (https://github.com/Alextaylorvhjnf/TAJSHOPBYAlex).
@@ -41,11 +41,6 @@ const NOTES = flag("--notes");
 const SOURCE = flag("--source") ?? "/home/z/my-project";
 const MIN_APP = flag("--min-app") ?? "24.0.0";
 const NO_PUSH = argv.includes("--no-push");
-// v34: pre-built standalone runtime embedding (--runtime = full runtime/ incl.
-// node_modules; --runtime-code = runtime-code/ without node_modules, for when
-// the full runtime would push the zip over GitHub's 100MB raw-file limit)
-const RUNTIME = flag("--runtime");
-const RUNTIME_CODE = flag("--runtime-code");
 
 const REPO_DIR = path.resolve(import.meta.dirname, "..");
 const RAW_BASE = "https://raw.githubusercontent.com/Alextaylorvhjnf/TAJSHOPBYAlex/main";
@@ -116,8 +111,6 @@ sh("rsync", ["-a", path.join(REPO_DIR, "prisma") + "/", path.join(STAGING, "pris
 sh("rsync", [
   "-a",
   "--exclude", "release-update.mjs",
-  "--exclude", "dev-supervisor.sh", // sandbox-only (never ships)
-  "--exclude", "dev-watchdog.sh", // sandbox-only (never ships)
   path.join(REPO_DIR, "scripts") + "/",
   path.join(STAGING, "scripts") + "/",
 ]);
@@ -132,25 +125,6 @@ for (const f of [
   "eslint.config.mjs",
 ]) {
   fs.copyFileSync(path.join(REPO_DIR, f), path.join(STAGING, f));
-}
-
-/* ── v34: embed the pre-built standalone runtime (optional) ───────── */
-if (RUNTIME || RUNTIME_CODE) {
-  const src = path.resolve(RUNTIME ?? RUNTIME_CODE);
-  if (!fs.existsSync(path.join(src, "server.js"))) {
-    console.error("✗ مسیر runtime معتبر نیست (server.js پیدا نشد): " + src);
-    process.exit(1);
-  }
-  const destName = RUNTIME ? "runtime" : "runtime-code";
-  const dest = path.join(STAGING, destName);
-  // code-only mode: node_modules stays in the installed runtime (deps
-  // unchanged), and public/ + src/ are already carried by the update zip's
-  // own source staging — excluding them keeps the zip under GitHub's 100MB
-  // raw-file limit. update.sh overlays them onto the runtime separately.
-  const excl = RUNTIME ? [] : ["--exclude", "node_modules", "--exclude", "public", "--exclude", "src"];
-  console.log(`▸ v34: افزودن runtime از پیش ساخته‌شده (${destName}/)…`);
-  sh("rsync", ["-a", ...excl, src + "/", dest + "/"], {});
-  console.log(`  استقرارهای standalone بدون هیچ بیلدی روی سرور به‌روز می‌شوند`);
 }
 
 fs.mkdirSync(UPDATES_DIR, { recursive: true });

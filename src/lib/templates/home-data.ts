@@ -82,6 +82,31 @@ function toTemplateProduct(p: ProductDTO): TemplateProduct {
  * getHomeData, getChromeData and /api/categories so every consumer
  * (server RSC + client fallback) sees the same branches.
  */
+/* v34.1: resolve the «خرید از ربات تلگرامی» footer link.
+ * Priority: the admin's explicit StoreSettings.telegramBotUrl override →
+ * the CONFIGURED Telegram shopping bot's username (Settings → ربات تلگرامی,
+ * t.me/<botUsername>) → null (button hidden). Never throws — the footer is
+ * cosmetic and must not break page render. */
+export async function resolveTelegramBotUrl(
+  settings: { telegramBotUrl?: string | null }
+): Promise<string | null> {
+  const manual = (settings as { telegramBotUrl?: string | null }).telegramBotUrl?.trim();
+  if (manual) return manual;
+  try {
+    const bot = await db.telegramBotSettings.findUnique({
+      where: { id: "main" },
+      select: { enabled: true, botUsername: true },
+    });
+    if (bot?.enabled && bot.botUsername?.trim()) {
+      const u = bot.botUsername.trim().replace(/^@/, "");
+      return `https://t.me/${u}`;
+    }
+  } catch {
+    /* pre-wizard environment (table missing) — button stays hidden */
+  }
+  return null;
+}
+
 export async function loadBranchIndex(): Promise<Map<string, TemplateBranch[]>> {
   const [children, brandRows, pairs] = await Promise.all([
     db.category.findMany({
@@ -295,6 +320,8 @@ export async function getHomeData(): Promise<HomeData> {
       : null,
     phone: settings.phone,
     currency: settings.currency,
+    // v34.1: «خرید از ربات تلگرامی» footer link (manual override → bot username)
+    telegramBotUrl: await resolveTelegramBotUrl(settings as { telegramBotUrl?: string | null }),
     // v29: uploaded brand logos — chrome headers/footers render them
     // (Branding → «لوگوی اصلی / لوگوی فوتر»); null = designed letter-mark
     logo: settings.logo ?? null,
@@ -486,6 +513,8 @@ export async function getChromeData(): Promise<HomeData> {
       : null,
     phone: settings.phone,
     currency: settings.currency,
+    // v34.1: «خرید از ربات تلگرامی» footer link (manual override → bot username)
+    telegramBotUrl: await resolveTelegramBotUrl(settings as { telegramBotUrl?: string | null }),
     // v29: uploaded brand logos — chrome headers/footers render them
     // (Branding → «لوگوی اصلی / لوگوی فوتر»); null = designed letter-mark
     logo: settings.logo ?? null,

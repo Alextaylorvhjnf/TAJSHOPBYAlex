@@ -32,7 +32,7 @@ import Image from "next/image";
 import { useTheme } from "next-themes";
 import {
   ShoppingCart, User, Search, Phone, Megaphone, Package, Crown, Sun, Moon,
-  ChevronDown, ChevronLeft, Plus, Minus, Trash2, LayoutGrid,
+  ChevronDown, ChevronLeft, Plus, Minus, Trash2, LayoutGrid, Send,
 } from "lucide-react";
 import type { HomeData, TemplateCategory, TemplateBrand, TemplateStore } from "@/lib/templates/types";
 import type { MegaMenuStyle, HeaderCfg } from "./config";
@@ -1598,6 +1598,65 @@ export function PhoneChip({
  *  when present it replaces the default line. {year}/{storeName} are
  *  interpolated locally (server settings code must never be imported into
  *  client components); the year keeps Persian digits like the default. */
+/** v34.1: «خرید از ربات تلگرامی» — a prominent accent pill rendered in EVERY
+ *  template footer variant when the admin set StoreSettings.telegramBotUrl
+ *  (or, automatically, when the configured Telegram shopping bot is enabled).
+ *  Accepts @username / t.me/… / full https; internal /paths become <Link>.
+ *  null/empty → the button simply doesn't render (nothing breaks). */
+export function TelegramBotChip({
+  url,
+  a,
+  onDark,
+  className,
+}: {
+  url?: string | null;
+  a?: ChromeAccentClasses;
+  onDark?: boolean;
+  className?: string;
+}) {
+  const raw = typeof url === "string" ? url.trim() : "";
+  if (!raw) return null;
+  let href = raw;
+  const label = "خرید از ربات تلگرامی";
+  if (raw.startsWith("@")) href = `https://t.me/${raw.slice(1)}`;
+  else if (/^t\.me\//i.test(raw)) href = `https://${raw}`;
+  else if (/^https?:\/\//i.test(raw)) href = raw;
+  const isInternal = href.startsWith("/");
+  const inner = (
+    <>
+      <Send className={cn("h-4 w-4 -scale-x-100", a ? a.text : "text-primary")} aria-hidden />
+      <span className="truncate">{label}</span>
+    </>
+  );
+  const cls = cn(
+    "inline-flex h-10 items-center gap-2 rounded-full border px-4 text-[12.5px] font-black whitespace-nowrap transition-all hover:-translate-y-0.5",
+    a
+      ? cn(a.soft, a.softHover, a.border, a.text)
+      : onDark
+        ? "border-white/15 bg-white/10 text-foreground hover:bg-white/20"
+        : "border-border bg-card text-foreground hover:shadow-md",
+    className
+  );
+  if (isInternal) {
+    return (
+      <Link href={href} className={cls} aria-label="خرید از ربات تلگرامی">
+        {inner}
+      </Link>
+    );
+  }
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={cls}
+      aria-label="خرید از ربات تلگرامی (پنجره جدید)"
+    >
+      {inner}
+    </a>
+  );
+}
+
 export function CopyrightLine({ storeName, onDark, text }: { storeName: string; onDark?: boolean; text?: string }) {
   const year = new Date().getFullYear();
   const custom = typeof text === "string" && text.trim() ? text.trim() : null;

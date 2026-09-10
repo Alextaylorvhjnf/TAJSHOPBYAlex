@@ -1,6 +1,7 @@
 import { access, constants, mkdir, stat } from "fs/promises";
 import path from "path";
 import { db } from "@/lib/db";
+import { ensureDatabaseEnv } from "./db-setup";
 
 export type RequirementStatus = "pass" | "warn" | "fail";
 
@@ -91,6 +92,14 @@ const UPLOAD_DIRS = ["products", "sliders", "brands", "receipts", "avatars", "mi
 export async function checkRequirements(): Promise<{ requirements: RequirementItem[]; ready: boolean; db: DbInfo }> {
   const items: RequirementItem[] = [];
   const cwd = process.cwd();
+  // v34.1: self-heal .env BEFORE probing anything — a preserved Docker-era
+  // .env (no usable DATABASE_URL) is rewritten to the canonical path here,
+  // so every subsequent probe AND the prisma CLI both see a valid URL.
+  try {
+    await ensureDatabaseEnv();
+  } catch {
+    /* best-effort — the db probe below surfaces a readable failure */
+  }
   const dbInfo = await getDbInfo();
 
   // 1) Node.js

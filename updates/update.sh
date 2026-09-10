@@ -91,7 +91,7 @@ say "نسخهٔ فعلی نصب‌شده: $CURRENT"
 say "بررسی آخرین نسخه در گیت‌هاب… ($MANIFEST_URL)"
 MANIFEST=$(curl -fsSL --max-time 20 "$MANIFEST_URL") || die "دریافت مانیفست ناموفق بود — اتصال اینترنت سرور را بررسی کنید"
 
-json_field() { printf '%s' "$MANIFEST" | grep -o "\"$2\"[[:space:]]*:[[:space:]]*\"[^\"]*\"" | head -n1 | sed 's/.*"\([^"]*\)"$/\1/'; }
+json_field() { printf '%s' "$MANIFEST" | grep -o "\"$1\"[[:space:]]*:[[:space:]]*\"[^\"]*\"" | head -n1 | sed 's/.*"\([^"]*\)"$/\1/'; }
 LATEST=$(json_field version)
 ZIP_URL=$(json_field zipUrl)
 SHA256=$(json_field sha256)

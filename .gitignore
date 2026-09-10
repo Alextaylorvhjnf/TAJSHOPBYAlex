@@ -93,3 +93,8 @@ public/downloads/
 scripts/dev-supervisor.sh
 scripts/dev-watchdog.sh
 /runtime
+
+# v34.1: the AI connection-test API route lives at src/app/api/ai/test —
+# re-include it (the broad `test` ignore pattern above would hide it)
+!src/app/api/ai/test/
+!src/app/api/ai/test/route.ts

@@ -85,6 +85,33 @@ export default async function Footer({
   if (social.twitter) socials.push({ key: "twitter", href: social.twitter, label: "توییتر", icon: Twitter });
   if (social.linkedin) socials.push({ key: "linkedin", href: social.linkedin, label: "لینکدین", icon: Linkedin });
 
+  /* v34.1: «خرید از ربات تلگرامی» link — manual StoreSettings.telegramBotUrl
+   * override wins; otherwise the CONFIGURED Telegram shopping bot's username
+   * (Settings → ربات تلگرامی) builds https://t.me/<username>. Null = hidden. */
+  let telegramBotHref: string | null = null;
+  {
+    const raw = (settings as { telegramBotUrl?: string | null }).telegramBotUrl?.trim();
+    if (raw) {
+      telegramBotHref = raw.startsWith("@")
+        ? `https://t.me/${raw.slice(1)}`
+        : /^t\.me\//i.test(raw)
+          ? `https://${raw}`
+          : raw;
+    } else {
+      try {
+        const bot = await db.telegramBotSettings.findUnique({
+          where: { id: "main" },
+          select: { enabled: true, botUsername: true },
+        });
+        if (bot?.enabled && bot.botUsername?.trim()) {
+          telegramBotHref = `https://t.me/${bot.botUsername.trim().replace(/^@/, "")}`;
+        }
+      } catch {
+        /* pre-wizard environment — button stays hidden */
+      }
+    }
+  }
+
   const trust = [
     { icon: ShieldCheck, title: "ضمانت اصالت کالا", desc: "تمام محصولات اورجینال" },
     { icon: Truck, title: "ارسال سریع", desc: "به سراسر ایران" },
@@ -159,6 +186,22 @@ export default async function Footer({
                   </a>
                 ))}
               </div>
+            )}
+            {/* v34.1: «خرید از ربات تلگرامی» — prominent pill button rendered
+                when the admin set StoreSettings.telegramBotUrl (or the
+                Telegram shopping bot is configured). Accepts @username /
+                t.me/… / full https URL. Empty = hidden. */}
+            {telegramBotHref && (
+              <a
+                href={telegramBotHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="خرید از ربات تلگرامی"
+                className="mt-4 inline-flex h-10 items-center gap-2 rounded-full bg-primary px-5 text-[12.5px] font-black text-primary-foreground transition-all hover:-translate-y-0.5 hover:shadow-lg"
+              >
+                <Send className="h-4 w-4 -scale-x-100" aria-hidden />
+                خرید از ربات تلگرامی
+              </a>
             )}
             {/* security / payment mini badges */}
             <div className="mt-5 flex flex-wrap items-center gap-1.5">

@@ -621,3 +621,25 @@ Work Log:
 Stage Summary:
 - دو فایل جدید ساخته شد (هیچ فایل موجودی تغییر نکرد): src/lib/verticals/catalog-electronics.ts (داده خالص صنف الکترونیکس — ۲۲ محصول/۹ دسته/۸ برند/پرسونا AI، پوشش تصویر ۲۲/۲۲ + ۲۴ گالری) و src/components/store/templates/taj-electronics-pro.tsx (قالب فروشگاه بنفش روشن RTL با تایمر حراج، ری‌ل اسنپ، دارک‌اسکین و انطباق کامل با قرارداد HomeData).
 - تصمیم‌های کلیدی: اولویت هیرو slides[0].product > SlideHeroMedia > featured[0]؛ چیپ شمارش معکوس اختصاصی (بدون SLIDE_MEDIA_CSS چون SlideCountdown استفاده نشد)؛ تخفیف روی ۹ محصول (~۸ طبق بریف)؛ یک محصول stock=0 برای تست «ناموجود»؛ آواتارهای سوشال‌پروف گرادیانی بدون تصویر خارجی. اورکستراتور باید ELECTRONICS_CATALOG را در مسیر سوییچ vertical و TajElectronicsProTemplate را در renderer.tsx/live-preview ثبت کند (خارج از scope این تسک).
+---
+Task ID: 9 (v34.1 port — from remote lineage)
+Agent: Z.ai Code (main, remote branch)
+Task: v34.1 (29.0.1) production bug fixes — AI test 403, install wizard db errors, telegram footer button.
+
+Work Log:
+- (ported from origin/main during v35 merge — see git log ffe2f04/3953c6a/3266e0e)
+- Fixes: /api/ai/test route with Persian diagnostics; lazy+resettable Prisma proxy client; installer db-setup self-heal; StoreSettings.telegramBotUrl + TelegramBotChip in all footer variants; demo seed rebuilt (100 products).
+
+Stage Summary:
+- Remote-only v34.1/v34.2 work merged into local lineage for v35.
+
+---
+Task ID: 10 (release 29.0.1/29.0.2 — from remote lineage)
+Agent: Z.ai Code (main, remote branch)
+Task: Publish v34.1 (29.0.1) + v34.2 (29.0.2) to the GitHub update channel.
+
+Work Log:
+- updates/taj-electronics-update-29.0.1.zip (67.76MB) + 29.0.2 (88.2MB with runtime-code) + manifest + update.sh standalone-aware; atomic file copies (no SIGBUS); panel updater swaps prebuilt runtime via runtime-code/ (step 5.5).
+
+Stage Summary:
+- User's production runs 29.0.2 semantics (runtime-swap updater) — v35 update zips must carry runtime-code/.
