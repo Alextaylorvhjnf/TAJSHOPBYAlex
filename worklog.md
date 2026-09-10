@@ -567,3 +567,57 @@ Work Log:
 
 Stage Summary:
 - v34 نهایی: نصب ۲-۴ دقیقه‌ای بدون Docker/بیلد (زیر ۱GB دیسک، بدون فشار RAM)، دامنه/SSL/Nginx خودکار، systemd + به‌روزرسانی standalone در ~۱ دقیقه؛ کد فروشگاه دست‌نخورده (فقط schema binaryTargets + updater.ts allowlist جراحی شد)؛ بسته ۳۹۰MB آماده از پیوست تسک/لینک‌ها؛ گیت کامیت 0901950 بدون push.
+
+---
+
+Task ID: 5-b
+Agent: general-purpose (fashion vertical)
+Task: ساخت کامل صنف «اسپرت و پوشاک» — کاتالوگ داده‌ای catalog-fashion.ts (۹ دسته/۸ برند/۲۰ محصول واقعی) + قالب ویترین sport-fashion.tsx به سبک ادیتوریال کرم/کورال.
+
+Work Log:
+- قراردادها مطالعه شد: verticals/types.ts (VerticalDef)، templates/types.ts (HomeData) و قالب الگو novatrend-clean.tsx (ساختار chrome، useCart/useTrendAdd، الگوی dark-skin با escape کلاس‌های arbitrary).
+- ۲۰ جست‌وجوی تصویر با CLI (z-ai image-search، count=4، gl=us) — یک جست‌وجو per محصول؛ خروجی‌ها parse شد (results[].original_url + width/height) و برای هر محصول تصویر مربعی‌تر و باکیفیت (width>=500) به‌عنوان image + ۲ گالری انتخاب شد → پوشش تصویر ۱۰۰٪ (۶۰ URL روی z-cdn.chatglm.cn).
+- src/lib/verticals/catalog-fashion.ts: FASHION_CATALOG با id="fashion"، templateId="sport-fashion"، aiPersona استایلیست ورزشی فارسی (۶ جمله: سایز/پارچه/ست‌کردن/پیشنهاد محصولات همین فروشگاه/امتناع مؤدبانه از موضوعات غیرمدی)، ۹ دسته با آیکون lucide و ۸ برند؛ ۲۰ محصول واقعی (Pegasus 41، Ultraboost Light، 1080v14، Gel-Kayano 31، Club Fleece، Windrunner، Brasilia 9.6 …) با قیمت ۱٬۱۵۰٬۰۰۰–۸٬۹۰۰٬۰۰۰ تومان، ۸ تخفیف، ۶ featured، ۴ isSpecial، ۵ اسپک فارسی به‌ازای هر محصول، توضیح ۲ جمله‌ای و sku الگوی FAS-XXX-NNN.
+- src/components/store/templates/sport-fashion.tsx: قالب "use client" با SportFashionTemplate({data}) — روت data-tpl="sport-fashion" dir="rtl" + data-template-chrome؛ هدر/فوتر از TEMPLATE_CHROME["sport-fashion"].
+- ۱۳ بلوک طبق بریف: هدر chrome → هیرو ادیتوریال دو ستونه (راست: تایپ نمایشی از slides[0] یا fallback «استایل تو، قانون تو» + eyebrow «کالکشن جدید» + دو CTA؛ چپ: blob ارگانیک مورفینگ ۱۲s کورال→امبر #FF6B4A→#E2542A با محصول شناور + ۲ مینی‌کارت) → تیکر marquee تمام‌عرض کورال (کلمات announcement/tickerMessages + fallbackها، keyframes sf-marquee، RTL seamless با translateX 0→50%) → «دسته‌بندی‌ها» کارت تصویری → «پرفروش‌های این هفته» لیست شماره‌دار ادیتوریال دومتونه (۰۱/۰۲/۰۳ طلایی #B45309 tabular + افزودن سریع) → دو بنر پرومو rounded-[2.5rem] → «جدیدترین استایل‌ها» گرید با چیپ سایز S/M/L/XL انتخابی + قلب علاقه‌مندی → ریل «تخفیف‌های فصلی» با بج قرمز #DC2626 → برندها → لوک‌بوک استوری‌ها به‌صورت کارت‌های بلند 9:16 → FAQ آکاردئونی → CTA پایانی پنل جوهری → فوتر chrome.
+- کارت محصول: rounded-[1.75rem] سفید/کرم، هاور بوردر+سایه کورال، چیپ سایز (سایز انتخابی به‌عنوان variant به /api/cart/items)، قلب با useWishlist (بهینه + rollback در خطا)، pill «افزودن» که به «افزوده شد ✓» مورف می‌شود؛ دکمه قلب از Link تصویر جدا شد (HTML معتبر).
+- CSS اسکوپ‌شده [data-tpl="sport-fashion"] با keyframes (sf-morph/sf-bob/sf-marquee) + prefers-reduced-motion + پوسته dark کامل (cream→#14161C، کارت‌ها→#1E1F25، ink→#EDEEF1، بازگردانی pill سفید داخل بنرها) به‌کپی از الگوی escape نوواترند.
+- NEVER hardcode نام فروشگاه (فقط data.store.storeName)، fallback خالی برای همه سکشن‌ها، اعداد فارسی با toFaDigits، فریمر-موشن با useReducedMotion.
+- VERIFY: `npx tsc --noEmit | grep -E "sport-fashion|catalog-fashion"` → خروجی خالی ✓؛ `npx eslint` روی هر دو فایل → ۰ خطا ✓. هیچ فایل موجودی تغییر نکرد (git status فقط دو فایل جدید از این تسک را نشان می‌دهد؛ بقیه تغییرها مربوط به ایجنت‌های موازی است).
+- توجه: renderer.tsx / رجیستری هنوز sport-fashion را import نمی‌کنند (وظیفه تسک تجمیع بعدی است)؛ سرور dev روی /install ریدایرکت می‌شد بنابراین اسموک‌تست رندر زنده انجام نشد — کامپایل و لینت تمیز.
+
+Stage Summary:
+- دو فایل جدید: src/lib/verticals/catalog-fashion.ts (FASHION_CATALOG — ۲۰ محصول واقعی پوشاک/کفش ورزشی با تصاویر OSS پایدار z-cdn، ۹ دسته، ۸ برند، persona استایلیست AI) و src/components/store/templates/sport-fashion.tsx (قالب ویترین ادیتوریال اسپرت کرم/کورال، RTL، responsive، dark-mode، cart/wishlist سروकارت‌پذیر).
+- تصمیم‌ها: تیکر RTL با translateX(0→50%) برای لوپ بی‌درز؛ چیپ سایز به‌عنوان variant در addToCart؛ علاقه‌مندی با useWishlist + override بهینه؛ blob کورال ۱۲s مورف + bob شناور برای محصول هیرو؛ ریل تخفیف کارت فشرده بدون چیپ سایز.
+---
+Task ID: 5-c
+Agent: general-purpose (beauty vertical)
+Task: صنف آرایشی و بهداشتی — کاتالوگ کامل BEAUTY_CATALOG + قالب فروشگاهی beauty-glow (رز/طلای لوکس، RTL فارسی)
+
+Work Log:
+- قراردادها مطالعه شد: src/lib/verticals/types.ts (VerticalDef)، src/lib/templates/types.ts (HomeData)، قالب الگوی novatrend-clean.tsx (ساختار chrome، useTrendAdd، کارت محصول، پترن دارک‌مود escaped-classes).
+- ۲۰ جست‌وجوی تصویر با `z-ai image-search` (۱ به‌ازای هر محصول؛ موازی=429 → تلافی سریالی با backoff؛ فقط garnier-micellar سه بار 429 شد که با کوئری ساده‌تر «Garnier micellar water» اوکی شد). خروجی‌ها با node پارس شد: انتخاب نزدیک‌ترین URL مربعی (همه ۲۰ تصویر اصلی ۱۰۰٪ پوشش + ۲ گالری هر کدام از z-cdn.chatglm.cn).
+- src/lib/verticals/catalog-beauty.ts: BEAUTY_CATALOG — id "beauty"، templateId "beauty-glow"، aiPersona مشاور پوست خواهرانه (روتین بر اساس چرب/خشک/مختلط + هیالورونیک/نیاسینامید/ویتامین C + معرفی محصولات همین فروشگاه + امتناع مؤدبانه از تشخیص پزشکی و موضوعات غیرمرتبط)، ۹ دسته (مراقبت پوست…ست‌های هدیه) با آیکون‌های lucide، ۸ برند، ۲۰ محصول واقعی با نام فارسی بلند (سراوی/گارنیه/لورآل/میبلین/بینفیت/…) — قیمت ۲۸۵,۰۰۰ تا ۳,۸۵۰,۰۰۰ تومان، ۸ تخفیف، ۶ featured، ۴ isSpecial، stock 0-40 (۱ مورد صفر برای حالت ناموجود)، rating 4.2-4.9، reviewCount 64-410، sku BTY-{SKN,CRM,SUN,FCE,LIP,PRF,HAR,BDY,GFT}-###، ۴-۵ اسپک فارسی + توضیح ۲ جمله‌ای.
+- src/components/store/templates/beauty-glow.tsx: قالب "use client" با ریشه `<div data-tpl="beauty-glow" dir="rtl">` و chrome از TEMPLATE_CHROME["beauty-glow"]. بوم #FFF9F7 / مرکب آلو #2A1B20 / دو لهجه رز #E8A0B4 + طلایی #C9A063. بخش‌ها: هیرو serif (تیتر از slides[0] با fallback «درخشش طبیعی تو»، eyebrow «مراقبت حرفه‌ای»، CTA رز-گرادیانت + outline طلایی، ۴ چیپ آمار) + سکوی شیشه‌ای GLASS PODIUM (rounded-3xl + backdrop-blur + رینگ طلایی + keyframe breathe) روی blob رادیال رز با ذرات sparkle CSS و چیپ شیشه‌ای محصول؛ «روتین پوست در ۳ قدم» با شماره‌های طلایی ۱/۲/۳ در دایره گل‌رنگ + hairline طلایی؛ دسته‌بندی‌ها با آیکون‌سل رز؛ «محصولات محبوب»؛ بنر هدیه گرادیانت رز→طلایی؛ ریل «جدیدترین‌ها»؛ «پیشنهاد ویژه» با بج رز/طلایی؛ چیپ‌های گرد برندها؛ آکاردئون «سوالات متداول پوست» (با ۳ fallback پوستی)؛ بند خبرنامه رز-گرادیانت (فرم ایمیل client-side). کارت محصول: glass-pink rounded-[1.75rem]، چاه تصویر رادیال blush + object-contain، چیپ نوع پوست (استخراج از نام — قرارداد رندر specs ندارد)، ۵ ستاره طلایی، قیمت bold + line-through، دکمه رز مورف به «افزوده شد ✓» طلایی، hover lift + glow رز.
+- CSS اسکوپ‌شده با keyframes (bt-blob/bt-podium/bt-sparkle) + prefers-reduced-motion + دارک‌اسکین کامل (blush→#221618، cards→#2B1D21، ink→#F5E9E6) با پترن escape مشابه novatrend؛ bandهای گرادیانت CTA سفید خود را در دارک نگه می‌دارند.
+- verify: `npx tsc --noEmit | grep -E "beauty-glow|catalog-beauty"` = خروجی هیچ (فقط خطاهای zentry-gaming از ایجنت موازی)؛ eslint هر دو فایل = صفر خطا/هشدار. هیچ فایل موجودی تغییر نکرد (git: فقط ۲ فایل untracked جدید از من).
+
+Stage Summary:
+- فایل‌ها: src/lib/verticals/catalog-beauty.ts (جدید، ۲۰ محصول/۹ دسته/۸ برند، پوشش تصویر ۲۰/۲۰ + گالری ۴۰) و src/components/store/templates/beauty-glow.tsx (جدید، ۱۲ بخش brief ①-⑫).
+- تصمیم‌ها: چیپ نوع پوست از نام محصول استخراج می‌شود چون TemplateProduct اسپک ندارد؛ FAQ با ۳ پرسش پیش‌فرض پوستی fallback؛ bestsellers→featured→newest زنجیره fallback برای گرید «محبوب»؛ قالب هنوز در renderer.tsx/سوئیچ vertical سیم‌کشی نشده (خارج از اسکوپ این تسک — تسک‌های ۵-سوئیچ)؛ ایمیل خبرنامه صرفاً client-side state بدون API فرضی.
+---
+Task ID: 5-a
+Agent: general-purpose (electronics vertical)
+Task: ساخت کامل صنف الکترونیکس — کاتالوگ داده‌محور ELECTRONICS_CATALOG + قالب فروشگاه taj-electronics-pro (دو فایل جدید، بدون دست‌کاری فایل‌های موجود)
+
+Work Log:
+- قراردادها خوانده شد: src/lib/verticals/types.ts (VerticalDef)، src/lib/templates/types.ts (HomeData)، قالب الگو novatrend-clean.tsx (chrome wiring، useTrendAdd، الگوی dark-skin با escape کلاس‌ها) + chrome/config.ts (ورودی TEMPLATE_CHROME["taj-electronics-pro"] از قبل سیم‌کشی شده: header variant2 violet + megaMenu images، footer variant6) و registry.ts (id ثبت‌شده).
+- ۲۲ جست‌وجوی تصویر با CLI «z-ai image-search» ( یکی به ازای هر محصول، --no-rank --gl us )؛ اجرای موازی CLI خطای 429 می‌داد پس sequential با فاصله اجرا شد؛ همه ۲۲ محصول تصویر واقعی مربع‌گونه (≥500px) از z-cdn.chatglm.cn گرفتند + ۲۴ گالری (۴۶ URL یکتا، همه با سرور چک شدند ۲۰۰). PS5 بعد از رفع rate-limit با کوئری ساده‌تر آمد.
+- FILE 1 — src/lib/verticals/catalog-electronics.ts: `ELECTRONICS_CATALOG: VerticalDef` با id electronics/templateId taj-electronics-pro، tagline+desc فارسی، icon Cpu، aiPersona پنج‌جمله‌ای (مینا — متخصص موبایل/لپ‌تاپ/صدا/پوشیدنی/خانه هوشمند، فقط محصولات همین فروشگاه، امتناع مؤدبانه از بحث غیر خرید)، ۹ دسته، ۸ برند، ۲۲ محصول واقعی (iPhone 15 Pro Max 118.5M تا کابل انکر 450K؛ ۹ تخفیف، ۶ featured، ۴ isSpecial، موجودی 0-45 با یک ناموجود، rating 3.9-4.9، review 12-320، sku از TAJ-MOB-001 تا TAJ-GAM-001، ۱۱۱ spec فارسی ۴-۶تایی، توضیح ۲ جمله‌ای + گالری).
+- FILE 2 — src/components/store/templates/taj-electronics-pro.tsx: قالب «use client» روشن NovaTech — سفید #FFFFFF/جوهر #1A1A24/یک گرادیان بنفش #7C3AED→#6D28D9؛ هیرو دوستونه نامتقارن روی پنل مش گرادیانی #F5F3FF→#FFF7ED با دو بلاب ارگانیک blur/morph، رندر شناور محصول (slides[0].product → SlideHeroMedia → featured[0]) با درگ‌شودگی بنفش + چرخش ۳° + باب، بج دایره‌ای «فقط X تومان»، مینی‌کارت شناور دوم، pill نارنجی «جدید رسید»، CTA «خرید کن»/«مشاهده محصولات»، سوشال‌پروف ۳ آواتار هم‌پوشان «+۱۲۰۰ مشتری خوشحال»؛ نوار اعتماد ۴تایی؛ کارت‌های دسته تصویری (زوم ۱۱۰٪)؛ ریل اسکرول افقی snap پرفروش‌های این هفته؛ دو بنر پرومو با اورلی گرادیان؛ گرید جدیدترین‌ها ۳/۴ ستونه؛ بخش تخفیف با بج قرمز #EF4444 + چیپ شمارش معکوس hydration-safe (timerEndsAt → discountEndsAt → نیمه‌شب)؛ چیپ برندها؛ آکاردئون FAQ؛ بند CTA بنفش با تلفن فروشگاه؛ فوتر. TajCard: rounded-1.25rem، border #E5E7EB، aspect-square bg #F9FAFB، ستاره‌های کهربایی ۵تایی، ردیف قیمت (خط‌خورده + بج ٪ قرمز + جوهر بولد)، دکمه pill تمام‌عرض بنفش که به «افزوده شد ✓» مورف می‌شود، hover -translate-y-1 + سایه بنفش.
+- CSS scoped با data-tpl="taj-electronics-pro" + سه کی‌فریم (bob/morph/shimmer) + احترام به prefers-reduced-motion + dark-skin کامل (بوم #191922، کارت #23242B، چاهک #2A2B33، جوهر #ECEDF2، بنفش→#A78BFA) با همان الگوی escape نوواترند؛ ریشه `<div data-tpl dir="rtl">`؛ StoriesRow فقط وقتی استوری هست؛ همه بخش‌ها با آرایه خالی graceful skip می‌شوند؛ هیچ‌جا نام فروشگاه هاردکد نشده (data.store.storeName).
+- VERIFICATION: `npx tsc --noEmit` → صفر خطا (کل پروژه، بدون خطای مربوط به دو فایل جدید)؛ `npx eslint` روی هر دو فایل → بدون هیچ خروجی (خطا/هشدار صفر).
+
+Stage Summary:
+- دو فایل جدید ساخته شد (هیچ فایل موجودی تغییر نکرد): src/lib/verticals/catalog-electronics.ts (داده خالص صنف الکترونیکس — ۲۲ محصول/۹ دسته/۸ برند/پرسونا AI، پوشش تصویر ۲۲/۲۲ + ۲۴ گالری) و src/components/store/templates/taj-electronics-pro.tsx (قالب فروشگاه بنفش روشن RTL با تایمر حراج، ری‌ل اسنپ، دارک‌اسکین و انطباق کامل با قرارداد HomeData).
+- تصمیم‌های کلیدی: اولویت هیرو slides[0].product > SlideHeroMedia > featured[0]؛ چیپ شمارش معکوس اختصاصی (بدون SLIDE_MEDIA_CSS چون SlideCountdown استفاده نشد)؛ تخفیف روی ۹ محصول (~۸ طبق بریف)؛ یک محصول stock=0 برای تست «ناموجود»؛ آواتارهای سوشال‌پروف گرادیانی بدون تصویر خارجی. اورکستراتور باید ELECTRONICS_CATALOG را در مسیر سوییچ vertical و TajElectronicsProTemplate را در renderer.tsx/live-preview ثبت کند (خارج از scope این تسک).
