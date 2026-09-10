@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { MAINTENANCE_TEMPLATE_IDS } from "@/lib/maintenance";
+import { VERTICAL_IDS } from "@/lib/verticals/types";
 
 export const phoneSchema = z
   .string()
@@ -650,4 +651,10 @@ export const aiSettingsSchema = z.object({
     )
     .optional()
     .nullable(),
+});
+
+/* v35 · «صنف فروشگاه» — vertical switch */
+export const verticalApplySchema = z.object({
+  verticalId: z.enum(VERTICAL_IDS, { message: "صنف انتخابی نامعتبر است" }),
+  renameStore: z.boolean().optional(),
 });

@@ -123,6 +123,11 @@ export async function tgAnswerCallback(token: string, callbackQueryId: string, t
   });
 }
 
+/** v35: sendChatAction — "typing…" indicator while a long AI turn runs. */
+export async function tgSendChatAction(token: string, chatId: string | number, action: "typing" | "upload_photo" = "typing") {
+  return tg(token, "sendChatAction", { chat_id: chatId, action });
+}
+
 /** Register the bot command palette shown in Telegram's "/" menu. */
 export async function tgSetCommands(token: string) {
   return tg(token, "setMyCommands", {
@@ -142,7 +147,8 @@ export async function tgSetCommands(token: string) {
 /**
  * The PERSISTENT reply keyboard — the shop's main menu that always sits at
  * the bottom of the chat. Text sent from these buttons is routed like the
- * equivalent /command (see flows.ts TEXT_ROUTES).
+ * equivalent /command (see flows.ts TEXT_ROUTES — it also still matches the
+ * old v33 labels, so keyboards already on users' screens keep working).
  */
 export async function tgSetReplyKeyboard(token: string, chatId: string | number, isAdmin: boolean) {
   const lastRow = isAdmin ? ["ℹ️ راهنما", "🛠 پنل مدیریت"] : ["ℹ️ راهنما", "🌐 وب‌سایت"];
@@ -151,7 +157,7 @@ export async function tgSetReplyKeyboard(token: string, chatId: string | number,
     text: "⌨️",
     reply_markup: {
       keyboard: [
-        [["🛍 فروشگاه", "🔍 جستجو"], ["🤖 مشاور AI", "🛒 سبد خرید"], ["📦 پیگیری سفارش", "🎫 پشتیبانی"], [lastRow]],
+        [["🛍 کاتالوگ", "🔍 جستجو"], ["🧠 مشاور AI", "🛒 سبد خرید"], ["📦 پیگیری سفارش", "🆘 پشتیبانی"], [lastRow]],
       ]
         .map((r) => r.map((t) => ({ text: t }))),
       resize_keyboard: true,

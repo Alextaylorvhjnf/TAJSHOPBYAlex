@@ -30,7 +30,7 @@ import {
   loadLocalImage,
   storeName,
 } from "./common";
-import { tgSendMessage, tgAnswerCallback, tgDownloadFile, tgSetReplyKeyboard } from "./api";
+import { tgSendMessage, tgAnswerCallback, tgDownloadFile, tgSetReplyKeyboard, tgSendChatAction } from "./api";
 import {
   sendWelcome,
   sendHelp,
@@ -110,18 +110,44 @@ export async function handleUpdate(token: string, update: TgUpdate): Promise<voi
 
 // ─────────────────────────── text router ───────────────────────────
 
-/** Reply-keyboard buttons → equivalent command. */
+/** Reply-keyboard buttons → equivalent command.
+ * v35: regexes accept BOTH the old v33 labels (still pinned on users' screens)
+ * and the modernized v35 labels — no identifier changes. */
 const TEXT_ROUTES: [RegExp, string][] = [
-  [/^🛍 فروشگاه$/, "/shop"],
+  [/^🛍 (?:کاتالوگ|فروشگاه)$/, "/shop"],
   [/^🔍 جستجو$/, "/search"],
-  [/^🤖 مشاور AI$/, "/ai"],
+  [/^(?:🧠|🤖) مشاور AI$/, "/ai"],
   [/^🛒 سبد خرید$/, "/cart"],
   [/^📦 پیگیری سفارش$/, "/track"],
-  [/^🎫 پشتیبانی$/, "/tickets"],
+  [/^(?:🆘|🎫) پشتیبانی$/, "/tickets"],
   [/^ℹ️ راهنما$/, "/help"],
   [/^🌐 وب‌سایت$/, "/site"],
   [/^🛠 پنل مدیریت$/, "/admin"],
 ];
+
+/** v35: /start deep-link payload (t.me/<bot>?start=…). p_<productId> opens
+ * the product card, c_<categorySlug> the category list — both reuse existing
+ * view functions (no new queries); anything else falls back to welcome. */
+async function handleStartPayload(token: string, ctx: TelegramSendCtx, sub: TelegramSubscriber, isAdmin: boolean, payload: string): Promise<void> {
+  await tgSetReplyKeyboard(token, ctx.chatId, isAdmin);
+  const product = payload.match(/^p[_-]([A-Za-z0-9_-]{4,64})$/);
+  const category = payload.match(/^c[_-]([A-Za-z0-9_-]{1,64})$/);
+  if (product) {
+    const p = await getProduct(product[1]);
+    if (p) {
+      await sendProduct(makeCtx(token, ctx.chatId, sub, ctx.settings), p.id);
+      await setState(sub, BOT_STATES.IDLE, null);
+      return;
+    }
+  }
+  if (category) {
+    await sendProductListCards(makeCtx(token, ctx.chatId, sub, ctx.settings), "cat", category[1], 1);
+    await setState(sub, BOT_STATES.IDLE, null);
+    return;
+  }
+  await sendWelcome(makeCtx(token, ctx.chatId, sub, ctx.settings));
+  await setState(sub, BOT_STATES.IDLE, null);
+}
 
 export async function handleMessage(token: string, msg: TgMessage, sub: TelegramSubscriber, isAdmin: boolean): Promise<void> {
   const ctx = makeCtx(token, String(msg.chat.id), sub, await getBotSettings());
@@ -138,6 +164,14 @@ export async function handleMessage(token: string, msg: TgMessage, sub: Telegram
 
   // command normalization: /start@MyBot → /start
   const slash = raw.startsWith("/") ? raw.split("@")[0].toLowerCase() : null;
+
+  // v35: deep links — t.me/<bot>?start=p_<productId> / c_<categorySlug>
+  // arrive as "/start <payload>" (slash ≠ "/start" there, so match on raw)
+  const deepLink = raw.match(/^\/start(?:@[\w]+)?\s+(\S+)\s*$/i);
+  if (deepLink) {
+    await handleStartPayload(token, ctx, sub, isAdmin, deepLink[1]);
+    return;
+  }
 
   // global commands (work in ANY state)
   switch (slash) {
@@ -208,6 +242,8 @@ export async function handleMessage(token: string, msg: TgMessage, sub: Telegram
   // ── state machine ──
   switch (sub.state) {
     case BOT_STATES.AI: {
+      // v35: typing indicator while the LLM turn runs (ai-chat.ts untouched)
+      void tgSendChatAction(token, ctx.chatId, "typing");
       await handleAITurn(ctx, raw);
       return;
     }
@@ -443,7 +479,9 @@ async function checkoutStep(ctx: TelegramSendCtx, state: string, value: string):
   const rows: InlineButton[][] = [];
   if (nextStep.optional) rows.push([{ text: `⏭ بدون ${nextStep.label}`, callback_data: "coskip" }]);
   rows.push([{ text: "⬅️ انصراف", callback_data: "nx" }]);
-  await ctx.send(`✅ ثبت شد.\n\n<strong>قدم بعدی — ${nextStep.label}:</strong>\n${nextStep.hint ?? ""}`, kb(rows));
+  // v35: numbered step CTA («قدم N از ۷» — same Persian-digit style as step 1)
+  const nextIdx = CO_STEPS.findIndex((s) => s.state === nextStep.state) + 1;
+  await ctx.send(`✅ ثبت شد.\n\n<strong>قدم ${fa(nextIdx)} از ${fa(CO_STEPS.length)} — ${nextStep.label}:</strong>\n${nextStep.hint ?? ""}`, kb(rows));
   await setState(ctx.sub, nextStep.state, form);
 }
 
@@ -461,7 +499,7 @@ export async function startCheckout(ctx: TelegramSendCtx): Promise<void> {
   }
   const subtotal = ctx.cartItems.reduce((s, i) => s + i.price * i.qty, 0);
   const rows: InlineButton[][] = [
-    [{ text: "➡️ شروع ثبت سفارش", callback_data: "co" }],
+    [{ text: "۱) ➡️ شروع ثبت سفارش", callback_data: "co" }],
     [{ text: "⬅️ بازگشت به سبد", callback_data: "m:cart" }],
   ];
   await ctx.send(
@@ -483,7 +521,7 @@ async function askPaymentMethod(ctx: TelegramSendCtx, form: CheckoutForm): Promi
   const payment = await getPaymentSettings();
   const methods: InlineButton[] = [];
   if (payment.zarinpalEnabled && payment.zarinpalMerchantId) methods.push({ text: "💳 پرداخت آنلاین (زرین‌پال)", callback_data: "copay:ZARINPAL" });
-  if (payment.c2cEnabled) methods.push({ text: "🏦 کارت به کارت", callback_data: "copay:CARD_TO_CARD" });
+  if (payment.c2cEnabled) methods.push({ text: "🧾 پرداخت کارت‌به‌کارت", callback_data: "copay:CARD_TO_CARD" });
   if (methods.length === 0) {
     await ctx.send("⛔️ فعلاً هیچ روش پرداختی در فروشگاه فعال نیست. با پشتیبانی تماس بگیرید (از منوی پایین).");
     return;
@@ -622,7 +660,7 @@ export async function finalizeOrder(ctx: TelegramSendCtx, method: "ZARINPAL" | "
           "پس از پرداخت، تأییدیه همین‌جا برایتان ارسال می‌شود. 🙏",
         ].join("\n"),
         kb([
-          [{ text: "💳 پرداخت آنلاین زرین‌پال", url: zres.paymentUrl }],
+          [{ text: "💳 پرداخت آنلاین (زرین‌پال)", url: zres.paymentUrl }],
           [{ text: "📦 پیگیری سفارش", callback_data: `or:${order.orderNumber}` }],
           [{ text: "⬅️ منوی اصلی", callback_data: "m:main" }],
         ])
@@ -748,14 +786,24 @@ export async function handlePhoto(token: string, msg: TgMessage, sub: TelegramSu
 
 // ─────────────────────────── callback router ───────────────────────────
 
+/** v35: heads the callback router actually handles. Used to decide whether the
+ * early spinner-stop answer is safe — unknown heads instead get a friendly
+ * Persian toast + hint message (never silent). Keep in sync with the switch
+ * in handleCallback below. */
+const KNOWN_CALLBACK_HEADS = new Set([
+  "a", "m", "p", "pa", "pc", "cr", "cmp", "cmpx", "cq", "crm",
+  "cartclear", "co", "coskip", "couseaccount", "copay", "or", "nx",
+  "t", "tr", "tknew", "link",
+]);
+
 export async function handleCallback(token: string, cb: TgCallbackQuery, sub: TelegramSubscriber, isAdmin: boolean): Promise<void> {
   const data = cb.data ?? "";
   const chatId = String(cb.from.id);
   const ctx = makeCtx(token, chatId, sub, await getBotSettings());
-  // always stop the spinner (fire and forget)
-  void tgAnswerCallback(token, cb.id);
-
   const [head, a, b, c] = data.split(":");
+  // stop the spinner (fire and forget) for known heads; unknown heads get
+  // a Persian toast + hint message in the fall-through branch below
+  if (KNOWN_CALLBACK_HEADS.has(head)) void tgAnswerCallback(token, cb.id);
 
   try {
     // admin namespace
@@ -831,7 +879,8 @@ export async function handleCallback(token: string, cb: TgCallbackQuery, sub: Te
         await setState(sub, BOT_STATES.LINK_PHONE, null);
         return;
     }
-    // unknown
+    // unknown / expired button — toast + hint message instead of silence
+    await tgAnswerCallback(token, cb.id, "این دکمه منقضی شده — /start را بزنید");
     await ctx.send("🤔 این دکمه منقضی شده است. /start بزنید تا منوی تازه بیاید.");
   } catch (e) {
     console.error("[TG callback]", data, e);
@@ -875,6 +924,18 @@ async function menuCallback(ctx: TelegramSendCtx, sub: TelegramSubscriber, a: st
     case "search":
       await ctx.send("🔍 نام یا مدل محصول را بفرستید:", kb([[{ text: "⬅️ انصراف", callback_data: "nx" }]]));
       await setState(sub, BOT_STATES.SEARCH, null);
+      return;
+    case "cmp":
+      // v35: menu-level compare entry — the actual side-by-side starts from a
+      // product card («⚖️ مقایسه با…»); guide the user to pick a product first
+      await ctx.send(
+        "🆚 <b>مقایسه محصولات</b>\nیک محصول را انتخاب کنید و در صفحه آن دکمه «⚖️ مقایسه با…» را بزنید تا با محصول دیگری مقایسه شود.",
+        kb([
+          [{ text: "🗂 همه محصولات", callback_data: "m:all:1" }, { text: "🔍 جستجو", callback_data: "m:search" }],
+          [{ text: "⬅️ منوی اصلی", callback_data: "m:main" }],
+        ])
+      );
+      await setState(sub, BOT_STATES.IDLE, null);
       return;
     case "cart":
       await sendCart(ctx);
@@ -975,8 +1036,9 @@ async function checkoutUseAccount(ctx: TelegramSendCtx, sub: TelegramSubscriber)
     phone: linked.phone,
   };
   const step = CO_STEPS.find((st) => st.state === BOT_STATES.CO_PROVINCE)!;
+  const stepIdx = CO_STEPS.findIndex((st) => st.state === step.state) + 1;
   await ctx.send(
-    `✅ نام و موبایل از حساب شما پر شد.\n\n<strong>قدم بعدی — ${step.label}:</strong>\n${step.hint ?? ""}`,
+    `✅ نام و موبایل از حساب شما پر شد.\n\n<strong>قدم ${fa(stepIdx)} از ${fa(CO_STEPS.length)} — ${step.label}:</strong>\n${step.hint ?? ""}`,
     kb([[{ text: "⬅️ انصراف", callback_data: "nx" }]])
   );
   await setState(sub, step.state, form);
@@ -1000,7 +1062,8 @@ async function checkoutSkip(ctx: TelegramSendCtx, sub: TelegramSubscriber): Prom
   const rows: InlineButton[][] = [];
   if (nextStep.optional) rows.push([{ text: `⏭ بدون ${nextStep.label}`, callback_data: "coskip" }]);
   rows.push([{ text: "⬅️ انصراف", callback_data: "nx" }]);
-  await ctx.send(`✅ رد شد.\n\n<strong>قدم بعدی — ${nextStep.label}:</strong>\n${nextStep.hint ?? ""}`, kb(rows));
+  const nextIdx = CO_STEPS.findIndex((s) => s.state === nextStep.state) + 1;
+  await ctx.send(`✅ رد شد.\n\n<strong>قدم ${fa(nextIdx)} از ${fa(CO_STEPS.length)} — ${nextStep.label}:</strong>\n${nextStep.hint ?? ""}`, kb(rows));
   await setState(sub, nextStep.state, parseStateData<CheckoutForm>(sub) ?? {});
 }
 

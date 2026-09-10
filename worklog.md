@@ -643,3 +643,48 @@ Work Log:
 
 Stage Summary:
 - User's production runs 29.0.2 semantics (runtime-swap updater) — v35 update zips must carry runtime-code/.
+
+---
+Task ID: 4-c
+Agent: general-purpose (telegram bot upgrade)
+Task: v35 Telegram bot core & menu upgrade — emoji-coded grouped menus, easier buttons, deep links, typing indicator, never-silent unknown callbacks (labels/UX only, all identifiers preserved).
+
+Work Log:
+- Read worklog Task 16 context + all of src/lib/telegram (views/flows/api/admin/common/types/view-types/ai-chat/poller context) and grepped telegramBotUrl: the v34.1 storefront footer «خرید از ربات تلگرامی» pill already exists (src/components/store/templates/chrome/bits.tsx + resolveTelegramBotUrl in home-data.ts + settings override) — verified, nothing to change.
+- callback_data inventory PRESERVED (no identifier string changed, no handler removed): m:main m:shop m:cats:<pg> m:cat:<slug>:<pg> m:all:<pg> m:new:<pg> m:disc:<pg> m:spec:<pg> m:feat:<pg> m:q:<enc>:<pg> m:ai m:search m:cart m:track m:tickets m:help m:site m:account m:unlink m:notif | p/pa/pc/cr/cmp/cmpx:<productId> | cq:<idx>:+/- crm:<idx> cartclear co coskip couseaccount copay:ZARINPAL|CARD_TO_CARD | or:<orderNumber> | t/tr:<ticketId> tknew | link | nx | a:menu a:stats a:orders:<filter>:<pg> a:ord a:st:<STATUS> a:note a:sendord a:c2c a:c2cok a:c2cno a:tickets a:tk a:tr a:tclose a:bc. Commands untouched: /start /shop /search /ai /cart /track /tickets /help /site /admin /end /cancel /exit. m:new:1 & m:spec:1 left the welcome keyboard but their buttons+handlers remain in sendShop, so stale on-screen buttons still work. ONE new ADDITIVE identifier only: m:cmp (menu-level «🆚 مقایسه» entry — the requested Row2 had no existing callback; zero collision, no existing string touched).
+- views.ts: sendWelcome → shorter text (hint row «خرید مستقیم، پرداخت زرین‌پال، پیگیری سفارش و گفتگو با مشاور AI») + 4-row emoji menu (کاتالوگ/جستجو | مشاور AI/مقایسه | سبد خرید/پیگیری | تخفیف‌ها/پشتیبانی); DIVIDER const under section headers in sendShop + sendProductList + sendProductListCards; sendOrderView + sendTrackPrompt got «🆘 تیکت جدید» (tknew) and «🛒 سفارش‌های من» (m:track) quick actions; cart CTA numbered «۱) ✅ ثبت سفارش» (co).
+- flows.ts: TEXT_ROUTES regexes accept BOTH old v33 and new v35 reply-keyboard labels; /start deep links (t.me?start=p_<productId> → product card via existing getProduct; c_<categorySlug> → category list via existing sendProductListCards; fallback → welcome); typing chat-action fired before every AI turn (ai-chat.ts untouched); KNOWN_CALLBACK_HEADS gate so unknown callbacks get answerCallbackQuery toast «این دکمه منقضی شده — /start را بزنید» + existing hint message (never silent, fixed a TDZ order bug in the same hunk); m:cmp guidance view reusing m:all/m:search/m:main; checkout steps numbered «قدم N از ۷» (Persian digits) in checkoutStep/checkoutSkip/checkoutUseAccount; card-to-card label «🧾 پرداخت کارت‌به‌کارت» (copay:CARD_TO_CARD unchanged) and zarinpal URL button «💳 پرداخت آنلاین (زرین‌پال)».
+- api.ts: added 3-line tgSendChatAction helper (typing indicator, used only in the AI path); reply keyboard modernized to «🛍 کاتالوگ / 🧠 مشاور AI / 🆘 پشتیبانی» (old labels still route).
+- admin.ts: inspected — action buttons already emoji-prefixed (✅ تأیید پرداخت / ❌ رد / 📝 افزودن یادداشت / 💬 پاسخ / 🔒 بستن) → NO changes needed (fewest-files rule); ai-chat.ts, poller.ts, watcher.ts, tickets-bot.ts untouched.
+
+Stage Summary:
+- Files changed: src/lib/telegram/views.ts, src/lib/telegram/flows.ts, src/lib/telegram/api.ts (+110/−32 lines, labels & additive UX only).
+- UX: emoji-coded 4-row main menu + modernized persistent reply keyboard (backwards-compatible), section dividers, order-view quick actions, numbered checkout steps, clearer payment labels.
+- Core: /start deep links (p_<id>/c_<slug>), typing indicator on AI turns, unknown-callback Persian toast, deep-link fallback to welcome.
+- Verify: npx tsc --noEmit → 0 errors in src/lib/telegram (only unrelated parallel-agent error in src/lib/verticals/apply.ts); eslint on the 3 files → 0 problems; git diff -U0 grep confirms every added callback_data reuses existing identifiers except documented additive m:cmp; dev.log clean (bot supervisor started, no telegram errors; poller idles without token).
+---
+Task ID: 4-a
+Agent: general-purpose (vertical backend)
+Task: v35 «صنف فروشگاه» backend — activeVertical column + vertical registry + catalog switcher + /api/admin/vertical + AI persona.
+
+Work Log:
+- prisma/schema.prisma: StoreSettings.activeVertical String @default("electronics") + bun run db:push (non-destructive).
+- NEW src/lib/verticals/index.ts: VERTICALS registry (electronics/fashion/beauty/gaming/autoparts), VERTICAL_MAP, getVerticalDef (fallback electronics), SUGGESTED_STORE_NAMES (تاج الکترونیکس/تاج استایل/بیوتی گلو/زنتری استور/تاج پارتز), VerticalSummary + getVerticalSummaries() — client-safe (pure data only).
+- NEW src/lib/verticals/apply.ts: applyVerticalCatalog() — one 30s interactive transaction: archive previous catalog (products→ARCHIVED never deleted, categories/brands→isActive:false), upsert vertical categories/brands by slug + products by sku (specs JSON, searchText norm, gallery resync deleteMany+createMany, on-the-fly brand creation for undeclared Persian brands via alias+hash slugs, uniqueSlug guard vs old rows), StoreSettings activeVertical+activeTemplate(+optional rename) same tx. Returns {products, categories, brands}.
+- NEW src/app/api/admin/vertical/route.ts: GET (current+summaries, any admin) + PUT (appearance permission + SETTINGS_WRITE, verticalApplySchema, applyVerticalCatalog, invalidateSettingsCache, revalidatePath layout+page, logAdmin VERTICAL_APPLY, Persian message with counts).
+- src/lib/validators.ts: verticalApplySchema (verticalId enum + renameStore optional).
+- src/lib/ai.ts buildSystemPrompt: appends «شخصیت و حوزهٔ تخصصی دستیار (صنف فروشگاه: …)» + vertical.aiPersona + scope-narrowing instruction — the storefront chat AND the telegram bot AI (runAIChat) both inherit the persona automatically.
+
+Stage Summary:
+- Vertical switch = atomic catalog reseed + template activation + AI persona; idempotent re-switching; order history preserved (archive, never delete).
+
+---
+Task ID: 4-b
+Agent: general-purpose (vertical picker UI)
+Task: v35 «صنف فروشگاه» picker UI on Admin → ظاهر (top section).
+
+Work Log:
+- src/app/admin/(panel)/appearance/page.tsx: new section above template cards — 5 vertical cards (lucide Cpu/Shirt/Sparkles/Gamepad2/Car in tinted squares, nameFa/nameEn, tagline, descFa line-clamp-2, Persian counts «۲۰ محصول · ۹ دسته · ۸ برند», flagship template chip), active card golden ring «صنف فعال», apply button opens confirm dialog (catalog replace explanation, renameStore Switch default on, backup reminder, warning line), PUT mutation → toast + invalidate + reload after 1.2s, skeleton cards while loading, GET-error graceful note.
+
+Stage Summary:
+- Vertical picker UI wired to GET/PUT /api/admin/vertical per the shared contract; RTL + mobile-safe.

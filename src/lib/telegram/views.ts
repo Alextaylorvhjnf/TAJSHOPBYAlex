@@ -6,7 +6,7 @@
  *
  * Callback-data grammar (≤64 bytes):
  *   m:main m:shop m:cats:<pg> m:cat:<slug>:<pg> m:all:<pg> m:new:<pg>
- *   m:disc:<pg> m:spec:<pg> m:feat:<pg> m:ai m:search m:cart m:track
+ *   m:disc:<pg> m:spec:<pg> m:feat:<pg> m:ai m:search m:cmp m:cart m:track
  *   m:tickets m:help m:site m:notif
  *   p:<productId> pa:<productId> pc:<productId> cr:<productId>:<colorIdx>
  *   cmp:<productId>
@@ -29,6 +29,9 @@ import { ORDER_STATUS_EMOJI, ORDER_STATUS_FA, PAYMENT_STATUS_FA } from "./types"
 import type { Order, Prisma } from "@prisma/client";
 
 const PER_PAGE = 6;
+
+/** v35: subtle divider under section headers (catalog/category lists). */
+const DIVIDER = "─────────────";
 
 // ─────────────────────────── product queries ───────────────────────────
 
@@ -98,20 +101,19 @@ export async function sendWelcome(ctx: TelegramSendCtx) {
         `👑 <b>به ${esc(s)} خوش آمدید، ${name}!</b>`,
         "",
         "🛍 فروشگاه کامل، همین‌جا داخل تلگرام:",
-        "• 📱 کاتالوگ محصولات و جدیدترین‌ها",
-        "• 🔍 جستجو و 🤖 مشاور خرید هوش مصنوعی",
-        "• ⚖️ مقایسه محصولات",
-        "• 🛒 سبد خرید و پرداخت (زرین‌پال / کارت به کارت)",
-        "• 📦 پیگیری سفارش و 🎫 پشتیبانی",
+        "خرید مستقیم، پرداخت زرین‌پال، پیگیری سفارش و گفتگو با مشاور AI 🧠",
         "",
-        "از منوی پایین استفاده کنید یا 👇",
+        "از منوی پایین استفاده کنید 👇",
       ].join("\n");
+  // v35: emoji-coded, consistently grouped main menu (labels only — all
+  // callback_data values are the ones shipped in v33; m:cmp is new & additive)
   await ctx.send(
     text,
     kb([
-      [{ text: "🛍 فروشگاه", callback_data: "m:shop" }, { text: "🆕 تازه‌ها", callback_data: "m:new:1" }],
-      [{ text: "🏷 تخفیف‌دارها", callback_data: "m:disc:1" }, { text: "⭐ ویژه‌ها", callback_data: "m:spec:1" }],
-      [{ text: "🤖 مشاور AI", callback_data: "m:ai" }, { text: "📦 پیگیری سفارش", callback_data: "m:track" }],
+      [{ text: "🛍 کاتالوگ", callback_data: "m:shop" }, { text: "🔍 جستجو", callback_data: "m:search" }],
+      [{ text: "🧠 مشاور AI", callback_data: "m:ai" }, { text: "🆚 مقایسه", callback_data: "m:cmp" }],
+      [{ text: "🛒 سبد خرید", callback_data: "m:cart" }, { text: "📦 پیگیری سفارش", callback_data: "m:track" }],
+      [{ text: "🎁 تخفیف‌ها", callback_data: "m:disc:1" }, { text: "🆘 پشتیبانی", callback_data: "m:tickets" }],
     ])
   );
 }
@@ -165,7 +167,7 @@ export async function sendShop(ctx: TelegramSendCtx) {
   ]);
   rows.push([{ text: "🏷 تخفیف‌دارها", callback_data: "m:disc:1" }, { text: "⭐ ویژه‌ها", callback_data: "m:spec:1" }]);
   rows.push([{ text: "⬅️ منوی اصلی", callback_data: "m:main" }]);
-  await ctx.send("🛍 <b>فروشگاه</b>\nیک دسته را انتخاب کنید:", kb(rows));
+  await ctx.send(`🛍 <b>فروشگاه</b>\n${DIVIDER}\nیک دسته را انتخاب کنید:`, kb(rows));
 }
 
 // ─────────────────────────── generic product list ───────────────────────────
@@ -228,7 +230,7 @@ export async function sendProductList(ctx: TelegramSendCtx, kind: ListKind, arg:
     return;
   }
 
-  const lines = [`${title} — ${fa(total)} محصول`, ""];
+  const lines = [`${title} — ${fa(total)} محصول`, DIVIDER, ""];
   for (const p of items) {
     const d = liveDiscount(p);
     lines.push(`🔸 <b>${esc(p.name)}</b>`);
@@ -250,7 +252,7 @@ export async function sendProductListCards(ctx: TelegramSendCtx, kind: ListKind,
   const { where, title } = await buildListWhere(kind, arg);
   const [total, items] = await Promise.all([countProducts(where), listProducts(where, page)]);
   const pages = Math.max(1, Math.ceil(total / PER_PAGE));
-  const lines = [`${title} — روی هر محصول بزنید:`, `(${fa(total)} محصول · صفحه ${fa(page)} از ${fa(pages)})`];
+  const lines = [`${title} — روی هر محصول بزنید:`, DIVIDER, `(${fa(total)} محصول · صفحه ${fa(page)} از ${fa(pages)})`];
   await ctx.send(lines.join("\n"), listKeyboard(kind, arg, page, pages));
   for (const p of items) {
     await sendProduct(ctx, p.id);
@@ -376,7 +378,7 @@ export async function sendCart(ctx: TelegramSendCtx) {
     { text: "➖", callback_data: `cq:${idx}:-` },
     { text: "🗑", callback_data: `crm:${idx}` },
   ]);
-  rows.push([{ text: "✅ ثبت سفارش", callback_data: "co" }]);
+  rows.push([{ text: "۱) ✅ ثبت سفارش", callback_data: "co" }]);
   rows.push([{ text: "🛍 ادامه خرید", callback_data: "m:shop" }, { text: "🧹 خالی کردن سبد", callback_data: "cartclear" }]);
   await ctx.send(lines.join("\n"), kb(rows));
 }
@@ -463,7 +465,13 @@ export async function sendOrderView(ctx: TelegramSendCtx, orderNumber: string) {
     await ctx.send("😕 سفارشی با این شماره پیدا نشد.\nشماره را دقیقاً از پیام تأیید سفارش کپی کنید (مثل <code>TAJ-XXXXX-XXXX</code>).");
     return;
   }
-  await ctx.send(renderOrderText(o), kb([[{ text: "⬅️ منوی اصلی", callback_data: "m:main" }]]));
+  await ctx.send(
+    renderOrderText(o),
+    kb([
+      [{ text: "🛒 سفارش‌های من", callback_data: "m:track" }, { text: "🆘 تیکت جدید", callback_data: "tknew" }],
+      [{ text: "⬅️ منوی اصلی", callback_data: "m:main" }],
+    ])
+  );
 }
 
 export async function sendTrackPrompt(ctx: TelegramSendCtx) {
@@ -479,6 +487,7 @@ export async function sendTrackPrompt(ctx: TelegramSendCtx) {
       rows.push([{ text: `${ORDER_STATUS_EMOJI[o.status] ?? "•"} ${o.orderNumber}`, callback_data: `or:${o.orderNumber}` }]);
     }
   }
+  rows.push([{ text: "🆘 تیکت جدید", callback_data: "tknew" }]);
   rows.push([{ text: "⬅️ منوی اصلی", callback_data: "m:main" }]);
   await ctx.send(lines.join("\n"), kb(rows));
 }

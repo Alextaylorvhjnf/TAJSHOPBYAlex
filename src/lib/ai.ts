@@ -3,6 +3,7 @@ import { serializeProduct, productInclude } from "@/lib/product";
 import { getAISettings, getStoreSettings, getPaymentSettings } from "@/lib/settings";
 import { smartSearchProducts } from "@/lib/ai-search";
 import { logSystemEvent } from "@/lib/admin-log";
+import { getVerticalDef } from "@/lib/verticals";
 
 // ─────────────────────────── Default system prompt ───────────────────────────
 
@@ -613,6 +614,14 @@ export async function buildSystemPrompt(productContext?: string): Promise<string
     base,
     `\n\n## اطلاعات فروشگاه: نام: ${store.storeName} | تماس: ${store.phone} | واحد پول: ${store.currency}`,
   ];
+  /* v35 · «صنف فروشگاه»: the ACTIVE vertical defines the assistant's persona
+   * and expertise domain (a beauty adviser for cosmetics, a gear-head for auto
+   * parts, …) — switched from Admin → ظاهر → «صنف فروشگاه».
+   * (verticals/index.ts imports only pure-data catalogs → no import cycle.) */
+  const vertical = getVerticalDef(store.activeVertical);
+  parts.push(
+    `\n\n## شخصیت و حوزهٔ تخصصی دستیار (صنف فروشگاه: ${vertical.nameFa}):\n${vertical.aiPersona}\nفقط در همین حوزه مشاوره بده؛ برای موضوعات خارج از صنف فروشگاه، مودبانه موضوع را به همین فروشگاه برگردان.`
+  );
   if (productContext) {
     parts.push(
       `\n\n## زمینه محصول (کاربر همین حالا در صفحه این محصول است):\n${productContext}`,

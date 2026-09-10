@@ -606,6 +606,12 @@ model StoreSettings {
   // Presentation-layer ONLY — switching never touches store data (spec §21/§22).
   // One of TEMPLATE_IDS in src/lib/templates/registry.ts; default "modern-tech".
   activeTemplate       String  @default("modern-tech")
+  // v35 · «صنف فروشگاه» (store vertical) — which industry vertical the shop
+  // currently runs (electronics/fashion/beauty/gaming/autoparts). Switching
+  // (Admin → ظاهر → «صنف فروشگاه» / PUT /api/admin/vertical) reseeds the
+  // catalog to the vertical's real products and activates its flagship
+  // template. Defaults to electronics.
+  activeVertical        String  @default("electronics")
   // v25: admin-set GLOBAL countdown deadline (ISO) used by templates that
   // register a "timer" feature (christmas / gaming-cyber / flash-deals /
   // techhub-dark …). null = templates fall back to their designed defaults

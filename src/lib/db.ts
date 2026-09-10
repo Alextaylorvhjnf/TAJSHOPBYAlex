@@ -111,6 +111,9 @@ const V29_COLUMN_PATCHES: Record<string, string[]> = {
     '"storeChrome" TEXT',
     // v34.1: «خرید از ربات تلگرامی» footer button link
     '"telegramBotUrl" TEXT',
+    // v35: «صنف فروشگاه» (store vertical) — electronics/fashion/beauty/
+    // gaming/autoparts (see PUT /api/admin/vertical). Defaults to electronics.
+    `"activeVertical" TEXT DEFAULT 'electronics'`,
   ],
 }
 
