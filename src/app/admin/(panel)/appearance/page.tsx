@@ -404,19 +404,18 @@ function VerticalPickerSection({ templateNames }: { templateNames: Record<string
 
   const { data: vData, isLoading: vLoading, isError: vIsError, error: vError } = useQuery({
     queryKey: ["admin", "vertical"],
-    queryFn: () => apiFetch<{ data: VerticalsResponse }>("/api/admin/vertical"),
+    queryFn: () => apiFetch<VerticalsResponse>("/api/admin/vertical"),
   });
 
   const applyVertical = useMutation({
     mutationFn: (input: { verticalId: string; renameStore: boolean }) =>
-      apiFetch<{ data: VerticalApplyResponse }>("/api/admin/vertical", {
+      apiFetch<VerticalApplyResponse>("/api/admin/vertical", {
         method: "PUT",
         body: JSON.stringify(input),
       }),
     onSuccess: (json) => {
-      const d = json.data;
-      const counts = `${toFaDigits(d?.products ?? 0)} محصول، ${toFaDigits(d?.categories ?? 0)} دسته و ${toFaDigits(d?.brands ?? 0)} برند جایگزین شد`;
-      toast.success(d?.message ? `${d.message} — ${counts}` : counts);
+      const counts = `${toFaDigits(json?.products ?? 0)} محصول، ${toFaDigits(json?.categories ?? 0)} دسته و ${toFaDigits(json?.brands ?? 0)} برند جایگزین شد`;
+      toast.success(json?.message ? `${json.message} — ${counts}` : counts);
       setPendingVertical(null);
       setRenameStore(true);
       /* refresh every admin query (this section + the template grid), then
@@ -428,8 +427,8 @@ function VerticalPickerSection({ templateNames }: { templateNames: Record<string
     onError: (e) => toast.error(e instanceof Error ? e.message : "اعمال صنف ناموفق بود"),
   });
 
-  const verticals = vData?.data.verticals ?? [];
-  const currentVertical = vData?.data.current ?? "";
+  const verticals = vData?.verticals ?? [];
+  const currentVertical = vData?.current ?? "";
 
   return (
     <section className="space-y-4" aria-label="صنف فروشگاه">

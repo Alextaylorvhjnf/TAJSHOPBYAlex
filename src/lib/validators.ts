@@ -83,9 +83,9 @@ export const smtpSettingsSchema = z.object({
  *  the test, so an admin who just typed host/port/user/pass can test the
  *  connection immediately without a full form failing validation. */
 export const smtpConnectionTestSchema = z.object({
-  host: z.string().trim().min(1, "SMTP Host الزامی است").max(255),
-  port: z.number().int().min(1, "پورت معتبر نیست").max(65535),
-  security: z.enum(SMTP_SECURITY_OPTIONS).optional(),
+  host: z.string({ error: "آدرس سرور SMTP الزامی است" }).trim().min(1, "SMTP Host الزامی است").max(255),
+  port: z.number({ error: "پورت SMTP الزامی است" }).int().min(1, "پورت معتبر نیست").max(65535, "پورت معتبر نیست"),
+  security: z.enum(SMTP_SECURITY_OPTIONS, { message: "نوع اتصال معتبر نیست" }).optional(),
   username: z.string().trim().max(320).optional(),
   password: z.string().max(1024).optional(),
 });
