@@ -706,3 +706,20 @@ Work Log:
 
 Stage Summary:
 - v35 complete & committed (279dca3): 5 independent verticals (catalog+template+AI persona+picker+atomic reseeding), all 9 user-reported bugs fixed, telegram bot UX upgrade, merge of remote v34.1/v34.2 production fixes. Update zip 89.9MB + full package 168MB ready. ONLY the git push is blocked by an expired token — user must refresh it (or push themselves) for the panel update channel to go live.
+
+---
+Task ID: 6
+Agent: main (Z.ai Code)
+Task: Push v35 (29.1.0) to GitHub with user-provided token + deliver final full-project ZIP.
+
+Work Log:
+- Updated origin remote with new GitHub token (ghp_***).
+- Pushed 23 commits (3266e0e..6b59a73, v35 / 29.1.0) to Alextaylorvhjnf/TAJSHOPBYAlex main. First attempt timed out at 300s; retry with 590s window succeeded.
+- Verified remote state: git status in sync (0 ahead), update-manifest.json on raw.githubusercontent serves version 29.1.0, zipUrl live (HTTP 200, application/zip), SHA-256 manifest value matches local file (901fe4aefd46e1c6542371405738e40956e619c07b244dca0dd4bbf999ef3573).
+- Built final deliverable TAJ-SHOP-FULL-v29.1.0.zip (208 MB, 879 files) — full source + public product images + db + prisma + updates manifest; excludes .git/node_modules/.next/download/skills/old update zips. Integrity test passed.
+- Confirmed dev server healthy (GET / = 200) and Telegram bot poller running (prisma queries active in dev.log).
+
+Stage Summary:
+- v29.1.0 live on GitHub: https://github.com/Alextaylorvhjnf/TAJSHOPBYAlex
+- Update channel ready: panel on 29.0.1 → «بررسی به‌روزرسانی» → downloads 94.3 MB ZIP → SHA-256 verified → applies update.
+- Full project ZIP at /home/z/my-project/TAJ-SHOP-FULL-v29.1.0.zip (208 MB).
