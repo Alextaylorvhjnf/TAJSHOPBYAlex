@@ -38,6 +38,12 @@ import { TechhubDarkTemplate } from "./techhub-dark";
 import { PurpleMallTemplate } from "./purple-mall";
 import { NovaGlassTemplate } from "./nova-glass";
 import { NovatrendCleanTemplate } from "./novatrend-clean";
+/* v35 · vertical flagship storefronts (صنف‌های فروشگاه) */
+import { TajElectronicsProTemplate } from "./taj-electronics-pro";
+import { SportFashionTemplate } from "./sport-fashion";
+import { BeautyGlowTemplate } from "./beauty-glow";
+import { ZentryGamingTemplate } from "./zentry-gaming";
+import { AutoPartsTemplate } from "./auto-parts";
 
 export function TemplateRenderer({ id, data }: { id: string; data: HomeData }) {
   switch (getTemplateDef(id).id) {
@@ -89,6 +95,17 @@ export function TemplateRenderer({ id, data }: { id: string; data: HomeData }) {
       return <NovaGlassTemplate data={data} />;
     case "novatrend-clean":
       return <NovatrendCleanTemplate data={data} />;
+    /* v35 · vertical flagship storefronts */
+    case "taj-electronics-pro":
+      return <TajElectronicsProTemplate data={data} />;
+    case "sport-fashion":
+      return <SportFashionTemplate data={data} />;
+    case "beauty-glow":
+      return <BeautyGlowTemplate data={data} />;
+    case "zentry-gaming":
+      return <ZentryGamingTemplate data={data} />;
+    case "auto-parts":
+      return <AutoPartsTemplate data={data} />;
     case "modern-tech":
     default:
       return <ModernTechTemplate data={data} />;

@@ -61,12 +61,20 @@ import { TechhubDarkTemplate } from "@/components/store/templates/techhub-dark";
 import { PurpleMallTemplate } from "@/components/store/templates/purple-mall";
 import { NovaGlassTemplate } from "@/components/store/templates/nova-glass";
 import { NovatrendCleanTemplate } from "@/components/store/templates/novatrend-clean";
+/* v35 · vertical flagship storefronts (صنف‌های فروشگاه) */
+import { TajElectronicsProTemplate } from "@/components/store/templates/taj-electronics-pro";
+import { SportFashionTemplate } from "@/components/store/templates/sport-fashion";
+import { BeautyGlowTemplate } from "@/components/store/templates/beauty-glow";
+import { ZentryGamingTemplate } from "@/components/store/templates/zentry-gaming";
+import { AutoPartsTemplate } from "@/components/store/templates/auto-parts";
+import { Car, Shirt } from "lucide-react";
 
 /** registry icon name → lucide component (registry stays pure data) */
 const TEMPLATE_ICONS: Record<string, LucideIcon> = {
   Cpu, Orbit, Square, Smartphone, Leaf, Snowflake, Moon, Gamepad2, Crown, LayoutGrid,
   Shapes, Palette, Sparkles, Newspaper, Store, MoonStar, Zap, BookOpen, Rocket,
   Sparkle, Waves, ShoppingBag, Gem, ShoppingCart,
+  Car, Shirt,
 };
 
 /** template id → preview component (all bundled: this page previews any of them) */
@@ -96,6 +104,12 @@ const TEMPLATE_COMPONENTS: Record<string, (props: { data: HomeData }) => ReactNo
   "purple-mall": PurpleMallTemplate,
   "nova-glass": NovaGlassTemplate,
   "novatrend-clean": NovatrendCleanTemplate,
+  /* v35 · vertical flagship storefronts */
+  "taj-electronics-pro": TajElectronicsProTemplate,
+  "sport-fashion": SportFashionTemplate,
+  "beauty-glow": BeautyGlowTemplate,
+  "zentry-gaming": ZentryGamingTemplate,
+  "auto-parts": AutoPartsTemplate,
 };
 
 type TemplatesResponse = {
