@@ -37,6 +37,7 @@ import {
   Bot,
   Check,
   CheckCircle2,
+  Clock,
   HelpCircle,
   ImagePlus,
   KeyRound,
@@ -302,19 +303,16 @@ function MaintenancePreviewDialog({
 /* ═══════════════ v32 (13-d) · «حالت تعمیر» — dedicated maintenance section ═══════════════ */
 
 /**
- * v32 (13-d) · COMPACT square live template card («قالب صفحهٔ تعمیر» section) —
- * the owner asked for small cards instead of the v31 416px monsters: a
- * SQUARE mini-browser viewport (~aspect-square, 2×2 at ≥sm / 4 columns at
- * xl) renders the REAL repair-page template — the exact component closed
- * visitors see, with this form's own words/logo/contacts (even unsaved).
- * The page's real height is MEASURED with a ResizeObserver (it is h-dvh of
- * the admin window) and fitted with a CSS transform clamped to [0.16, 0.34],
- * transform-origin center — the whole page is always fully visible and the
- * horizontal overhang at 1280px logical width clips symmetrically (each
- * template centers its content). Clicking the card / «انتخاب این قالب»
- * writes maintenanceTemplate; «پیش‌نمایش زنده» opens the full-size
- * MaintenancePreviewDialog. The ACTIVE template wears the GOLDEN ring
- * («کادر طلایی») the owner asked for.
+ * v35 · RECTANGULAR live template card («قالب صفحهٔ تعمیر» section) —
+ * the owner asked for 2×2 rectangular previews (two top, two bottom)
+ * instead of the v32 square "cylinders": each card renders the REAL
+ * repair-page template in a WIDE (16:10) mini-browser frame so the whole
+ * page is fully visible (scale fits BOTH width and height, no clipping).
+ * The page's real height is MEASURED with a ResizeObserver and fitted with
+ * a CSS transform; transform-origin center. Clicking the card /
+ * «انتخاب این قالب» writes maintenanceTemplate; «پیش‌نمایش زنده» opens the
+ * full-size MaintenancePreviewDialog. The ACTIVE template wears the
+ * GOLDEN ring («کادر طلایی»).
  */
 function MaintenanceTemplateCard({
   tpl,
@@ -338,9 +336,13 @@ function MaintenanceTemplateCard({
     const inner = innerRef.current;
     if (!box || !inner) return;
     const measure = () => {
-      const bh = box.clientHeight || 230;
+      const bh = box.clientHeight || 200;
+      const bw = box.clientWidth || 320;
       const ph = inner.offsetHeight || 900;
-      setScale(Math.max(0.16, Math.min(0.34, bh / ph)));
+      /* v35: fit BOTH axes — the whole page fits the rectangular frame
+       * with NO horizontal clipping (the owner's explicit request). */
+      const fit = Math.min(bw / 1280, bh / ph);
+      setScale(Math.max(0.08, fit));
     };
     measure();
     const ro = new ResizeObserver(measure);
@@ -393,7 +395,8 @@ function MaintenanceTemplateCard({
               {tpl.nameEn}
             </span>
           </div>
-          <div ref={boxRef} className="relative aspect-square w-full overflow-hidden">
+          {/* v35: 16:10 RECTANGULAR frame — two top, two bottom (2×2 grid) */}
+          <div ref={boxRef} className="relative aspect-[16/10] w-full overflow-hidden">
             <div className="absolute inset-0 flex items-center justify-center overflow-hidden">
               <div
                 ref={innerRef}
@@ -519,9 +522,9 @@ function MaintenanceTab() {
       <div className="space-y-4">
         <Skeleton className="h-36 rounded-xl" />
         <Skeleton className="h-80 rounded-xl" />
-        {/* v32 (13-d): matches the new COMPACT square template cards */}
-        <div className="mx-auto grid w-full max-w-[36rem] grid-cols-2 gap-3 sm:gap-4 xl:mx-0 xl:max-w-none xl:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-[21.5rem] rounded-2xl" />)}
+        {/* v35: matches the new RECTANGULAR 2×2 template cards */}
+        <div className="mx-auto grid w-full max-w-3xl grid-cols-1 gap-4 sm:grid-cols-2">
+          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-72 rounded-2xl" />)}
         </div>
       </div>
     );
@@ -676,39 +679,112 @@ function MaintenanceTab() {
                 <Input id="mt-etanote" className="rounded-lg" value={texts.etaNote} onChange={(e) => setText("etaNote", e.target.value)} placeholder={def("etaNote")} />
               </Field>
             </div>
-            {/* v32 (13-d): admin-set countdown target — days + hours on top of
-             * the refresh-proof 18:00 anchor (empty = the designed default) */}
-            <Field label="تعداد روز شمارش" htmlFor="mt-cddays" hint="۰ تا ۳۶۵ — خالی = بدون روز اضافه">
-              <Input
-                id="mt-cddays"
-                type="number"
-                min={0}
-                max={365}
-                dir="ltr"
-                className="rounded-lg"
-                value={texts.countdownDays}
-                onChange={(e) => setText("countdownDays", e.target.value)}
-                placeholder="مثلاً ۲"
-              />
-            </Field>
-            <Field label="تعداد ساعت شمارش" htmlFor="mt-cdhours" hint="۰ تا ۲۳ — خالی = بدون ساعت اضافه">
-              <Input
-                id="mt-cdhours"
-                type="number"
-                min={0}
-                max={23}
-                dir="ltr"
-                className="rounded-lg"
-                value={texts.countdownHours}
-                onChange={(e) => setText("countdownHours", e.target.value)}
-                placeholder="مثلاً ۶"
-              />
-            </Field>
-            <div className="md:col-span-2">
-              <GuideNote>
-                اگر روز یا ساعت را تنظیم کنید، هدف شمارش معکوس «ساعت ۱۸:۰۰ (امروز یا فردا) به‌اضافهٔ مقدار شما» می‌شود و نوار پیشرفت و مراحل تعمیر کل همین مدت را پوشش می‌دهند. هر دو خالی = شمارش کوتاه پیش‌فرض تا ساعت ۱۸:۰۰.
-              </GuideNote>
+
+            {/* v35: EXACT countdown control — the owner asked for a real
+                date+time picker ("مثلاً سه روز و پنج دقیقه دیگه سایت آنلاین
+                می‌شه"). datetime-local + one-tap presets; the chosen moment
+                OVERRIDES the legacy 18:00 anchor entirely. */}
+            <div className="md:col-span-2 space-y-2.5">
+              <Field
+                label="زمان دقیق بازگشایی سایت (شمارش معکوس تا این لحظه)"
+                htmlFor="mt-endsat"
+                hint="تاریخ و ساعت دقیقی که فروشگاه دوباره آنلاین می‌شود"
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  <Input
+                    id="mt-endsat"
+                    type="datetime-local"
+                    dir="ltr"
+                    className="rounded-lg text-left"
+                    value={isoToLocalInputValue(texts.endsAt)}
+                    onChange={(e) => setText("endsAt", localInputValueToIso(e.target.value))}
+                  />
+                  {/* one-tap presets — computed from NOW */}
+                  {[
+                    { label: "۳ روز دیگر", ms: 3 * 86_400_000 },
+                    { label: "۵ روز دیگر", ms: 5 * 86_400_000 },
+                    { label: "۱ هفته دیگر", ms: 7 * 86_400_000 },
+                  ].map((p) => (
+                    <Button
+                      key={p.label}
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="rounded-lg text-[11px]"
+                      onClick={() => setText("endsAt", new Date(Date.now() + p.ms).toISOString())}
+                    >
+                      <Clock className="h-3.5 w-3.5" />
+                      {p.label}
+                    </Button>
+                  ))}
+                  {texts.endsAt && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="rounded-lg text-[11px] text-destructive hover:text-destructive"
+                      onClick={() => setText("endsAt", "")}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                      حذف زمان‌بندی
+                    </Button>
+                  )}
+                </div>
+              </Field>
+              {texts.endsAt && (
+                <p className="flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-[11px] font-bold text-emerald-700">
+                  <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+                  شمارش معکوس تا دقیقاً{" "}
+                  {new Intl.DateTimeFormat("fa-IR", {
+                    weekday: "long",
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  }).format(new Date(texts.endsAt))}{" "}
+                  تنظیم شد — پیشرفت و مراحل تعمیر همین بازه را پوشش می‌دهند.
+                </p>
+              )}
             </div>
+
+            {/* v32 (13-d) legacy relative offsets — kept as the fallback when
+                no exact time is set (empty = designed 18:00 default) */}
+            {!texts.endsAt && (
+              <>
+                <Field label="تعداد روز شمارش" htmlFor="mt-cddays" hint="۰ تا ۳۶۵ — خالی = بدون روز اضافه">
+                  <Input
+                    id="mt-cddays"
+                    type="number"
+                    min={0}
+                    max={365}
+                    dir="ltr"
+                    className="rounded-lg"
+                    value={texts.countdownDays}
+                    onChange={(e) => setText("countdownDays", e.target.value)}
+                    placeholder="مثلاً ۲"
+                  />
+                </Field>
+                <Field label="تعداد ساعت شمارش" htmlFor="mt-cdhours" hint="۰ تا ۲۳ — خالی = بدون ساعت اضافه">
+                  <Input
+                    id="mt-cdhours"
+                    type="number"
+                    min={0}
+                    max={23}
+                    dir="ltr"
+                    className="rounded-lg"
+                    value={texts.countdownHours}
+                    onChange={(e) => setText("countdownHours", e.target.value)}
+                    placeholder="مثلاً ۶"
+                  />
+                </Field>
+                <div className="md:col-span-2">
+                  <GuideNote>
+                    اگر «زمان دقیق بازگشایی» را تنظیم کنید، شمارش معکوس تا همان لحظهٔ دقیق فعال می‌شود. در غیر این صورت اگر روز یا ساعت را تنظیم کنید، هدف «ساعت ۱۸:۰۰ (امروز یا فردا) به‌اضافهٔ مقدار شما» می‌شود. هر سه خالی = شمارش کوتاه پیش‌فرض تا ساعت ۱۸:۰۰.
+                  </GuideNote>
+                </div>
+              </>
+            )}
 
             <p className="md:col-span-2 flex items-center gap-1.5 text-xs font-black text-muted-foreground">
               <ImagePlus className="h-3.5 w-3.5 text-primary/70" />
@@ -745,10 +821,11 @@ function MaintenanceTab() {
         </CardHeader>
         <CardContent className="space-y-4">
           <GuideNote>
-            قالب ظاهر صفحه‌ای را که بازدیدکنندهٔ عادی در حالت تعمیر می‌بیند انتخاب کنید — هر کارت کوک، خودِ همان قالب را به‌صورت زنده و کامل در یک قاب مربعی نشان می‌دهد و با متن‌ها، لوگو و اطلاعات تماسِ همین فرم (حتی ذخیره‌نشده) به‌روز می‌شود. کارت فعال با کادر طلایی مشخص می‌شود؛ برای دیدن قالب در اندازهٔ واقعی، «پیش‌نمایش زنده» را بزنید.
+            قالب ظاهر صفحه‌ای را که بازدیدکنندهٔ عادی در حالت تعمیر می‌بیند انتخاب کنید — هر کارت، خودِ همان قالب را به‌صورت زنده و کامل در یک قاب مستطیلی نشان می‌دهد و با متن‌ها، لوگو و اطلاعات تماسِ همین فرم (حتی ذخیره‌نشده) به‌روز می‌شود. کارت فعال با کادر طلایی مشخص می‌شود؛ برای دیدن قالب در اندازهٔ واقعی، «پیش‌نمایش زنده» را بزنید.
           </GuideNote>
-          {/* v32 (13-d): COMPACT square cards — 2×2 at ≥sm, 4 columns at xl */}
-          <div className="mx-auto grid w-full max-w-[36rem] grid-cols-2 gap-3 sm:gap-4 xl:mx-0 xl:max-w-none xl:grid-cols-4">
+          {/* v35: RECTANGULAR 2×2 grid (two top, two bottom) — wide 16:10
+              frames, the whole page fully visible (both axes fitted) */}
+          <div className="mx-auto grid w-full max-w-3xl grid-cols-1 gap-4 sm:grid-cols-2">
             {MAINTENANCE_TEMPLATES.map((t) => (
               <MaintenanceTemplateCard
                 key={t.id}
@@ -1746,6 +1823,7 @@ function SMTPTab() {
   const save = async () => {
     if (!form || saving) return;
     if (!form.host.trim()) return toast.error("SMTP Host الزامی است");
+    if (!form.port || form.port < 1) return toast.error("پورت SMTP را وارد کنید (مثلاً ۵۸۷ یا ۴۶۵)");
     setSaving(true);
     try {
       const payload: Record<string, unknown> = {
@@ -1765,7 +1843,28 @@ function SMTPTab() {
         method: "PUT",
         body: JSON.stringify(payload),
       });
-      toast.success(json.message ?? "تنظیمات ذخیره شد");
+      /* v35: INSTANT verification — the save is persisted, then a silent
+       * connection test against the JUST-SAVED settings runs immediately so
+       * one click answers "ذخیره شد؟ اتصال درسته؟" at once. */
+      let connOk: boolean | null = null;
+      let connMsg = "";
+      try {
+        const t = await apiFetch<{ success?: boolean; message?: string }>("/api/admin/settings/smtp-test", {
+          method: "POST",
+          body: JSON.stringify({}),
+        });
+        connOk = !!t.success;
+        connMsg = t.message ?? "";
+      } catch {
+        connOk = null;
+      }
+      if (connOk === true) {
+        toast.success(`${json.message ?? "تنظیمات ذخیره شد"} — ${connMsg || "اتصال SMTP هم تأیید شد"}`);
+      } else if (connOk === false) {
+        toast.warning(`${json.message ?? "تنظیمات ذخیره شد"} — اما ${connMsg || "اتصال SMTP برقرار نشد"}`);
+      } else {
+        toast.success(json.message ?? "تنظیمات ذخیره شد");
+      }
       setPw("");
       /* v27.1: refetch + explicit justSaved state — the admin SEES the saved
        * credentials (host/port/username + password-saved chip + save time)
@@ -1786,16 +1885,18 @@ function SMTPTab() {
 
   const testConnection = async () => {
     if (testing) return;
+    if (!form?.host?.trim()) return toast.error("ابتدا SMTP Host را وارد کنید");
+    if (!form.port || form.port < 1) return toast.error("پورت SMTP را وارد کنید");
     setTesting(true);
     try {
-      // test the current form values (unsaved) — password falls back to the stored one
+      /* v35: connection-only payload — sender identity is NOT required for a
+       * connection test, so a half-filled form can no longer fail validation
+       * before the real socket test runs. */
       const payload: Record<string, unknown> = {
-        host: form?.host ?? "",
-        port: form?.port ?? 587,
-        security: form?.security ?? "STARTTLS",
-        username: form?.username ?? "",
-        fromName: form?.fromName ?? "",
-        fromEmail: form?.fromEmail ?? "",
+        host: form.host,
+        port: form.port,
+        security: form.security,
+        username: form.username,
       };
       if (pw.trim() !== "") payload.password = pw;
       const json = await apiFetch<{ success?: boolean; message?: string }>("/api/admin/settings/smtp-test", {
@@ -2027,6 +2128,9 @@ interface MaintenanceContentForm {
   logoUrl: string;
   countdownDays: string;
   countdownHours: string;
+  /* v35: EXACT countdown target — ISO string from the datetime-local input
+   * ("" = legacy next-18:00 + days/hours behavior) */
+  endsAt: string;
 }
 
 /** parse the raw JSON string into an editable all-strings form */
@@ -2034,15 +2138,33 @@ function parseMaintenanceContentForm(raw: string | null | undefined): Maintenanc
   const empty: MaintenanceContentForm = {
     titleSuffix: "", badge: "", description: "", phoneLabel: "", emailLabel: "",
     hoursLabel: "", trackingTitle: "", trackingDesc: "", trackingButton: "", footerNote: "",
-    etaNote: "", logoUrl: "", countdownDays: "", countdownHours: "",
+    etaNote: "", logoUrl: "", countdownDays: "", countdownHours: "", endsAt: "",
   };
   if (!raw?.trim()) return empty;
   try {
     const parsed = JSON.parse(raw) as Partial<MaintenanceContentForm>;
-    return { ...empty, ...(parsed ?? {}) };
+    return { ...empty, ...(parsed ?? {}), endsAt: parsed.endsAt ?? "" };
   } catch {
     return empty;
   }
+}
+
+/** v35: datetime-local needs "YYYY-MM-DDTHH:mm" (minutes precision) in the
+ * user's LOCAL time — the stored value is a full ISO string. */
+function isoToLocalInputValue(iso: string): string {
+  if (!iso) return "";
+  const t = Date.parse(iso);
+  if (Number.isNaN(t)) return "";
+  const d = new Date(t);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+/** v35: "YYYY-MM-DDTHH:mm" → full ISO; "" stays "". */
+function localInputValueToIso(v: string): string {
+  if (!v.trim()) return "";
+  const t = new Date(v).getTime();
+  return Number.isNaN(t) ? "" : new Date(t).toISOString();
 }
 
 interface FooterLinkRow {

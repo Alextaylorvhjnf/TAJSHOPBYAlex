@@ -284,6 +284,56 @@ export const TEMPLATE_DEFS: TemplateDef[] = [
     icon: "ShoppingCart",
     family: "modern",
   },
+  /* ══ v35 · «صنف فروشگاه» — industry vertical storefronts ═══════════
+   * Each vertical (electronics/fashion/beauty/gaming/autoparts) has ONE
+   * dedicated flagship template with its own catalog, look and AI persona.
+   * Switching verticals from Admin → ظاهر → «صنف فروشگاه» reseeds the
+   * catalog and activates these. */
+  {
+    id: "taj-electronics-pro",
+    nameFa: "تاج الکترونیکس پرو",
+    nameEn: "Taj Electronics Pro",
+    descFa: "پرچمدار صنف الکترونیکس — سفید نوا‌تِک، لهجهٔ بنفش، هیرو دو‌ستونه با محصول شناور و کارت‌های گرد حرفه‌ای.",
+    tags: ["الکترونیکس", "روشن", "پرچمدار صنف"],
+    icon: "Cpu",
+    family: "modern",
+  },
+  {
+    id: "sport-fashion",
+    nameFa: "اسپرت و فشن",
+    nameEn: "Sport & Fashion",
+    descFa: "پرچمدار صنف پوشاک — ادیتوریال اسپرت، تایپ نمایشی، حباب ارگانیک کورال و ردیف‌های شماره‌دار پرفروش‌ها.",
+    tags: ["پوشاک", "فشن", "ادیتوریال"],
+    icon: "Shirt",
+    family: "modern",
+  },
+  {
+    id: "beauty-glow",
+    nameFa: "بیوتی گلو",
+    nameEn: "Beauty Glow",
+    descFa: "پرچمدار صنف آرایشی و بهداشتی — رز و طلای نرم، سکوهای محصول لوکس و کارت‌های شیشه‌ای گل‌رنگ.",
+    tags: ["آرایشی", "زیبایی", "لوکس"],
+    icon: "Sparkles",
+    family: "luxury",
+  },
+  {
+    id: "zentry-gaming",
+    nameFa: "زنتری گیمینگ",
+    nameEn: "Zentry Gaming",
+    descFa: "پرچمدار صنف گیمینگ — شب نئون بنفش/ماژنتا، سوییوش انحنایی، HUD زنده و حالت زرد DEAL ZONE.",
+    tags: ["گیمینگ", "نئون", "تاریک"],
+    icon: "Gamepad2",
+    family: "gaming",
+  },
+  {
+    id: "auto-parts",
+    nameFa: "قطعات خودرو",
+    nameEn: "Auto Parts",
+    descFa: "پرچمدار صنف خودرو — صنعتی زغالی و نارنجی ایمنی، تایپ صنعتی و نوارهای ابزار.",
+    tags: ["خودرو", "صنعتی", "تاریک"],
+    icon: "Car",
+    family: "marketplace",
+  },
 ];
 
 export const TEMPLATE_IDS = TEMPLATE_DEFS.map((t) => t.id);

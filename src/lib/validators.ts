@@ -59,8 +59,34 @@ export const smtpSettingsSchema = z.object({
   // "" یا مقدار ماسک‌شده = حفظ رمز ذخیره‌شده؛ مقدار جدید = ذخیره (رمزنگاری‌شده)
   password: z.string().max(1024).optional(),
   fromName: z.string().trim().max(120),
-  fromEmail: z.string().trim().email("ایمیل فرستنده معتبر نیست"),
-  replyTo: z.string().trim().email("ایمیل پاسخ معتبر نیست").or(z.literal("")).nullable().optional(),
+  /* v35: empty fromEmail is now VALID at the schema level — the admin can
+   * save credentials first and fill the sender later. isSmtpConfigured()
+   * still guards actual SENDING until the field is completed. This removes
+   * the "flaky save" (a half-filled form silently failing validation). */
+  fromEmail: z
+    .string()
+    .trim()
+    .max(320)
+    .refine((v) => v === "" || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), "ایمیل فرستنده معتبر نیست"),
+  replyTo: z
+    .string()
+    .trim()
+    .max(320)
+    .refine((v) => v === "" || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), "ایمیل پاسخ معتبر نیست")
+    .nullable()
+    .optional(),
+});
+
+/** v35: connection-test payload — ONLY the fields a connection test needs.
+ *  Sender identity (fromEmail/fromName/replyTo) is explicitly NOT part of
+ *  the test, so an admin who just typed host/port/user/pass can test the
+ *  connection immediately without a full form failing validation. */
+export const smtpConnectionTestSchema = z.object({
+  host: z.string().trim().min(1, "SMTP Host الزامی است").max(255),
+  port: z.number().int().min(1, "پورت معتبر نیست").max(65535),
+  security: z.enum(SMTP_SECURITY_OPTIONS).optional(),
+  username: z.string().trim().max(320).optional(),
+  password: z.string().max(1024).optional(),
 });
 
 export const smtpTestEmailSchema = z.object({
@@ -355,6 +381,9 @@ export const storeSettingsSchema = z.object({
       logoUrl: z.string().max(500).optional().nullable(),
       countdownDays: z.string().max(8).optional().nullable(),
       countdownHours: z.string().max(8).optional().nullable(),
+      /* v35: EXACT countdown target — ISO datetime string chosen by the admin
+       * (datetime-local input). Empty/omitted = legacy anchor behavior. */
+      endsAt: z.string().max(40).optional().nullable(),
     })
     .optional()
     .nullable(),

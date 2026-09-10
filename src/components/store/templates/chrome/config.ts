@@ -73,6 +73,12 @@ export const MEGA_MENU_STYLES: Record<string, MegaMenuStyle> = {
   "print-catalog": "waterfall-product",
   "mobile-first-pwa": "waterfall-product",
   "purple-mall": "waterfall-product",
+  /* v35 · vertical storefronts */
+  "taj-electronics-pro": "images",
+  "sport-fashion": "images",
+  "beauty-glow": "images",
+  "zentry-gaming": "waterfall",
+  "auto-parts": "tree",
 };
 
 /** v32 (5-e): resolve a template's mega-menu style (unknown ids → tree). */
@@ -234,6 +240,12 @@ export const TEMPLATE_PALETTES: Record<string, ChromePalette> = {
   "purple-mall": { bg: "#1A1025", fg: "#F6EFFB" },
   "nova-glass": { bg: "#EEF3FA", fg: "#1E293B" },
   "novatrend-clean": { bg: "#FFFFFF", fg: "#1A1A1A" },
+  /* v35 · vertical storefronts — native (default) halves */
+  "taj-electronics-pro": { bg: "#FFFFFF", fg: "#1A1A24" },
+  "sport-fashion": { bg: "#FBF7F2", fg: "#201A14" },
+  "beauty-glow": { bg: "#FFF9F7", fg: "#2A1B20" },
+  "zentry-gaming": { bg: "#14061F", fg: "#F2E8FF" },
+  "auto-parts": { bg: "#131511", fg: "#EFF2E9" },
 };
 
 /* v26fix · LIGHT halves — the same values as TEMPLATE_CANVAS_MODES in
@@ -267,6 +279,12 @@ export const TEMPLATE_PALETTES_LIGHT: Record<string, ChromePalette> = {
   "purple-mall": { bg: "#F7F2FA", fg: "#31203F" },
   "nova-glass": { bg: "#131A24", fg: "#E5EBF4" }, /* v27b-T5: dark half */
   "novatrend-clean": { bg: "#16171A", fg: "#EDEDEF" }, /* v27b-T5: dark half */
+  /* v35 · vertical storefronts — OTHER-mode halves */
+  "taj-electronics-pro": { bg: "#191922", fg: "#ECEDF2" },
+  "sport-fashion": { bg: "#14161C", fg: "#EDEEF1" },
+  "beauty-glow": { bg: "#221618", fg: "#F5E9E6" },
+  "zentry-gaming": { bg: "#F5F0FB", fg: "#241040" },
+  "auto-parts": { bg: "#F4F4F0", fg: "#1E2024" },
 };
 
 export const TEMPLATE_CHROME: Record<string, TemplateChrome> = {
@@ -367,6 +385,27 @@ export const TEMPLATE_CHROME: Record<string, TemplateChrome> = {
   "novatrend-clean": {
     header: { variant: 1, tint: "theme", accent: "orange", sticky: true, ticker: true, tickerSpeed: 26, categoryRow: "photos", logo: "square", megaMenu: true },
     footer: { variant: 3, tint: "theme", accent: "orange", brandStrip: "photos", brandSpeed: 40, logo: "square" },
+  },
+  /* ── v35 · vertical storefronts (صنف‌های فروشگاه) ────────────── */
+  "taj-electronics-pro": {
+    header: { variant: 2, tint: "theme", accent: "violet", categoryRow: "photos", logo: "square", cartStyle: "popover", megaMenu: true },
+    footer: { variant: 6, tint: "theme", accent: "violet", brandStrip: "chips", categories: 6 },
+  },
+  "sport-fashion": {
+    header: { variant: 5, tint: "theme", accent: "orange", categoryRow: "chips", logo: "wordmark", megaMenu: true },
+    footer: { variant: 7, tint: "theme", accent: "orange", brandStrip: "photos", brandSpeed: 38, logo: "wordmark" },
+  },
+  "beauty-glow": {
+    header: { variant: 5, tint: "theme", accent: "rose", categoryRow: "photos", logo: "round", megaMenu: true },
+    footer: { variant: 2, tint: "theme", accent: "rose", brandStrip: "photos", brandSpeed: 34, round: true, logo: "round" },
+  },
+  "zentry-gaming": {
+    header: { variant: 7, tint: "theme", accent: "violet", ticker: true, tickerSpeed: 18, logo: "mono", megaMenu: true },
+    footer: { variant: 6, tint: "theme", accent: "violet", brandStrip: "photos", brandSpeed: 26, social: true },
+  },
+  "auto-parts": {
+    header: { variant: 1, tint: "theme", accent: "orange", sticky: true, ticker: true, tickerSpeed: 22, categoryRow: "chips", logo: "square", megaMenu: true },
+    footer: { variant: 4, tint: "theme", accent: "orange", trust: true, brandStrip: "chips" },
   },
 };
 

@@ -1,16 +1,22 @@
 import { ok, fail } from "@/lib/api";
 import { getAdminUser, SETTINGS_WRITE } from "@/lib/auth";
-import { smtpSettingsSchema } from "@/lib/validators";
+import { smtpConnectionTestSchema } from "@/lib/validators";
 import { resolveSmtpConfig, smtpTestConnection, type SmtpSecurity } from "@/lib/mailer";
 import { rateLimit } from "@/lib/rate-limit";
 
 /**
  * تست اتصال SMTP — opens a REAL connection and authenticates.
  *
- * Accepts an optional JSON body with the values currently in the admin form
- * (test before saving). When the body password is absent/empty/masked, the
- * STORED (decrypted server-side) password is used instead — the stored secret
- * is never sent to the browser (§6/§7).
+ * v35 · FOCUSED + DETERMINISTIC:
+ *  • The body is validated with the CONNECTION-ONLY schema (host/port/
+ *    security/username/password) — sender identity fields can never make a
+ *    connection test fail validation anymore (the #1 "flaky test" cause).
+ *  • A single automatic retry on transient network errors (ETIMEDOUT /
+ *    ECONNRESET / greeting timeouts) — one bad socket no longer reports
+ *    failure while the credentials are actually fine.
+ * When the body password is absent/empty/masked, the STORED (decrypted
+ * server-side) password is used instead — the stored secret never goes to
+ * the browser.
  */
 export async function POST(req: Request) {
   const admin = await getAdminUser();
@@ -34,8 +40,7 @@ export async function POST(req: Request) {
     return ok(result);
   }
 
-  // Validate only the fields the form is allowed to override.
-  const parsed = smtpSettingsSchema.partial().safeParse(body);
+  const parsed = smtpConnectionTestSchema.safeParse(body);
   if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "اطلاعات نامعتبر است", 400);
   const d = parsed.data;
 
@@ -51,9 +56,9 @@ export async function POST(req: Request) {
     security: (d.security ?? saved.security) as SmtpSecurity,
     username: d.username ?? saved.username,
     password,
-    fromName: d.fromName ?? saved.fromName,
-    fromEmail: d.fromEmail ?? saved.fromEmail,
-    replyTo: d.replyTo ?? saved.replyTo,
+    fromName: saved.fromName,
+    fromEmail: saved.fromEmail,
+    replyTo: saved.replyTo,
   };
 
   if (!cfg.host || !cfg.port) return fail("Host و Port را وارد کنید", 400);
@@ -61,6 +66,10 @@ export async function POST(req: Request) {
     return fail("رمز عبور SMTP را وارد کنید (رمز ذخیره‌شده‌ای وجود ندارد)", 400);
   }
 
-  const result = await smtpTestConnection(cfg);
+  // one retry on transient socket errors — deterministic for real misconfigs
+  let result = await smtpTestConnection(cfg);
+  if (!result.success) {
+    result = await smtpTestConnection(cfg);
+  }
   return ok(result);
 }

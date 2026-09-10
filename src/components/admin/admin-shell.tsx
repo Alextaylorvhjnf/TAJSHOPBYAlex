@@ -904,35 +904,22 @@ function TopIconButton({
   );
 }
 
-/* ── brand mark: v27.1 — the admin panel now shows the SITE LOGO (the same
-   uploaded logo + store name as the storefront, sourced from the branding
-   context). Falls back to the gradient monogram tile when no logo is
-   uploaded, so a fresh install still looks branded. ── */
+/* ── brand mark: v35 — the admin panel now ALWAYS shows the SITE LOGO: the
+   uploaded logo from settings, or (NEW) the default brand emblem asset when
+   nothing has been uploaded yet — the same fallback chain the storefront
+   TAJLogo uses, so the sidebar is never a bare monogram tile. ── */
+const DEFAULT_BRAND_MARK = "/brand/logo-mark.webp";
 function BrandMark({ compact = false }: { compact?: boolean }) {
   const branding = useBranding();
   const storeName = branding.storeName?.trim() || "تاج الکترونیکس";
   const storeNameEn = branding.storeNameEn?.trim() || "TAJ Electronics";
-  const initial = storeName.slice(0, 1);
+  /* uploaded logo → default brand emblem (never empty) */
+  const mark = branding.logo || DEFAULT_BRAND_MARK;
   return (
     <span className="flex shrink-0 items-center gap-3">
-      {branding.logo ? (
-        <span className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-xl border bg-card shadow-sm">
-          { }
-          <img src={branding.logo} alt={`${storeName} logo`} className="h-full w-full object-cover" width={40} height={40} />
-        </span>
-      ) : (
-        <span
-          aria-hidden
-          className="grid h-10 w-10 place-items-center rounded-xl text-lg font-black"
-          style={{
-            background: "linear-gradient(135deg, var(--av-pill-from, #7C3AED), var(--av-pill-to, #6D28D9))",
-            color: "var(--av-pill-fg, #FFFFFF)",
-            boxShadow: "0 8px 20px -6px var(--av-glow, rgba(124, 58, 237, 0.45))",
-          }}
-        >
-          {initial}
-        </span>
-      )}
+      <span className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-xl border bg-card shadow-sm">
+        <img src={mark} alt={`${storeName} logo`} className="h-full w-full object-cover" width={40} height={40} />
+      </span>
       <span className={cn("flex-col leading-tight", compact ? "hidden lg:flex" : "flex")}>
         <span className="max-w-[150px] truncate text-[15px] font-extrabold text-foreground">{storeName}</span>
         <span className={cn("text-[11px] font-medium text-muted-foreground", compact && "lg:hidden")}>

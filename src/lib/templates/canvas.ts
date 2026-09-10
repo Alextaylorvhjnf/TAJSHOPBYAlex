@@ -159,6 +159,12 @@ export const TEMPLATE_CANVAS_MODES: Record<string, TemplatePalettePair> = {
   "purple-mall":        { dark: { bg: "#1A1025", fg: "#F6EFFB" }, light: { bg: "#F7F2FA", fg: "#31203F" } },
   "nova-glass":         { dark: { bg: "#131A24", fg: "#E5EBF4" }, light: { bg: "#EEF3FA", fg: "#1E293B" } },
   "novatrend-clean":    { dark: { bg: "#16171A", fg: "#EDEDEF" }, light: { bg: "#FFFFFF", fg: "#1A1A1A" } },
+  /* v35 · vertical storefronts (صنف‌های فروشگاه) */
+  "taj-electronics-pro": { dark: { bg: "#191922", fg: "#ECEDF2" }, light: { bg: "#FFFFFF", fg: "#1A1A24" } },
+  "sport-fashion":       { dark: { bg: "#14161C", fg: "#EDEEF1" }, light: { bg: "#FBF7F2", fg: "#201A14" } },
+  "beauty-glow":         { dark: { bg: "#221618", fg: "#F5E9E6" }, light: { bg: "#FFF9F7", fg: "#2A1B20" } },
+  "zentry-gaming":       { dark: { bg: "#14061F", fg: "#F2E8FF" }, light: { bg: "#F5F0FB", fg: "#241040" } },
+  "auto-parts":          { dark: { bg: "#131511", fg: "#EFF2E9" }, light: { bg: "#F4F4F0", fg: "#1E2024" } },
 };
 
 /** mode body: the canvas token vars. */

@@ -56,6 +56,11 @@ export interface MaintenanceContent {
   /** v32 (13-d): countdown-eta target — hours added on top of the next-18:00
    * anchor ("" = unset) */
   countdownHours?: string;
+  /** v35: EXACT countdown target — an ISO datetime chosen by the admin
+   * ("مثلاً سه روز و پنج دقیقه دیگه سایت آنلاین می‌شه"). When set it OVERRIDES
+   * the legacy days/hours offsets and the next-18:00 anchor entirely, so the
+   * ETA is a precise wall-clock moment. ""/missing = legacy behavior. */
+  endsAt?: string;
 }
 
 /** designed defaults — byte-identical to the v25–v28 screen wording */
@@ -76,6 +81,8 @@ export const DEFAULT_MAINTENANCE_CONTENT: Required<MaintenanceContent> = {
   logoUrl: "",
   countdownDays: "",
   countdownHours: "",
+  /* v35: unset = legacy next-18:00 + offset behavior */
+  endsAt: "",
 };
 
 /** parse + merge the raw JSON column with the defaults (never throws) */
@@ -87,6 +94,17 @@ export function resolveMaintenanceContent(raw: string | null | undefined): Requi
   } catch {
     return { ...DEFAULT_MAINTENANCE_CONTENT };
   }
+}
+
+/** v35: parse the admin-chosen exact ETA (ISO string) into a Date —
+ * returns null for unset/invalid values (legacy countdown behavior).
+ * A past date also returns null: the countdown simply shows zeros. */
+export function resolveMaintenanceEndsAt(raw: string | undefined | null): Date | null {
+  if (!raw) return null;
+  const t = Date.parse(raw);
+  if (Number.isNaN(t)) return null;
+  const d = new Date(t);
+  return d.getTime() <= Date.now() ? null : d;
 }
 
 // ─────────────────────────── Template registry ───────────────────────────

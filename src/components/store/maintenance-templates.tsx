@@ -65,6 +65,8 @@ export interface MaintenanceScreenData {
     /** v32 (13-d): countdown target — days/hours on top of the next-18:00 anchor */
     countdownDays: string;
     countdownHours: string;
+    /** v35: EXACT countdown target (ISO datetime) — overrides everything */
+    endsAt: string;
   };
   storeName: string;
   logo: string | null;
@@ -747,12 +749,25 @@ function CountdownEtaRepair({ data }: { data: MaintenanceScreenData }) {
     return () => clearInterval(t);
   }, []);
 
+  /* v35: EXACT admin-set wall-clock target (content.endsAt) — overrides the
+   * legacy next-18:00 + days/hours anchor entirely when present. */
+  const exactEndsAt = useMemo(
+    () => (content.endsAt && Date.parse(content.endsAt) > 0 ? Date.parse(content.endsAt) : null),
+    [content.endsAt]
+  );
+
   /* v32 (13-d): admin-set target — next-18:00 anchor + configured offset */
   const extraMs = useMemo(
     () => configuredCountdownMs(content.countdownDays, content.countdownHours),
     [content.countdownDays, content.countdownHours]
   );
-  const eta = useMemo(() => (now === null ? nextEta(Date.now()) : nextEta(now)) + extraMs, [now, extraMs]);
+  const eta = useMemo(
+    () =>
+      exactEndsAt !== null && Number.isFinite(exactEndsAt)
+        ? exactEndsAt
+        : (now === null ? nextEta(Date.now()) : nextEta(now)) + extraMs,
+    [exactEndsAt, now, extraMs]
+  );
   const remaining = now === null ? null : Math.max(0, eta - now);
   const days = remaining === null ? 0 : Math.floor(remaining / 86_400_000);
   const hours = remaining === null ? 0 : Math.floor((remaining % 86_400_000) / 3_600_000);
@@ -760,14 +775,18 @@ function CountdownEtaRepair({ data }: { data: MaintenanceScreenData }) {
   const seconds = remaining === null ? 0 : Math.floor((remaining % 60_000) / 1000);
   /** the progress window = the whole configured countdown (min 8h — the v31
    * default window), so the bar + repair stages span the full ETA */
-  const WINDOW = Math.max(8 * 3_600_000, extraMs);
-  const progress = remaining === null ? 0 : Math.min(1, Math.max(0, 1 - remaining / WINDOW));
+  const WINDOW = exactEndsAt ? Math.max(3_600_000, 3 * 86_400_000) : Math.max(8 * 3_600_000, extraMs);
+  const spanStart = exactEndsAt ? eta - WINDOW : eta - Math.max(8 * 3_600_000, extraMs);
+  const progress =
+    remaining === null || now === null ? 0 : Math.min(1, Math.max(0, (now - spanStart) / (eta - spanStart)));
   const currentStep = Math.min(3, Math.floor(progress * 4));
   const etaTime =
     remaining !== null
       ? new Intl.DateTimeFormat(
           "fa-IR",
-          extraMs >= 86_400_000 ? { weekday: "long", hour: "2-digit", minute: "2-digit" } : { hour: "2-digit", minute: "2-digit" }
+          remaining >= 86_400_000
+            ? { weekday: "long", hour: "2-digit", minute: "2-digit" }
+            : { hour: "2-digit", minute: "2-digit" }
         ).format(new Date(eta))
       : "…";
 

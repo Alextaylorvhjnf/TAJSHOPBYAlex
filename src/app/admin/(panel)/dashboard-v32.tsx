@@ -1128,8 +1128,10 @@ export function DashboardV32({
         </FadeIn>
       </div>
 
-      {/* ═ operational row: top products + health + payments + messages ═ */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+      {/* ═ operational row: v35 RESPONSIVE — 2×2 at ≥lg (bigger, readable
+          cards — the 4-column xl row crammed images/text into each other);
+          each card gets wider rows, larger thumbnails and wrapped meta. ═ */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {/* محصولات پرفروش */}
         <FadeIn delay={0.08} className="min-w-0">
           <Card className="min-w-0">
@@ -1139,30 +1141,30 @@ export function DashboardV32({
                 <Link href="/admin/products">مشاهده همه</Link>
               </Button>
             </CardHeader>
-            <CardContent className="max-h-96 space-y-2 overflow-y-auto">
+            <CardContent className="max-h-[28rem] space-y-2.5 overflow-y-auto">
               {data.topProducts.length === 0 && (
                 <p className="py-6 text-center text-xs text-muted-foreground">محصولی به فروش نرسیده است</p>
               )}
               {data.topProducts.map((p, i) => (
-                <div key={p.name} className="flex items-center gap-3 rounded-xl border p-2">
+                <div key={p.name} className="flex items-center gap-3 rounded-xl border p-3">
                   <span className="av32-rank shrink-0" aria-hidden>
                     {(i + 1).toLocaleString("fa-IR")}
                   </span>
-                  <AdminThumb src={p.mainImage} alt={p.name} size={36} />
+                  <AdminThumb src={p.mainImage} alt={p.name} size={48} />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-xs font-bold">{p.name}</p>
-                    <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+                    <p className="line-clamp-2 text-[13px] font-bold leading-5">{p.name}</p>
+                    <div className="mt-1 flex flex-wrap items-center gap-1.5">
                       {p.category && (
-                        <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[9px] font-bold text-primary">
+                        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
                           {p.category}
                         </span>
                       )}
-                      <span className="text-[11px] text-muted-foreground tabular-nums">
+                      <span className="text-xs text-muted-foreground tabular-nums">
                         {formatPrice(p.price)} تومان
                       </span>
                     </div>
                   </div>
-                  <span className="shrink-0 text-[11px] font-bold text-emerald-600 tabular-nums">
+                  <span className="shrink-0 rounded-lg bg-emerald-500/10 px-2 py-1 text-[11px] font-bold text-emerald-600 tabular-nums">
                     {formatPrice(p.soldCount)} فروش
                   </span>
                 </div>
@@ -1203,11 +1205,11 @@ export function DashboardV32({
               {s.lowStockProducts.length > 0 && (
                 <div className="space-y-1.5 border-t pt-3">
                   <p className="text-[10px] font-bold text-muted-foreground">کالاهای رو به اتمام (موجودی ۵ یا کمتر)</p>
-                  <div className="max-h-36 space-y-1.5 overflow-y-auto">
+                  <div className="max-h-44 space-y-1.5 overflow-y-auto">
                     {s.lowStockProducts.slice(0, 8).map((p) => (
-                      <div key={p.id} className="flex items-center justify-between gap-2 rounded-lg border p-2">
+                      <div key={p.id} className="flex items-center justify-between gap-2 rounded-lg border p-2.5">
                         <div className="min-w-0">
-                          <p className="truncate text-xs font-bold">{p.name}</p>
+                          <p className="line-clamp-2 text-xs font-bold leading-5">{p.name}</p>
                           <p className="font-mono text-[10px] text-muted-foreground" dir="ltr">{p.sku}</p>
                         </div>
                         <span
@@ -1257,12 +1259,12 @@ export function DashboardV32({
                 <Link href="/admin/payments">مشاهده همه</Link>
               </Button>
             </CardHeader>
-            <CardContent className="max-h-96 space-y-2 overflow-y-auto">
+            <CardContent className="max-h-[28rem] space-y-2.5 overflow-y-auto">
               {data.recentPayments.length === 0 && (
                 <p className="py-6 text-center text-xs text-muted-foreground">تراکنشی ثبت نشده است</p>
               )}
               {data.recentPayments.map((p) => (
-                <div key={p.id} className="flex items-center justify-between gap-2 rounded-xl border p-2.5">
+                <div key={p.id} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-xl border p-3">
                   <div className="min-w-0">
                     <p className="font-mono text-xs font-bold" dir="ltr">{p.orderNumber}</p>
                     <p className="text-[11px] text-muted-foreground">{formatDateTime(p.createdAt)}</p>
@@ -1293,7 +1295,7 @@ export function DashboardV32({
                 </Link>
               </Button>
             </CardHeader>
-            <CardContent className="max-h-96 space-y-2 overflow-y-auto">
+            <CardContent className="max-h-[28rem] space-y-2.5 overflow-y-auto">
               {data.recentMessages.length === 0 && (
                 <p className="py-6 text-center text-xs text-muted-foreground">پیام جدیدی دریافت نشده است</p>
               )}
@@ -1301,13 +1303,13 @@ export function DashboardV32({
                 <Link
                   key={m.id}
                   href="/admin/messages"
-                  className="flex items-start gap-2.5 rounded-xl border p-2.5 transition-colors hover:bg-muted/40"
+                  className="flex items-start gap-2.5 rounded-xl border p-3 transition-colors hover:bg-muted/40"
                 >
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-destructive/10 text-destructive">
-                    <Mail className="h-3.5 w-3.5" />
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+                    <Mail className="h-4 w-4" />
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-xs font-bold">{m.subject}</p>
+                    <p className="line-clamp-2 text-xs font-bold leading-5">{m.subject}</p>
                     <p className="truncate text-[11px] text-muted-foreground">{m.name}</p>
                   </div>
                   <span className="shrink-0 whitespace-nowrap text-[10px] text-muted-foreground">
