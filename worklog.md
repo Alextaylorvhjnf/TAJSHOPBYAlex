@@ -723,3 +723,19 @@ Stage Summary:
 - v29.1.0 live on GitHub: https://github.com/Alextaylorvhjnf/TAJSHOPBYAlex
 - Update channel ready: panel on 29.0.1 → «بررسی به‌روزرسانی» → downloads 94.3 MB ZIP → SHA-256 verified → applies update.
 - Full project ZIP at /home/z/my-project/TAJ-SHOP-FULL-v29.1.0.zip (208 MB).
+
+---
+Task ID: 7
+Agent: main (Z.ai Code)
+Task: Server install guide + fresh-install package for v29.1.0.
+
+Work Log:
+- User uploaded TAJ-SHOP-FULL zip (source-only, no pre-built runtime) to server root — install.sh requires runtime/server.js, so built a proper package.
+- Assembled TAJ-Electronics-Install-v29.1.0.zip (88 MB / 2678 files): runtime/ (pre-built standalone from update zip's runtime-code + public/ 36M), install.sh, README.md, .env.example.
+- Auto-commit 301ffb3 had accidentally tracked the 208MB TAJ-SHOP-FULL zip → GitHub rejected push (>100MB). Fixed via git reset --mixed to f26a873, gitignore local zips, re-commit clean.
+- Pushed 3f7ab51: updates/TAJ-Electronics-Install-v29.1.0.zip live on raw.githubusercontent (HTTP 200).
+- Local copies for download: TAJ-Electronics-Install-v29.1.0.zip + TAJ-SHOP-FULL-v29.1.0.zip (208MB source).
+
+Stage Summary:
+- Fresh install: upload TAJ-Electronics-Install-v29.1.0.zip to server root → one-line unzip + bash install.sh (2-4 min, no compile, Node/Nginx/SSL auto) → open http://IP/install to create admin.
+- Existing install update: sudo bash /var/www/taj-electronics/update.sh (auto-downloads 29.1.0 from GitHub, ~1 min) or panel's «بررسی به‌روزرسانی».
