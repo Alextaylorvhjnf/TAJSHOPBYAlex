@@ -98,3 +98,7 @@ scripts/dev-watchdog.sh
 # re-include it (the broad `test` ignore pattern above would hide it)
 !src/app/api/ai/test/
 !src/app/api/ai/test/route.ts
+
+# local deliverable zips (too big for git, >100MB limit)
+TAJ-SHOP-FULL-v29.1.0.zip
+TAJ-SHOP-FULL-*.zip
