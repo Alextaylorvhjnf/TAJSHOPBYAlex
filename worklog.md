@@ -688,3 +688,21 @@ Work Log:
 
 Stage Summary:
 - Vertical picker UI wired to GET/PUT /api/admin/vertical per the shared contract; RTL + mobile-safe.
+---
+Task ID: 18 (final)
+Agent: main (Z.ai Code)
+Task: v35 (29.1.0) — merge remote v34.1/v34.2, complete the vertical system, QA everything, build + release.
+
+Work Log:
+- MERGE: origin/main (v34.1/v34.2, the lineage the user's production actually runs) merged into local (153 conflicts resolved: AA files identical → ours; dashboard/appearance/settings/validators/maintenance → ours (v35 fixes) + manual port of remote-unique telegramBotUrl (schema+validator+settings field+footer chip already auto-merged); db.ts/updater.ts/release-update.mjs/manifests → theirs (prod lazy client + runtime-swap updater); writeIdleState re-added into v34.2 updater for the stuck-state reset; restore src/app/api/upload/route.ts (accidentally deleted by the v34 docs commit)).
+- Vertical system FINISHED (4-a/4-b work landed + my fixes): optional-chain crash in VerticalPickerSection (vData?.data?.verticals → top-level payload — this project's ok() envelope spreads, no data wrapper — fixed all query accesses + Persian zod messages for SMTP schema); renderer + appearance preview map wired with the 5 flagship templates.
+- CRITICAL FIX: catalog-gaming had 60 image URLs on the TYPO domain z-cdn.chatgl.cn (missing m — dead, 000) → all fixed to z-cdn.chatglm.cn (verified 200); gaming homepage/product pages now 200.
+- FIX: always-dark chrome halves for zentry-gaming + auto-parts (canvas.ts + chrome/config.ts light entries = dark values) — killed the light band above the footer on always-dark templates.
+- QA (agent-browser + VLM + curl): all 5 verticals switch E2E via PUT /api/admin/vertical + homepage renders per flagship template (gaming VLM 6→fixed footer seamless; mobile 390px no overflow); vertical picker UI renders 5 cards + active badge + confirm dialog + apply flow live in browser; update panel: ZERO GitHub/source mentions (grep-verified), check button works, stale «done» state auto-resets to idle (simulated + verified); sidebar shows brand logo image; dashboard bottom 9/10 readable; maintenance tab has the exact-datetime countdown picker + days/hours + 2x2 rectangular preview grid 10/10; SMTP test endpoint: Persian validation errors + clean connection failure result.
+- RELEASE v35 (29.1.0): package.json bump + RELEASE-NOTES-v35.md + README (30 templates/5 verticals); production build (standalone, heap-capped, dev stopped for RAM) → runtime-code/ assembled (server.js + .next + prisma closure with 5-platform engines + .version + update.sh + bun.lock + db-seed + scripts + .bin/prisma shim; sharp symlink dereferenced; other-DB wasm engines trimmed) → updates/taj-electronics-update-29.1.0.zip = 94,299,766 bytes (89.9MB < 100MB GitHub limit), sha256 901fe4aefd46e1c6542371405738e40956e619c07b244dca0dd4bbf999ef3573, unzip -t clean; manifest version 29.1.0 (minApp 24.0.0); old 27/28 zips pruned; release commit 279dca3.
+- PUSH: FAILED — the stored ghp_ token is dead (GitHub API 401). Local repo is fully committed and ready; push needs a fresh token.
+- FULL PACKAGE: /tmp/full-pkg/source = git archive HEAD + clean runtime/ (standalone minus dev db/log/skills/updates, + .version + db-seed + scripts) → taj-electronics-v35-full.zip = 176,301,493 bytes, sha256 bd37f1702a9ca96d1eccdd60ade06244e73f4884fa106fb93f26b399f2363474; copied to download/ + public/downloads/; litterbox 72h uploads: full https://litter.catbox.moe/cp4dnh.zip + update https://litter.catbox.moe/bgv847.zip (both byte-verified 200).
+- Dev server restarted (double-fork daemon) + warmed; sandbox left on the ELECTRONICS vertical (22 published products, taj-electronics-pro template, store name تاج الکترونیکس).
+
+Stage Summary:
+- v35 complete & committed (279dca3): 5 independent verticals (catalog+template+AI persona+picker+atomic reseeding), all 9 user-reported bugs fixed, telegram bot UX upgrade, merge of remote v34.1/v34.2 production fixes. Update zip 89.9MB + full package 168MB ready. ONLY the git push is blocked by an expired token — user must refresh it (or push themselves) for the panel update channel to go live.
