@@ -279,12 +279,15 @@ export const TEMPLATE_PALETTES_LIGHT: Record<string, ChromePalette> = {
   "purple-mall": { bg: "#F7F2FA", fg: "#31203F" },
   "nova-glass": { bg: "#131A24", fg: "#E5EBF4" }, /* v27b-T5: dark half */
   "novatrend-clean": { bg: "#16171A", fg: "#EDEDEF" }, /* v27b-T5: dark half */
-  /* v35 · vertical storefronts — OTHER-mode halves */
+  /* v35 · vertical storefronts — OTHER-mode halves. zentry-gaming and
+   * auto-parts are ALWAYS-dark designs (night-neon / industrial): their
+   * "light" half stays dark so the header/footer never render a light
+   * band around an always-dark template body. */
   "taj-electronics-pro": { bg: "#191922", fg: "#ECEDF2" },
   "sport-fashion": { bg: "#14161C", fg: "#EDEEF1" },
   "beauty-glow": { bg: "#221618", fg: "#F5E9E6" },
-  "zentry-gaming": { bg: "#F5F0FB", fg: "#241040" },
-  "auto-parts": { bg: "#F4F4F0", fg: "#1E2024" },
+  "zentry-gaming": { bg: "#14061F", fg: "#F2E8FF" },
+  "auto-parts": { bg: "#131511", fg: "#EFF2E9" },
 };
 
 export const TEMPLATE_CHROME: Record<string, TemplateChrome> = {

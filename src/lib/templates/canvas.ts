@@ -163,8 +163,11 @@ export const TEMPLATE_CANVAS_MODES: Record<string, TemplatePalettePair> = {
   "taj-electronics-pro": { dark: { bg: "#191922", fg: "#ECEDF2" }, light: { bg: "#FFFFFF", fg: "#1A1A24" } },
   "sport-fashion":       { dark: { bg: "#14161C", fg: "#EDEEF1" }, light: { bg: "#FBF7F2", fg: "#201A14" } },
   "beauty-glow":         { dark: { bg: "#221618", fg: "#F5E9E6" }, light: { bg: "#FFF9F7", fg: "#2A1B20" } },
-  "zentry-gaming":       { dark: { bg: "#14061F", fg: "#F2E8FF" }, light: { bg: "#F5F0FB", fg: "#241040" } },
-  "auto-parts":          { dark: { bg: "#131511", fg: "#EFF2E9" }, light: { bg: "#F4F4F0", fg: "#1E2024" } },
+  /* night-neon / industrial designs are ALWAYS dark (like the reference
+   * zentry-gaming.com): the light half keeps the dark canvas so the chrome
+   * never renders a light band around an always-dark template. */
+  "zentry-gaming":       { dark: { bg: "#14061F", fg: "#F2E8FF" }, light: { bg: "#14061F", fg: "#F2E8FF" } },
+  "auto-parts":          { dark: { bg: "#131511", fg: "#EFF2E9" }, light: { bg: "#131511", fg: "#EFF2E9" } },
 };
 
 /** mode body: the canvas token vars. */
