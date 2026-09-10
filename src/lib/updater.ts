@@ -341,6 +341,30 @@ function writeUpdateState(patch: Partial<UpdateState>, logLines: string[] = []):
   return state;
 }
 
+/**
+ * v35 · reset the persisted state to idle (atomically, keeping the last
+ * 40 log lines + a fresh finishedAt stamp).
+ *
+ * Used by POST /api/admin/update/status when the panel acknowledges a
+ * terminal done/error banner from a PREVIOUS session, and by the GET route
+ * when a terminal state is provably stale — so a page refresh always brings
+ * back the normal «بررسی به‌روزرسانی» flow instead of a forever «کامل شد».
+ */
+export function writeIdleState(): UpdateState {
+  const state: UpdateState = {
+    ...IDLE_STATE,
+    log: readUpdateState().log.slice(-40),
+    finishedAt: new Date().toISOString(),
+  };
+  try {
+    writeFileSync(`${STATE_FILE}.tmp`, JSON.stringify(state), "utf8");
+    renameSync(`${STATE_FILE}.tmp`, STATE_FILE);
+  } catch {
+    /* best-effort */
+  }
+  return state;
+}
+
 /** true while an update is genuinely running (stale >15min states are ignored) */
 export function isUpdateActive(state: UpdateState): boolean {
   if (!ACTIVE_PHASES.includes(state.phase)) return false;

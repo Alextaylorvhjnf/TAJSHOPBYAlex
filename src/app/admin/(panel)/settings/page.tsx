@@ -119,6 +119,7 @@ interface StoreSettings {
   address: string;
   instagram: string | null;
   telegram: string | null;
+  telegramBotUrl: string | null;
   whatsapp: string | null;
   footerText: string;
   description: string | null;
@@ -981,6 +982,15 @@ function StoreTab() {
               </Field>
               <Field label="واتس‌اپ" htmlFor="s-wa">
                 <Input id="s-wa" dir="ltr" className="rounded-lg text-left" value={form.whatsapp ?? ""} onChange={(e) => set("whatsapp", e.target.value)} placeholder="9891…" />
+              </Field>
+            </div>
+            <div className="sm:col-span-2">
+              <Field
+                label="لینک ربات خرید تلگرامی (دکمه فوتر)"
+                htmlFor="s-tgbot"
+                hint="وقتی پر باشد، در فوتر همه قالب‌ها دکمه «خرید از ربات تلگرامی» نمایش داده می‌شود — @username یا لینک t.me (خالی = خودکار از تنظیمات ربات تلگرامی، اگر ربات فعال باشد)"
+              >
+                <Input id="s-tgbot" dir="ltr" className="rounded-lg text-left" value={form.telegramBotUrl ?? ""} onChange={(e) => set("telegramBotUrl", e.target.value)} placeholder="@TajShopBot یا t.me/TajShopBot" />
               </Field>
             </div>
             <div className="sm:col-span-2">

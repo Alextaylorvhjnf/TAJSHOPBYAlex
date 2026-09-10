@@ -306,6 +306,16 @@ export const storeSettingsSchema = z.object({
   workingHours: z.string().max(120).optional().nullable(),
   instagram: z.string().max(200).optional().nullable(),
   telegram: z.string().max(200).optional().nullable(),
+  // v34.1: Telegram shopping-bot link for the footer «خرید از ربات تلگرامی»
+  // button — accepts @username, t.me/… links or any full https URL.
+  telegramBotUrl: z
+    .string()
+    .max(200)
+    .optional()
+    .nullable()
+    .refine((v) => !v || v.startsWith("/") || v.startsWith("https://") || v.startsWith("http://") || v.startsWith("@") || /^t\.me\//i.test(v), {
+      message: "لینک ربات باید @username، t.me/… یا آدرس کامل https باشد",
+    }),
   whatsapp: z.string().max(200).optional().nullable(),
   youtube: z.string().max(200).optional().nullable(),
   twitter: z.string().max(200).optional().nullable(),
