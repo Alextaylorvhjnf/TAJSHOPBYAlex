@@ -18,143 +18,143 @@ import type { VerticalDef, VerticalProductSeed } from "./types";
 /* ── stable OSS image urls (main + 1–2 gallery each) ─────────────── */
 const IMG = {
   gpuAsus: {
-    main: "https://z-cdn.chatgl.cn/image-search-mcp/images-ppt/77ede6f1c136.jpg",
+    main: "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/77ede6f1c136.jpg",
     gal: [
-      "https://z-cdn.chatgl.cn/image-search-mcp/images-ppt/26b902f4a30d.png",
-      "https://z-cdn.chatgl.cn/image-search-mcp/images-ppt/5db713ddb4c6.jpg",
+      "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/26b902f4a30d.png",
+      "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/5db713ddb4c6.jpg",
     ],
   },
   gpuNvidia: {
-    main: "https://z-cdn.chatgl.cn/image-search-mcp/images-ppt/b7a87ec6cb14.jpg",
+    main: "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/b7a87ec6cb14.jpg",
     gal: [
-      "https://z-cdn.chatgl.cn/image-search-mcp/images-ppt/50448a07ea44.jpg",
-      "https://z-cdn.chatgl.cn/image-search-mcp/images-ppt/b2ef6f562ea2.jpg",
+      "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/50448a07ea44.jpg",
+      "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/b2ef6f562ea2.jpg",
     ],
   },
   gpuMsi: {
-    main: "https://z-cdn.chatgl.cn/image-search-mcp/images-ppt/3a8aa8bc724a.png",
+    main: "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/3a8aa8bc724a.png",
     gal: [
-      "https://z-cdn.chatgl.cn/image-search-mcp/images-ppt/cc661f670613.png",
-      "https://z-cdn.chatgl.cn/image-search-mcp/images-ppt/3c75a1b7939d.png",
+      "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/cc661f670613.png",
+      "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/3c75a1b7939d.png",
     ],
   },
   cpuIntel: {
-    main: "https://z-cdn.chatgl.cn/image-search-mcp/images-ppt/fdfb0805c978.png",
+    main: "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/fdfb0805c978.png",
     gal: [
-      "https://z-cdn.chatgl.cn/image-search-mcp/images-ppt/6e96c659e674.jpg",
-      "https://z-cdn.chatgl.cn/image-search-mcp/images-ppt/d14c7dcae223.jpg",
+      "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/6e96c659e674.jpg",
+      "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/d14c7dcae223.jpg",
     ],
   },
   cpuAmd: {
-    main: "https://z-cdn.chatgl.cn/image-search-mcp/images-ppt/d66236f5fcb1.jpg",
+    main: "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/d66236f5fcb1.jpg",
     gal: [
-      "https://z-cdn.chatgl.cn/image-search-mcp/images-ppt/6e4b0fbe3f68.jpg",
-      "https://z-cdn.chatgl.cn/image-search-mcp/images-ppt/35bc3d26b7e4.png",
+      "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/6e4b0fbe3f68.jpg",
+      "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/35bc3d26b7e4.png",
     ],
   },
   mbAsus: {
-    main: "https://z-cdn.chatgl.cn/image-search-mcp/images-ppt/f1563101cba9.png",
+    main: "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/f1563101cba9.png",
     gal: [
-      "https://z-cdn.chatgl.cn/image-search-mcp/images-ppt/f0c72ec642aa.jpg",
-      "https://z-cdn.chatgl.cn/image-search-mcp/images-ppt/c73786c8a2bf.jpg",
+      "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/f0c72ec642aa.jpg",
+      "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/c73786c8a2bf.jpg",
     ],
   },
   ramCorsair: {
-    main: "https://z-cdn.chatgl.cn/image-search-mcp/images-ppt/cd8eefd59da9.jpg",
+    main: "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/cd8eefd59da9.jpg",
     gal: [
-      "https://z-cdn.chatgl.cn/image-search-mcp/images-ppt/129a83eda39d.jpg",
-      "https://z-cdn.chatgl.cn/image-search-mcp/images-ppt/af6823aaa99a.jpg",
+      "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/129a83eda39d.jpg",
+      "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/af6823aaa99a.jpg",
     ],
   },
   laptopRog: {
-    main: "https://z-cdn.chatgl.cn/image-search-mcp/images-ppt/2ff6c68059a1.jpg",
+    main: "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/2ff6c68059a1.jpg",
     gal: [
-      "https://z-cdn.chatgl.cn/image-search-mcp/images-ppt/a4266a4b94d4.jpg",
-      "https://z-cdn.chatgl.cn/image-search-mcp/images-ppt/7664504679ff.jpg",
+      "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/a4266a4b94d4.jpg",
+      "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/7664504679ff.jpg",
     ],
   },
   laptopMsi: {
-    main: "https://z-cdn.chatgl.cn/image-search-mcp/images-ppt/cbbe98e59dd7.jpg",
+    main: "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/cbbe98e59dd7.jpg",
     gal: [
-      "https://z-cdn.chatgl.cn/image-search-mcp/images-ppt/ffba9edf71d3.jpg",
-      "https://z-cdn.chatgl.cn/image-search-mcp/images-ppt/f9a0ee0ba2bb.jpeg",
+      "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/ffba9edf71d3.jpg",
+      "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/f9a0ee0ba2bb.jpeg",
     ],
   },
   monMsi: {
-    main: "https://z-cdn.chatgl.cn/image-search-mcp/images-ppt/bc96e6bd7ee0.jpg",
+    main: "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/bc96e6bd7ee0.jpg",
     gal: [
-      "https://z-cdn.chatgl.cn/image-search-mcp/images-ppt/4f976dcc9cd0.jpg",
-      "https://z-cdn.chatgl.cn/image-search-mcp/images-ppt/726072c0aad8.jpg",
+      "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/4f976dcc9cd0.jpg",
+      "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/726072c0aad8.jpg",
     ],
   },
   monRog: {
-    main: "https://z-cdn.chatgl.cn/image-search-mcp/images-ppt/c20d895cf452.png",
+    main: "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/c20d895cf452.png",
     gal: [
-      "https://z-cdn.chatgl.cn/image-search-mcp/images-ppt/fbe0109eb499.jpg",
-      "https://z-cdn.chatgl.cn/image-search-mcp/images-ppt/ae4ce7ad6277.jpg",
+      "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/fbe0109eb499.jpg",
+      "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/ae4ce7ad6277.jpg",
     ],
   },
   caseCorsair: {
-    main: "https://z-cdn.chatgl.cn/image-search-mcp/images-ppt/de7378e041fb.jpg",
+    main: "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/de7378e041fb.jpg",
     gal: [
-      "https://z-cdn.chatgl.cn/image-search-mcp/images-ppt/2292069a6267.jpg",
-      "https://z-cdn.chatgl.cn/image-search-mcp/images-ppt/5b9e7ce2d1a1.jpg",
+      "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/2292069a6267.jpg",
+      "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/5b9e7ce2d1a1.jpg",
     ],
   },
   coolMsi: {
-    main: "https://z-cdn.chatgl.cn/image-search-mcp/images-ppt/7aab3721ec41.jpg",
+    main: "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/7aab3721ec41.jpg",
     gal: [
-      "https://z-cdn.chatgl.cn/image-search-mcp/images-ppt/08cf62e3f5e3.jpg",
-      "https://z-cdn.chatgl.cn/image-search-mcp/images-ppt/68effc71d5c7.jpg",
+      "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/08cf62e3f5e3.jpg",
+      "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/68effc71d5c7.jpg",
     ],
   },
   conRazer: {
-    main: "https://z-cdn.chatgl.cn/image-search-mcp/images-ppt/6a29de3f18b7.jpg",
+    main: "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/6a29de3f18b7.jpg",
     gal: [
-      "https://z-cdn.chatgl.cn/image-search-mcp/images-ppt/6ba981a24ae5.jpg",
-      "https://z-cdn.chatgl.cn/image-search-mcp/images-ppt/33395537b51f.jpg",
+      "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/6ba981a24ae5.jpg",
+      "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/33395537b51f.jpg",
     ],
   },
   conRog: {
-    main: "https://z-cdn.chatgl.cn/image-search-mcp/images-ppt/af1d9bd5729f.jpg",
+    main: "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/af1d9bd5729f.jpg",
     gal: [
-      "https://z-cdn.chatgl.cn/image-search-mcp/images-ppt/20f75a6cb266.jpg",
-      "https://z-cdn.chatgl.cn/image-search-mcp/images-ppt/51f6f3d2f5dd.jpg",
+      "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/20f75a6cb266.jpg",
+      "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/51f6f3d2f5dd.jpg",
     ],
   },
   chairRazer: {
-    main: "https://z-cdn.chatgl.cn/image-search-mcp/images-ppt/900d3baf4a1f.jpg",
+    main: "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/900d3baf4a1f.jpg",
     gal: [
-      "https://z-cdn.chatgl.cn/image-search-mcp/images-ppt/590f17833687.jpg",
-      "https://z-cdn.chatgl.cn/image-search-mcp/images-ppt/b17e9e46a583.jpg",
+      "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/590f17833687.jpg",
+      "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/b17e9e46a583.jpg",
     ],
   },
   deskCorsair: {
-    main: "https://z-cdn.chatgl.cn/image-search-mcp/images-ppt/119bb752cbc3.jpg",
+    main: "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/119bb752cbc3.jpg",
     gal: [
-      "https://z-cdn.chatgl.cn/image-search-mcp/images-ppt/0ee9215828d4.jpg",
-      "https://z-cdn.chatgl.cn/image-search-mcp/images-ppt/f15e25641cb3.jpg",
+      "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/0ee9215828d4.jpg",
+      "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/f15e25641cb3.jpg",
     ],
   },
   hsSteel: {
-    main: "https://z-cdn.chatgl.cn/image-search-mcp/images-ppt/b30c088df9bd.png",
+    main: "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/b30c088df9bd.png",
     gal: [
-      "https://z-cdn.chatgl.cn/image-search-mcp/images-ppt/16207b81a05f.jpg",
-      "https://z-cdn.chatgl.cn/image-search-mcp/images-ppt/035dc4d48d78.jpg",
+      "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/16207b81a05f.jpg",
+      "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/035dc4d48d78.jpg",
     ],
   },
   hsLogi: {
-    main: "https://z-cdn.chatgl.cn/image-search-mcp/images-ppt/c52dcd0a025f.jpg",
+    main: "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/c52dcd0a025f.jpg",
     gal: [
-      "https://z-cdn.chatgl.cn/image-search-mcp/images-ppt/5bc0d12273b1.jpg",
-      "https://z-cdn.chatgl.cn/image-search-mcp/images-ppt/e33d6550d9df.jpg",
+      "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/5bc0d12273b1.jpg",
+      "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/e33d6550d9df.jpg",
     ],
   },
   micHyper: {
-    main: "https://z-cdn.chatgl.cn/image-search-mcp/images-ppt/bfd0b555e9bc.jpg",
+    main: "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/bfd0b555e9bc.jpg",
     gal: [
-      "https://z-cdn.chatgl.cn/image-search-mcp/images-ppt/79c11578e7cb.jpg",
-      "https://z-cdn.chatgl.cn/image-search-mcp/images-ppt/4e4b15829ef5.jpg",
+      "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/79c11578e7cb.jpg",
+      "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/4e4b15829ef5.jpg",
     ],
   },
 } as const;
