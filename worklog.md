@@ -739,3 +739,20 @@ Work Log:
 Stage Summary:
 - Fresh install: upload TAJ-Electronics-Install-v29.1.0.zip to server root → one-line unzip + bash install.sh (2-4 min, no compile, Node/Nginx/SSL auto) → open http://IP/install to create admin.
 - Existing install update: sudo bash /var/www/taj-electronics/update.sh (auto-downloads 29.1.0 from GitHub, ~1 min) or panel's «بررسی به‌روزرسانی».
+
+---
+Task ID: 8
+Agent: main (Z.ai Code)
+Task: Release v29.2.0 — the user ORIGINAL 29.1.0 runtime + two surgical fixes only (SMTP real-response, GapGPT CDN fallback). User directive: user own design must stay untouched.
+
+Work Log:
+- Verified the user original TAJ-Electronics-Install-v29.1.0.zip is untouched (MD5 d3479c0b7ce272f56ee1096e52f932e9).
+- Built updates/taj-electronics-update-29.2.0.zip (91537872 bytes, 2683 files, unzip -t clean, under the 100MB GitHub limit): runtime-code/ = the user original compiled runtime byte-identical except 3 patched chunks + PATCHES.md; root public/ prisma/ scripts/ = the user own assets verbatim; .version = 29.2.0.
+- Fix 1 SMTP ([root-of-the-server]__8e1bfb91._.js): connection-test error message now appends the REAL upstream SMTP response — live-verified against smtp.gmail.com:587 (real 535-5.7.8 BadCredentials + support URL shown in the admin UI).
+- Fix 2 GapGPT (src_lib_ai_ts_d1d17df9._.js + _694b2727._.js duplicate copy): automatic retry against CDN mirror https://api.gapapi.com/v1 on 502/503/504/HTML — live-verified the real-response error path against api.gapgpt.app (401 with request id + Persian guidance).
+- Browser-verified the original storefront design (user own TAJ Electronics look: stories, sliders, categories, demo catalog), 0 console errors, install wizard flow works, admin panel fully functional.
+- update-manifest.json bumped to 29.2.0 with sha256 e5772ef95532c3a2d2be127b12d07a09173a5466e0fd0c99a7486b2785771f21.
+
+Stage Summary:
+- v29.2.0 pushed to GitHub main. Update channel: existing installs run ./update.sh — auto-updates to 29.2.0; db/custom.db, public/uploads, .env preserved.
+- The user own design is the default and ONLY look — nothing visual changed, no template switching, no content changes.
